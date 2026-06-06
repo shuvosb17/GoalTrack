@@ -1,0 +1,142 @@
+import { v4 as uuid } from "uuid";
+import { db } from "./db";
+import type { Track, Module, Topic, Subtopic, Achievement, AppSettings } from "./types";
+import { nowISO } from "./utils";
+
+const ACHIEVEMENTS: Omit<Achievement, "id">[] = [
+  { key: "first_session", title: "First Study Session", description: "Complete your first learning session", icon: "🎯" },
+  { key: "hours_10", title: "10 Hour Club", description: "Invest 10 hours of focused learning", icon: "⏱️" },
+  { key: "hours_50", title: "50 Hour Warrior", description: "Invest 50 hours of focused learning", icon: "💪" },
+  { key: "hours_100", title: "Century Scholar", description: "Invest 100 hours of focused learning", icon: "📚" },
+  { key: "hours_500", title: "500 Hour Master", description: "Invest 500 hours of focused learning", icon: "🏆" },
+  { key: "hours_1000", title: "Millennium Learner", description: "Invest 1000 hours of focused learning", icon: "👑" },
+  { key: "streak_7", title: "Week Warrior", description: "Maintain a 7-day learning streak", icon: "🔥" },
+  { key: "streak_30", title: "Monthly Champion", description: "Maintain a 30-day learning streak", icon: "⚡" },
+  { key: "streak_100", title: "Centurion", description: "Maintain a 100-day learning streak", icon: "🌟" },
+  { key: "first_module", title: "Module Master", description: "Complete your first module", icon: "📦" },
+  { key: "first_track", title: "Track Conqueror", description: "Complete your first learning track", icon: "🚀" },
+];
+
+function buildSeedData() {
+  const now = nowISO();
+  const tracks: Track[] = [
+    { id: uuid(), name: "CPS Fundamentals", description: "Competitive programming foundations", color: "#8b5cf6", icon: "⚡", order: 0, archived: false, createdAt: now, updatedAt: now },
+    { id: uuid(), name: "LeetCode", description: "Algorithm & data structure mastery", color: "#3b82f6", icon: "💻", order: 1, archived: false, createdAt: now, updatedAt: now },
+    { id: uuid(), name: "Development", description: "Full-stack & backend engineering", color: "#10b981", icon: "🔧", order: 2, archived: false, createdAt: now, updatedAt: now },
+    { id: uuid(), name: "System Design", description: "Scalable systems architecture", color: "#f59e0b", icon: "🏗️", order: 3, archived: false, createdAt: now, updatedAt: now },
+    { id: uuid(), name: "Academic", description: "Theoretical CS foundations", color: "#ec4899", icon: "🎓", order: 4, archived: false, createdAt: now, updatedAt: now },
+  ];
+
+  const modules: Module[] = [];
+  const topics: Topic[] = [];
+  const subtopics: Subtopic[] = [];
+
+  const seedStructure: Record<string, Record<string, Record<string, string[]>>> = {
+    "CPS Fundamentals": {
+      "Number Theory": { "Primes & Factorization": ["Sieve of Eratosthenes", "Prime Factorization", "GCD & LCM"], "Modular Arithmetic": ["Modular Inverse", "Fermat's Little Theorem", "Chinese Remainder"] },
+      "Graph Theory": { "Traversal": ["BFS", "DFS", "Connected Components"], "Shortest Paths": ["Dijkstra", "Bellman-Ford", "Floyd-Warshall"] },
+    },
+    LeetCode: {
+      "Data Structures": { Arrays: ["Two Pointers", "Sliding Window", "Prefix Sum"], "Trees": ["Binary Search Trees", "Tree Traversals", "Lowest Common Ancestor"] },
+      Algorithms: { "Dynamic Programming": ["1D DP", "2D DP", "Bitmask DP"], "Graph Algorithms": ["Union Find", "Topological Sort", "Minimum Spanning Tree"] },
+    },
+    Development: {
+      "Backend Engineering": { Golang: ["Concurrency", "Goroutines", "Channels", "Worker Pools"], Databases: ["PostgreSQL", "Query Optimization", "Indexing Strategies"] },
+      DevOps: { "Cloud & Containers": ["Docker", "Kubernetes", "CI/CD Pipelines"] },
+    },
+    "System Design": {
+      "Core Concepts": { Scalability: ["Load Balancing", "Caching Strategies", "Database Sharding"], "Distributed Systems": ["CAP Theorem", "Consensus Algorithms", "Message Queues"] },
+      "Case Studies": { "Real World": ["URL Shortener", "News Feed", "Chat System"] },
+    },
+    Academic: {
+      "Computer Science": { "Theory": ["Automata Theory", "Computability", "Complexity Classes"], "Mathematics": ["Linear Algebra", "Probability", "Discrete Math"] },
+    },
+  };
+
+  tracks.forEach((track) => {
+    const trackModules = seedStructure[track.name];
+    if (!trackModules) return;
+    let moduleOrder = 0;
+    Object.entries(trackModules).forEach(([moduleName, moduleTopics]) => {
+      const newModule: Module = {
+        id: uuid(), trackId: track.id, name: moduleName, order: moduleOrder++, archived: false, createdAt: now, updatedAt: now,
+      };
+      modules.push(newModule);
+      let topicOrder = 0;
+      Object.entries(moduleTopics).forEach(([topicName, subtopicNames]) => {
+        const topic: Topic = {
+          id: uuid(), moduleId: newModule.id, trackId: track.id, name: topicName,
+          difficulty: topicOrder % 4 === 0 ? "easy" : topicOrder % 4 === 1 ? "medium" : topicOrder % 4 === 2 ? "hard" : "expert",
+          status: "not_started", order: topicOrder++, archived: false, createdAt: now, updatedAt: now,
+        };
+        topics.push(topic);
+        subtopicNames.forEach((subName, subOrder) => {
+          subtopics.push({
+            id: uuid(), topicId: topic.id, moduleId: newModule.id, trackId: track.id, name: subName,
+            status: "not_started",
+            difficulty: subOrder % 4 === 0 ? "easy" : subOrder % 4 === 1 ? "medium" : subOrder % 4 === 2 ? "hard" : "expert",
+            order: subOrder, archived: false, createdAt: now, updatedAt: now,
+          });
+        });
+      });
+    });
+  });
+
+  return { tracks, modules, topics, subtopics };
+}
+
+export async function seedDatabase(): Promise<void> {
+  const count = await db.tracks.count();
+  if (count > 0) return;
+
+  const { tryRestoreAutoBackup } = await import("./auto-backup");
+  const restored = await tryRestoreAutoBackup();
+  if (restored) return;
+
+  const { tracks, modules, topics, subtopics } = buildSeedData();
+  const year = new Date().getFullYear();
+
+  const settings: AppSettings = {
+    id: "default",
+    yearStart: `${year}-01-01`,
+    yearEnd: `${year}-12-31`,
+    yearlyHourGoal: 1000,
+    dailyHourGoal: 3,
+    theme: "dark",
+  };
+
+  await db.transaction("rw", [db.tracks, db.modules, db.topics, db.subtopics, db.achievements, db.settings], async () => {
+    await db.tracks.bulkAdd(tracks);
+    await db.modules.bulkAdd(modules);
+    await db.topics.bulkAdd(topics);
+    await db.subtopics.bulkAdd(subtopics);
+    await db.achievements.bulkAdd(ACHIEVEMENTS.map((a) => ({ ...a, id: uuid() })));
+    await db.settings.put(settings);
+  });
+}
+
+export async function exportAllData() {
+  const [tracks, modules, topics, subtopics, sessions, journal, achievements, milestones, settings] = await Promise.all([
+    db.tracks.toArray(), db.modules.toArray(), db.topics.toArray(), db.subtopics.toArray(),
+    db.sessions.toArray(), db.journal.toArray(), db.achievements.toArray(), db.milestones.toArray(), db.settings.toArray(),
+  ]);
+  return { version: 1, exportedAt: nowISO(), tracks, modules, topics, subtopics, sessions, journal, achievements, milestones, settings };
+}
+
+export async function importAllData(data: Awaited<ReturnType<typeof exportAllData>>) {
+  await db.transaction("rw", [db.tracks, db.modules, db.topics, db.subtopics, db.sessions, db.journal, db.achievements, db.milestones, db.settings], async () => {
+    await Promise.all([
+      db.tracks.clear(), db.modules.clear(), db.topics.clear(), db.subtopics.clear(),
+      db.sessions.clear(), db.journal.clear(), db.achievements.clear(), db.milestones.clear(), db.settings.clear(),
+    ]);
+    await db.tracks.bulkAdd(data.tracks);
+    await db.modules.bulkAdd(data.modules);
+    await db.topics.bulkAdd(data.topics);
+    await db.subtopics.bulkAdd(data.subtopics);
+    await db.sessions.bulkAdd(data.sessions);
+    await db.journal.bulkAdd(data.journal);
+    await db.achievements.bulkAdd(data.achievements);
+    await db.milestones.bulkAdd(data.milestones);
+    await db.settings.bulkAdd(data.settings);
+  });
+}
