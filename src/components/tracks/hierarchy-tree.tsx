@@ -27,9 +27,10 @@ import { defaultDueDate, formatDeadline, getDaysUntilDue } from "@/lib/in-progre
 import { db } from "@/lib/db";
 import {
   createModule, createTopic, createSubtopic, updateSubtopicStatus, updateTopicStatus,
+  updateTopicDifficulty, updateSubtopicDifficulty,
   archiveSubtopic, deleteSubtopic, duplicateSubtopic, reorderItems,
 } from "@/lib/crud";
-import type { Track, Module, Topic, Subtopic, ProgressStatus } from "@/lib/types";
+import type { Track, Module, Topic, Subtopic, ProgressStatus, Difficulty } from "@/lib/types";
 import { getModuleProgress, getTopicProgress, getTrackProgress } from "@/lib/analytics";
 import { useSessions } from "@/hooks/use-data";
 import {
@@ -62,6 +63,7 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [dialog, setDialog] = useState<{ type: string; parentId?: string; trackId?: string; moduleId?: string } | null>(null);
   const [newName, setNewName] = useState("");
+  const [newDifficulty, setNewDifficulty] = useState<Difficulty>("medium");
   const [statusDialog, setStatusDialog] = useState<{ id: string; type: "topic" | "subtopic"; dueDate: string } | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -82,11 +84,12 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
   const handleCreate = async () => {
     if (!dialog || !newName.trim()) return;
     if (dialog.type === "module" && dialog.trackId) await createModule(dialog.trackId, newName);
-    if (dialog.type === "topic" && dialog.parentId && dialog.trackId) await createTopic(dialog.parentId, dialog.trackId, newName);
+    if (dialog.type === "topic" && dialog.parentId && dialog.trackId) await createTopic(dialog.parentId, dialog.trackId, newName, newDifficulty);
     if (dialog.type === "subtopic" && dialog.parentId && dialog.moduleId && dialog.trackId)
-      await createSubtopic(dialog.parentId, dialog.moduleId, dialog.trackId, newName);
+      await createSubtopic(dialog.parentId, dialog.moduleId, dialog.trackId, newName, newDifficulty);
     setDialog(null);
     setNewName("");
+    setNewDifficulty("medium");
   };
 
   const handleDragEnd = async (event: DragEndEvent, items: { id: string; order: number }[], table: Parameters<typeof reorderItems>[0]) => {
@@ -156,7 +159,7 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                     compact
                                     loggedMs={getModuleLoggedMs(mod.id, subtopics, sessions)}
                                   />
-                                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); setDialog({ type: "topic", parentId: mod.id, trackId: track.id }); }}>
+                                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); setNewDifficulty("medium"); setDialog({ type: "topic", parentId: mod.id, trackId: track.id }); }}>
                                     <Plus className="h-3 w-3" />
                                   </Button>
                                 </div>
@@ -174,9 +177,25 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                               <div className="flex items-center gap-2 p-2 pl-4 cursor-pointer hover:bg-secondary/20" onClick={() => toggle(topic.id)}>
                                                 {expanded.has(topic.id) ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                                                 <span className="text-sm flex-1">{topic.name}</span>
-                                                <Badge variant="outline" className="text-[10px]" style={{ color: DIFFICULTY_COLORS[topic.difficulty] }}>
-                                                  {DIFFICULTY_LABELS[topic.difficulty]}
-                                                </Badge>
+                                                <Select
+                                                  value={topic.difficulty}
+                                                  onValueChange={(v) => updateTopicDifficulty(topic.id, v as Difficulty)}
+                                                >
+                                                  <SelectTrigger
+                                                    className="h-6 w-[88px] text-[10px] border-border/50"
+                                                    style={{ color: DIFFICULTY_COLORS[topic.difficulty] }}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                  >
+                                                    <SelectValue />
+                                                  </SelectTrigger>
+                                                  <SelectContent>
+                                                    {Object.entries(DIFFICULTY_LABELS).map(([k, v]) => (
+                                                      <SelectItem key={k} value={k} style={{ color: DIFFICULTY_COLORS[k as Difficulty] }}>
+                                                        {v}
+                                                      </SelectItem>
+                                                    ))}
+                                                  </SelectContent>
+                                                </Select>
                                                 <span className="text-xs text-muted-foreground w-8 text-right">{topicProgress.percentage}%</span>
                                                 <Progress value={topicProgress.percentage} className="h-1 w-12 hidden sm:block" />
                                                 {(topic.status === "in_progress" || topicProgress.inProgress > 0) && (
@@ -209,7 +228,7 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                   compact
                                                   loggedMs={getTopicLoggedMs(topic.id, subtopics, sessions)}
                                                 />
-                                                <Button size="icon" variant="ghost" className="h-5 w-5" onClick={(e) => { e.stopPropagation(); setDialog({ type: "subtopic", parentId: topic.id, moduleId: mod.id, trackId: track.id }); }}>
+                                                <Button size="icon" variant="ghost" className="h-5 w-5" onClick={(e) => { e.stopPropagation(); setNewDifficulty(topic.difficulty); setDialog({ type: "subtopic", parentId: topic.id, moduleId: mod.id, trackId: track.id }); }}>
                                                   <Plus className="h-3 w-3" />
                                                 </Button>
                                               </div>
@@ -242,9 +261,24 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                               {formatDeadline(getDaysUntilDue(sub.dueDate), sub.dueDate)}
                                                             </Badge>
                                                           )}
-                                                          <Badge variant="outline" className="text-[10px]" style={{ color: DIFFICULTY_COLORS[sub.difficulty] }}>
-                                                            {DIFFICULTY_LABELS[sub.difficulty]}
-                                                          </Badge>
+                                                          <Select
+                                                            value={sub.difficulty}
+                                                            onValueChange={(v) => updateSubtopicDifficulty(sub.id, v as Difficulty)}
+                                                          >
+                                                            <SelectTrigger
+                                                              className="h-7 w-[88px] text-[10px] border-border/50"
+                                                              style={{ color: DIFFICULTY_COLORS[sub.difficulty] }}
+                                                            >
+                                                              <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                              {Object.entries(DIFFICULTY_LABELS).map(([k, v]) => (
+                                                                <SelectItem key={k} value={k} style={{ color: DIFFICULTY_COLORS[k as Difficulty] }}>
+                                                                  {v}
+                                                                </SelectItem>
+                                                              ))}
+                                                            </SelectContent>
+                                                          </Select>
                                                           <TimerControls
                                                             path={{ trackId: track.id, moduleId: mod.id, topicId: topic.id, subtopicId: sub.id }}
                                                             label={`${topic.name} → ${sub.name}`}
@@ -284,12 +318,29 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
         );
       })}
 
-      <Dialog open={!!dialog} onOpenChange={() => setDialog(null)}>
+      <Dialog open={!!dialog} onOpenChange={() => { setDialog(null); setNewName(""); setNewDifficulty("medium"); }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create {dialog?.type}</DialogTitle>
           </DialogHeader>
           <Input placeholder={`Enter ${dialog?.type} name`} value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleCreate()} />
+          {(dialog?.type === "topic" || dialog?.type === "subtopic") && (
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Difficulty</label>
+              <Select value={newDifficulty} onValueChange={(v) => setNewDifficulty(v as Difficulty)}>
+                <SelectTrigger className="w-full" style={{ color: DIFFICULTY_COLORS[newDifficulty] }}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(DIFFICULTY_LABELS).map(([k, v]) => (
+                    <SelectItem key={k} value={k} style={{ color: DIFFICULTY_COLORS[k as Difficulty] }}>
+                      {v}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <Button onClick={handleCreate}>Create</Button>
         </DialogContent>
       </Dialog>

@@ -99,6 +99,14 @@ export async function updateTopicDueDate(id: string, dueDate: string) {
   await db.topics.update(id, { dueDate, updatedAt: nowISO() });
 }
 
+export async function updateTopicDifficulty(id: string, difficulty: Difficulty) {
+  await db.topics.update(id, { difficulty, updatedAt: nowISO() });
+}
+
+export async function updateSubtopicDifficulty(id: string, difficulty: Difficulty) {
+  await db.subtopics.update(id, { difficulty, updatedAt: nowISO() });
+}
+
 export async function updateItem<T extends { id: string }>(
   table: { update: (id: string, changes: Partial<T>) => Promise<number> },
   id: string,
