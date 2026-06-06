@@ -61,13 +61,13 @@ export function statusWeight(status: ProgressStatus): number {
     case "completed":
       return 1;
     case "in_progress":
-      return 0.5;
+      return 0;
     default:
       return 0;
   }
 }
 
-/** Weighted progress: completed/mastered = 100%, in_progress = 50%, not_started = 0% */
+/** Progress: completed/mastered = 100%, in_progress and not_started = 0% */
 export function calculateSubtopicProgress(subtopics: Subtopic[]): number {
   const active = subtopics.filter((s) => !s.archived);
   if (active.length === 0) return 0;
