@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronRight, ChevronDown, Plus, GripVertical,
-  Archive, Copy, Trash2,
+  Archive, Copy, Trash2, Pencil,
 } from "lucide-react";
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent,
@@ -28,6 +28,7 @@ import { db } from "@/lib/db";
 import {
   createModule, createTopic, createSubtopic, updateSubtopicStatus, updateTopicStatus,
   updateTopicDifficulty, updateSubtopicDifficulty,
+  renameModule, renameTopic, deleteModule, deleteTopic,
   archiveSubtopic, deleteSubtopic, duplicateSubtopic, reorderItems,
 } from "@/lib/crud";
 import type { Track, Module, Topic, Subtopic, ProgressStatus, Difficulty } from "@/lib/types";
@@ -65,6 +66,8 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
   const [newName, setNewName] = useState("");
   const [newDifficulty, setNewDifficulty] = useState<Difficulty>("medium");
   const [statusDialog, setStatusDialog] = useState<{ id: string; type: "topic" | "subtopic"; dueDate: string } | null>(null);
+  const [editDialog, setEditDialog] = useState<{ type: "module" | "topic"; id: string; name: string; difficulty?: Difficulty } | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{ type: "module" | "topic"; id: string; name: string } | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -90,6 +93,23 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
     setDialog(null);
     setNewName("");
     setNewDifficulty("medium");
+  };
+
+  const handleEdit = async () => {
+    if (!editDialog || !editDialog.name.trim()) return;
+    if (editDialog.type === "module") await renameModule(editDialog.id, editDialog.name.trim());
+    if (editDialog.type === "topic") {
+      await renameTopic(editDialog.id, editDialog.name.trim());
+      if (editDialog.difficulty) await updateTopicDifficulty(editDialog.id, editDialog.difficulty);
+    }
+    setEditDialog(null);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteDialog) return;
+    if (deleteDialog.type === "module") await deleteModule(deleteDialog.id);
+    if (deleteDialog.type === "topic") await deleteTopic(deleteDialog.id);
+    setDeleteDialog(null);
   };
 
   const handleDragEnd = async (event: DragEndEvent, items: { id: string; order: number }[], table: Parameters<typeof reorderItems>[0]) => {
@@ -148,7 +168,7 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                           return (
                             <SortableItem key={mod.id} id={mod.id}>
                               <div className="rounded-lg border border-border/50 overflow-hidden">
-                                <div className="flex items-center gap-2 p-3 bg-secondary/20 cursor-pointer" onClick={() => toggle(mod.id)}>
+                                <div className="flex items-center gap-2 p-3 bg-secondary/20 cursor-pointer group" onClick={() => toggle(mod.id)}>
                                   {expanded.has(mod.id) ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                                   <span className="text-sm font-medium flex-1">{mod.name}</span>
                                   <span className="text-xs text-muted-foreground w-8 text-right">{modProgress.percentage}%</span>
@@ -159,6 +179,14 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                     compact
                                     loggedMs={getModuleLoggedMs(mod.id, subtopics, sessions)}
                                   />
+                                  <div className="opacity-0 group-hover:opacity-100 flex gap-0.5">
+                                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); setEditDialog({ type: "module", id: mod.id, name: mod.name }); }}>
+                                      <Pencil className="h-3 w-3" />
+                                    </Button>
+                                    <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteDialog({ type: "module", id: mod.id, name: mod.name }); }}>
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </div>
                                   <Button size="icon" variant="ghost" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); setNewDifficulty("medium"); setDialog({ type: "topic", parentId: mod.id, trackId: track.id }); }}>
                                     <Plus className="h-3 w-3" />
                                   </Button>
@@ -174,7 +202,7 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
 
                                           return (
                                             <div key={topic.id} className="rounded-md border border-border/30">
-                                              <div className="flex items-center gap-2 p-2 pl-4 cursor-pointer hover:bg-secondary/20" onClick={() => toggle(topic.id)}>
+                                              <div className="flex items-center gap-2 p-2 pl-4 cursor-pointer hover:bg-secondary/20 group" onClick={() => toggle(topic.id)}>
                                                 {expanded.has(topic.id) ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                                                 <span className="text-sm flex-1">{topic.name}</span>
                                                 <Select
@@ -228,6 +256,14 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                   compact
                                                   loggedMs={getTopicLoggedMs(topic.id, subtopics, sessions)}
                                                 />
+                                                <div className="opacity-0 group-hover:opacity-100 flex gap-0.5">
+                                                  <Button size="icon" variant="ghost" className="h-5 w-5" onClick={(e) => { e.stopPropagation(); setEditDialog({ type: "topic", id: topic.id, name: topic.name, difficulty: topic.difficulty }); }}>
+                                                    <Pencil className="h-3 w-3" />
+                                                  </Button>
+                                                  <Button size="icon" variant="ghost" className="h-5 w-5 text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteDialog({ type: "topic", id: topic.id, name: topic.name }); }}>
+                                                    <Trash2 className="h-3 w-3" />
+                                                  </Button>
+                                                </div>
                                                 <Button size="icon" variant="ghost" className="h-5 w-5" onClick={(e) => { e.stopPropagation(); setNewDifficulty(topic.difficulty); setDialog({ type: "subtopic", parentId: topic.id, moduleId: mod.id, trackId: track.id }); }}>
                                                   <Plus className="h-3 w-3" />
                                                 </Button>
@@ -342,6 +378,58 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
             </div>
           )}
           <Button onClick={handleCreate}>Create</Button>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editDialog} onOpenChange={() => setEditDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit {editDialog?.type}</DialogTitle>
+          </DialogHeader>
+          <Input
+            placeholder="Name"
+            value={editDialog?.name ?? ""}
+            onChange={(e) => editDialog && setEditDialog({ ...editDialog, name: e.target.value })}
+            onKeyDown={(e) => e.key === "Enter" && handleEdit()}
+          />
+          {editDialog?.type === "topic" && (
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Difficulty</label>
+              <Select
+                value={editDialog.difficulty ?? "medium"}
+                onValueChange={(v) => editDialog && setEditDialog({ ...editDialog, difficulty: v as Difficulty })}
+              >
+                <SelectTrigger className="w-full" style={{ color: DIFFICULTY_COLORS[editDialog.difficulty ?? "medium"] }}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(DIFFICULTY_LABELS).map(([k, v]) => (
+                    <SelectItem key={k} value={k} style={{ color: DIFFICULTY_COLORS[k as Difficulty] }}>
+                      {v}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <Button onClick={handleEdit}>Save</Button>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!deleteDialog} onOpenChange={() => setDeleteDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete {deleteDialog?.type}?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            {deleteDialog?.type === "module"
+              ? `Delete "${deleteDialog.name}" and all its topics, subtopics, and related time logs? This cannot be undone.`
+              : `Delete "${deleteDialog?.name}" and all its subtopics and related time logs? This cannot be undone.`}
+          </p>
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setDeleteDialog(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDelete}>Delete</Button>
+          </div>
         </DialogContent>
       </Dialog>
 
