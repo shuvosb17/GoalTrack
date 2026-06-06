@@ -1,6 +1,6 @@
 import { differenceInDays, format, parseISO } from "date-fns";
 import type { Track, Module, Topic, Subtopic, InProgressTask, InProgressTopicGroup } from "./types";
-import { calculateSubtopicProgress } from "./utils";
+import { calculateSubtopicProgress, statusWeight } from "./utils";
 
 export function isTopicComplete(topicId: string, subtopics: Subtopic[]): boolean {
   const subs = subtopics.filter((s) => s.topicId === topicId && !s.archived);
@@ -15,14 +15,33 @@ export function isTopicActive(topic: Topic, subtopics: Subtopic[]): boolean {
   return subs.some((s) => s.status === "in_progress");
 }
 
+/** Progress for one topic: subtopic-weighted when subs exist, else topic status */
+export function getTopicProgressPercent(topic: Topic, subtopics: Subtopic[]): number {
+  const subs = subtopics.filter((s) => s.topicId === topic.id && !s.archived);
+  if (subs.length > 0) return calculateSubtopicProgress(subs);
+  return Math.round(statusWeight(topic.status ?? "not_started") * 100);
+}
+
+/** Roll up progress across topics by weighting every subtopic (not averaging topic %) */
 export function calculateTopicsProgress(topics: Topic[], subtopics: Subtopic[]): number {
   const active = topics.filter((t) => !t.archived);
   if (active.length === 0) return 0;
-  const percents = active.map((t) => {
-    const subs = subtopics.filter((s) => s.topicId === t.id && !s.archived);
-    return calculateSubtopicProgress(subs);
-  });
-  return Math.round(percents.reduce((a, b) => a + b, 0) / active.length);
+
+  let totalWeight = 0;
+  let totalUnits = 0;
+
+  for (const topic of active) {
+    const subs = subtopics.filter((s) => s.topicId === topic.id && !s.archived);
+    if (subs.length > 0) {
+      totalWeight += subs.reduce((sum, s) => sum + statusWeight(s.status), 0);
+      totalUnits += subs.length;
+    } else {
+      totalWeight += statusWeight(topic.status ?? "not_started");
+      totalUnits += 1;
+    }
+  }
+
+  return totalUnits > 0 ? Math.round((totalWeight / totalUnits) * 100) : 0;
 }
 
 export function getDaysUntilDue(dueDate?: string): number | null {
@@ -81,7 +100,7 @@ export function getInProgressTopics(
       trackIcon: track?.icon ?? "📚",
       trackId: topic.trackId,
       moduleId: topic.moduleId,
-      progress: calculateSubtopicProgress(topicSubs),
+      progress: getTopicProgressPercent(topic, subtopics),
       activeSubtopics,
       daysRemaining,
       isOverdue: daysRemaining !== null && daysRemaining < 0,

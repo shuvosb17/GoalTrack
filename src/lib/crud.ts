@@ -30,10 +30,11 @@ export async function createSubtopic(topicId: string, moduleId: string, trackId:
     order: subtopics.length, archived: false, createdAt: nowISO(), updatedAt: nowISO(),
   };
   await db.subtopics.add(subtopic);
+  await syncTopicStatusFromSubtopics(topicId);
   return subtopic;
 }
 
-async function syncTopicStatusFromSubtopics(topicId: string) {
+export async function syncTopicStatusFromSubtopics(topicId: string) {
   const subs = await db.subtopics.where("topicId").equals(topicId).filter((s) => !s.archived).toArray();
   if (subs.length === 0) return;
 
@@ -115,6 +116,20 @@ export async function archiveItem(
 
 export async function deleteItem(table: { delete: (id: string) => Promise<void> }, id: string) {
   await table.delete(id);
+}
+
+export async function archiveSubtopic(id: string) {
+  const sub = await db.subtopics.get(id);
+  if (!sub) return;
+  await archiveItem(db.subtopics, id);
+  await syncTopicStatusFromSubtopics(sub.topicId);
+}
+
+export async function deleteSubtopic(id: string) {
+  const sub = await db.subtopics.get(id);
+  if (!sub) return;
+  await deleteItem(db.subtopics, id);
+  await syncTopicStatusFromSubtopics(sub.topicId);
 }
 
 export async function duplicateSubtopic(subtopic: Subtopic) {

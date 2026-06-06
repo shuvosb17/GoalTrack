@@ -39,7 +39,7 @@ export function useSubtopics(topicId?: string) {
 }
 
 export function useAllSubtopics() {
-  return useLiveQuery(() => db.subtopics.toArray(), []) ?? [];
+  return useLiveQuery(() => db.subtopics.orderBy("order").toArray(), []) ?? [];
 }
 
 export function useAllModules() {

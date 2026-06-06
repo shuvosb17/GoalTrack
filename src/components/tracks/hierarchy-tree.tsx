@@ -23,14 +23,14 @@ import {
 } from "@/components/ui/select";
 import { TimerControls } from "@/components/timer/timer-controls";
 import { STATUS_LABELS, DIFFICULTY_LABELS, DIFFICULTY_COLORS } from "@/lib/utils";
-import { calculateTopicsProgress, defaultDueDate, formatDeadline, getDaysUntilDue } from "@/lib/in-progress";
+import { defaultDueDate, formatDeadline, getDaysUntilDue } from "@/lib/in-progress";
 import { db } from "@/lib/db";
 import {
   createModule, createTopic, createSubtopic, updateSubtopicStatus, updateTopicStatus,
-  archiveItem, deleteItem, duplicateSubtopic, reorderItems,
+  archiveSubtopic, deleteSubtopic, duplicateSubtopic, reorderItems,
 } from "@/lib/crud";
 import type { Track, Module, Topic, Subtopic, ProgressStatus } from "@/lib/types";
-import { getModuleProgress, getTopicProgress } from "@/lib/analytics";
+import { getModuleProgress, getTopicProgress, getTrackProgress } from "@/lib/analytics";
 import { useSessions } from "@/hooks/use-data";
 import {
   getSubtopicLoggedMs, getTopicLoggedMs, getModuleLoggedMs, getTrackLoggedMs,
@@ -104,8 +104,7 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
     <div className="space-y-4">
       {filteredTracks.map((track) => {
         const trackModules = modules.filter((m) => m.trackId === track.id).sort((a, b) => a.order - b.order);
-        const trackTopics = topics.filter((t) => t.trackId === track.id && !t.archived);
-        const trackProgress = calculateTopicsProgress(trackTopics, subtopics);
+        const trackProgress = getTrackProgress(track.id, topics, subtopics).percentage;
 
         return (
           <div key={track.id} className="glass-card rounded-xl overflow-hidden">
@@ -149,7 +148,8 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                 <div className="flex items-center gap-2 p-3 bg-secondary/20 cursor-pointer" onClick={() => toggle(mod.id)}>
                                   {expanded.has(mod.id) ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                                   <span className="text-sm font-medium flex-1">{mod.name}</span>
-                                  <span className="text-xs text-muted-foreground">{modProgress.percentage}%</span>
+                                  <span className="text-xs text-muted-foreground w-8 text-right">{modProgress.percentage}%</span>
+                                  <Progress value={modProgress.percentage} className="h-1 w-16 hidden sm:block" />
                                   <TimerControls
                                     path={{ trackId: track.id, moduleId: mod.id }}
                                     label={`${track.name} → ${mod.name}`}
@@ -166,8 +166,8 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                     <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden">
                                       <div className="p-2 space-y-1">
                                         {modTopics.map((topic) => {
-                                          const topicSubs = subtopics.filter((s) => s.topicId === topic.id).sort((a, b) => a.order - b.order);
-                                          const topicProgress = getTopicProgress(topic.id, subtopics);
+                                          const topicSubs = subtopics.filter((s) => s.topicId === topic.id && !s.archived).sort((a, b) => a.order - b.order);
+                                          const topicProgress = getTopicProgress(topic, subtopics);
 
                                           return (
                                             <div key={topic.id} className="rounded-md border border-border/30">
@@ -178,6 +178,7 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                   {DIFFICULTY_LABELS[topic.difficulty]}
                                                 </Badge>
                                                 <span className="text-xs text-muted-foreground w-8 text-right">{topicProgress.percentage}%</span>
+                                                <Progress value={topicProgress.percentage} className="h-1 w-12 hidden sm:block" />
                                                 {(topic.status === "in_progress" || topicProgress.inProgress > 0) && (
                                                   <Badge variant="warning" className="text-[10px]">Active</Badge>
                                                 )}
@@ -253,8 +254,8 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                           />
                                                           <div className="opacity-0 group-hover:opacity-100 flex gap-0.5">
                                                             <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => duplicateSubtopic(sub)}><Copy className="h-3 w-3" /></Button>
-                                                            <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => archiveItem(db.subtopics, sub.id)}><Archive className="h-3 w-3" /></Button>
-                                                            <Button size="icon" variant="ghost" className="h-5 w-5 text-destructive" onClick={() => deleteItem(db.subtopics, sub.id)}><Trash2 className="h-3 w-3" /></Button>
+                                                            <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => archiveSubtopic(sub.id)}><Archive className="h-3 w-3" /></Button>
+                                                            <Button size="icon" variant="ghost" className="h-5 w-5 text-destructive" onClick={() => deleteSubtopic(sub.id)}><Trash2 className="h-3 w-3" /></Button>
                                                           </div>
                                                         </div>
                                                       ))}

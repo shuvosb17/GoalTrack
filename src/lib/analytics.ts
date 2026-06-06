@@ -21,7 +21,7 @@ import {
   getMomentumLevel,
   todayISO,
 } from "./utils";
-import { isTopicComplete, calculateTopicsProgress } from "./in-progress";
+import { isTopicComplete, calculateTopicsProgress, getTopicProgressPercent } from "./in-progress";
 
 export function getSubtopicProgress(subtopics: Subtopic[]) {
   const active = subtopics.filter((s) => !s.archived);
@@ -32,13 +32,13 @@ export function getSubtopicProgress(subtopics: Subtopic[]) {
   return { total, completed, mastered, inProgress, percentage: calculateSubtopicProgress(active) };
 }
 
-export function getTopicProgress(topicId: string, subtopics: Subtopic[]) {
-  const subs = subtopics.filter((s) => s.topicId === topicId && !s.archived);
+export function getTopicProgress(topic: Topic, subtopics: Subtopic[]) {
+  const subs = subtopics.filter((s) => s.topicId === topic.id && !s.archived);
   const total = subs.length;
   const completed = subs.filter((s) => s.status === "completed" || s.status === "mastered").length;
   const mastered = subs.filter((s) => s.status === "mastered").length;
   const inProgress = subs.filter((s) => s.status === "in_progress").length;
-  const percentage = calculateSubtopicProgress(subs);
+  const percentage = getTopicProgressPercent(topic, subtopics);
   return { total, completed, mastered, inProgress, percentage };
 }
 
