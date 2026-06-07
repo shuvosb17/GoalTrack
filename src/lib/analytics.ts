@@ -267,7 +267,7 @@ export function getRadarData(
   const dimensions = [
     { name: "Algorithms", keywords: ["algorithm", "dynamic", "graph"] },
     { name: "Data Structures", keywords: ["array", "tree", "data structure"] },
-    { name: "Competitive Programming", keywords: ["cps", "number theory", "graph theory"] },
+    { name: "Competitive Programming", keywords: ["cs fundamentals", "cps", "number theory", "graph theory"] },
     { name: "Problem Solving", keywords: ["leetcode", "problem"] },
     { name: "Backend Engineering", keywords: ["backend", "golang", "concurrency"] },
     { name: "Databases", keywords: ["database", "postgresql", "sql"] },

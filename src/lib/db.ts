@@ -45,6 +45,14 @@ export class GrowthOSDatabase extends Dexie {
         if (!topic.status) topic.status = "not_started";
       });
     });
+    this.version(4).stores({}).upgrade(async (tx) => {
+      await tx.table("tracks").toCollection().modify((track) => {
+        if (track.name === "CPS Fundamentals") {
+          track.name = "CS Fundamentals";
+          track.description = "Computer science and competitive programming foundations";
+        }
+      });
+    });
   }
 }
 

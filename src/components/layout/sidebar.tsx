@@ -11,10 +11,10 @@ import {
   Trophy,
   FileText,
   Settings,
-  Sparkles,
   Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Logo } from "./logo";
 import { useAppStore } from "@/stores/app-store";
 import { useAllTopics, useAllModules, useAllSubtopics, useTracks } from "@/hooks/use-data";
 import { getUrgencyAlerts } from "@/lib/status";
@@ -48,14 +48,8 @@ export function Sidebar() {
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border/50 glass flex flex-col">
       <div className="p-6 border-b border-border/50">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-gradient-to-br from-violet-500 to-blue-500">
-            <Sparkles className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h1 className="font-bold text-lg tracking-tight">Growth OS</h1>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Command Center</p>
-          </div>
+        <Link href="/" className="flex items-center">
+          <Logo size="md" />
         </Link>
       </div>
 

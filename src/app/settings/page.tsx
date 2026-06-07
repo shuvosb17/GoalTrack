@@ -33,7 +33,7 @@ export default function SettingsPage() {
 
   const handleExport = async () => {
     const data = await exportAllData();
-    downloadBackup(data, `growth-os-backup-${todayISO()}.json`);
+    downloadBackup(data, `goaltrack-backup-${todayISO()}.json`);
     await saveAutoBackup();
   };
 

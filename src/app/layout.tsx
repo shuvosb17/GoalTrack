@@ -10,9 +10,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Growth OS — Personal Learning Command Center",
-  description: "A premium personal growth operating system for long-term skill development",
+  title: "GoalTrack — Personal Learning Command Center",
+  description: "Track your learning goals, progress, and study time with GoalTrack",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export const viewport = {

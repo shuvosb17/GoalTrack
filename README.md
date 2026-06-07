@@ -1,6 +1,6 @@
-# Growth OS — Personal Learning Command Center
+# GoalTrack — Personal Learning Command Center
 
-A premium Personal Growth Operating System for long-term skill development.
+Track your learning goals, progress, and study time across tracks, topics, and subtopics.
 
 ## Run Locally
 

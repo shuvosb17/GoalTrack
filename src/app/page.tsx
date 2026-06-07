@@ -76,8 +76,8 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-3xl font-bold tracking-tight">Growth Command Center</h1>
-        <p className="text-muted-foreground mt-1">Your personal learning operating system</p>
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-muted-foreground mt-1">Welcome to GoalTrack — your personal learning command center</p>
       </motion.div>
 
       {/* Hero Section */}

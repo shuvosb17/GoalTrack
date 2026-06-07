@@ -7,6 +7,7 @@ import { AchievementChecker } from "@/components/providers/achievement-checker";
 import { AutoBackupProvider } from "@/components/providers/auto-backup";
 import { seedDatabase } from "@/lib/seed";
 import { useAppStore } from "@/stores/app-store";
+import { Logo } from "./logo";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { initialized, setInitialized } = useAppStore();
@@ -19,9 +20,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (!initialized) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-12 h-12 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-muted-foreground text-sm">Initializing Growth OS...</p>
+        <div className="text-center space-y-5">
+          <Logo size="lg" className="justify-center animate-pulse" />
+          <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-muted-foreground text-sm">Loading GoalTrack...</p>
         </div>
       </div>
     );

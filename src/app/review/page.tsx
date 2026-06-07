@@ -65,7 +65,7 @@ export default function AnnualReviewPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `growth-os-review-${year}.json`;
+    a.download = `goaltrack-review-${year}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -91,7 +91,7 @@ export default function AnnualReviewPage() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleExport}><Download className="h-4 w-4" /> Export</Button>
-          <Button variant="outline" onClick={() => navigator.share?.({ title: `Growth OS ${year} Review`, text: narrative.join(" ") })}><Share2 className="h-4 w-4" /> Share</Button>
+          <Button variant="outline" onClick={() => navigator.share?.({ title: `GoalTrack ${year} Review`, text: narrative.join(" ") })}><Share2 className="h-4 w-4" /> Share</Button>
         </div>
       </div>
 

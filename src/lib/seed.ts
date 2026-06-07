@@ -20,7 +20,7 @@ const ACHIEVEMENTS: Omit<Achievement, "id">[] = [
 function buildSeedData() {
   const now = nowISO();
   const tracks: Track[] = [
-    { id: uuid(), name: "CPS Fundamentals", description: "Competitive programming foundations", color: "#8b5cf6", icon: "⚡", order: 0, archived: false, createdAt: now, updatedAt: now },
+    { id: uuid(), name: "CS Fundamentals", description: "Computer science and competitive programming foundations", color: "#8b5cf6", icon: "⚡", order: 0, archived: false, createdAt: now, updatedAt: now },
     { id: uuid(), name: "LeetCode", description: "Algorithm & data structure mastery", color: "#3b82f6", icon: "💻", order: 1, archived: false, createdAt: now, updatedAt: now },
     { id: uuid(), name: "Development", description: "Full-stack & backend engineering", color: "#10b981", icon: "🔧", order: 2, archived: false, createdAt: now, updatedAt: now },
     { id: uuid(), name: "System Design", description: "Scalable systems architecture", color: "#f59e0b", icon: "🏗️", order: 3, archived: false, createdAt: now, updatedAt: now },
@@ -32,7 +32,7 @@ function buildSeedData() {
   const subtopics: Subtopic[] = [];
 
   const seedStructure: Record<string, Record<string, Record<string, string[]>>> = {
-    "CPS Fundamentals": {
+    "CS Fundamentals": {
       "Number Theory": { "Primes & Factorization": ["Sieve of Eratosthenes", "Prime Factorization", "GCD & LCM"], "Modular Arithmetic": ["Modular Inverse", "Fermat's Little Theorem", "Chinese Remainder"] },
       "Graph Theory": { "Traversal": ["BFS", "DFS", "Connected Components"], "Shortest Paths": ["Dijkstra", "Bellman-Ford", "Floyd-Warshall"] },
     },
