@@ -85,7 +85,19 @@ export async function syncTopicStatusFromSubtopics(topicId: string) {
     topicStatus = "in_progress";
   }
 
-  const updates: Partial<Topic> = { status: topicStatus, updatedAt: nowISO() };
+  if (!topic || topic.status === topicStatus) return;
+
+  const latestSubChange = subs
+    .map((s) => s.statusChangedAt)
+    .filter(Boolean)
+    .sort()
+    .reverse()[0];
+
+  const updates: Partial<Topic> = {
+    status: topicStatus,
+    statusChangedAt: latestSubChange ?? nowISO(),
+    updatedAt: nowISO(),
+  };
   if (topicStatus === "completed" || topicStatus === "mastered") {
     updates.dueDate = undefined;
   }
@@ -97,6 +109,9 @@ export async function updateSubtopicStatus(id: string, status: ProgressStatus, d
   if (!sub) return;
 
   const updates: Partial<Subtopic> = { status, updatedAt: nowISO() };
+  if (sub.status !== status) {
+    updates.statusChangedAt = nowISO();
+  }
 
   if (status === "in_progress") {
     updates.startedAt = sub.startedAt ?? nowISO();
@@ -117,6 +132,9 @@ export async function updateTopicStatus(id: string, status: ProgressStatus, dueD
   if (!topic) return;
 
   const updates: Partial<Topic> = { status, updatedAt: nowISO() };
+  if (topic.status !== status) {
+    updates.statusChangedAt = nowISO();
+  }
 
   if (status === "in_progress") {
     updates.startedAt = topic.startedAt ?? nowISO();
@@ -131,12 +149,18 @@ export async function updateTopicStatus(id: string, status: ProgressStatus, dueD
   await db.topics.update(id, updates);
 
   if (status === "completed" || status === "mastered") {
+    const changedAt = updates.statusChangedAt ?? nowISO();
     const subs = await db.subtopics.where("topicId").equals(id).filter((s) => !s.archived).toArray();
     await Promise.all(
       subs
         .filter((sub) => sub.status !== status)
         .map((sub) =>
-          db.subtopics.update(sub.id, { status, dueDate: undefined, updatedAt: nowISO() })
+          db.subtopics.update(sub.id, {
+            status,
+            dueDate: undefined,
+            updatedAt: nowISO(),
+            statusChangedAt: changedAt,
+          })
         )
     );
   }

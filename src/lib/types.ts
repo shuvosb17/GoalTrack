@@ -37,6 +37,7 @@ export interface Topic {
   archived: boolean;
   startedAt?: string;
   dueDate?: string;
+  statusChangedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -54,6 +55,7 @@ export interface Subtopic {
   archived: boolean;
   startedAt?: string;
   dueDate?: string;
+  statusChangedAt?: string;
   createdAt: string;
   updatedAt: string;
 }

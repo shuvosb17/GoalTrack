@@ -56,6 +56,18 @@ export class GrowthOSDatabase extends Dexie {
     this.version(5).stores({
       journal: "id, date, createdAt, trackId, topicId, subtopicId",
     });
+    this.version(6).stores({}).upgrade(async (tx) => {
+      await tx.table("topics").toCollection().modify((topic) => {
+        if (topic.status !== "not_started" && !topic.statusChangedAt) {
+          topic.statusChangedAt = topic.updatedAt;
+        }
+      });
+      await tx.table("subtopics").toCollection().modify((sub) => {
+        if (sub.status !== "not_started" && !sub.statusChangedAt) {
+          sub.statusChangedAt = sub.updatedAt;
+        }
+      });
+    });
   }
 }
 

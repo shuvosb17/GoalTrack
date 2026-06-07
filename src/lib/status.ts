@@ -1,4 +1,5 @@
-import { format, isToday, isYesterday, parseISO } from "date-fns";
+import { format, isToday, isYesterday } from "date-fns";
+import { toLocalDateKey, parseLocalDate } from "./utils";
 import type {
   Track, Module, Topic, Subtopic, ProgressStatus,
   StatusTopicEntry, DailyStatusSnapshot, UrgencyAlert,
@@ -31,10 +32,30 @@ function emptyCounts(): Record<ProgressStatus, number> {
 }
 
 function formatDateLabel(dateStr: string): string {
-  const d = parseISO(dateStr);
+  const d = parseLocalDate(dateStr);
   if (isToday(d)) return "Today";
   if (isYesterday(d)) return "Yesterday";
   return format(d, "EEEE, MMMM d, yyyy");
+}
+
+function getTopicStatusDate(topic: Topic, subtopics: Subtopic[]): string {
+  const topicSubs = subtopics.filter((s) => s.topicId === topic.id && !s.archived);
+  const timestamps: string[] = [];
+
+  if (topic.statusChangedAt) timestamps.push(topic.statusChangedAt);
+
+  for (const sub of topicSubs) {
+    if (!sub.statusChangedAt) continue;
+    const matches =
+      sub.status === topic.status ||
+      ((topic.status === "completed" || topic.status === "mastered") &&
+        (sub.status === "completed" || sub.status === "mastered"));
+    if (matches) timestamps.push(sub.statusChangedAt);
+  }
+
+  if (timestamps.length === 0) return toLocalDateKey(topic.updatedAt);
+
+  return timestamps.map(toLocalDateKey).sort()[0];
 }
 
 function buildStatusEntry(
@@ -63,7 +84,7 @@ function buildStatusEntry(
     isOverdue: daysRemaining !== null && daysRemaining < 0,
     isDueSoon: daysRemaining !== null && daysRemaining >= 0 && daysRemaining <= 3,
     dueDate,
-    statusDate: format(parseISO(topic.updatedAt), "yyyy-MM-dd"),
+    statusDate: getTopicStatusDate(topic, subtopics),
   };
 }
 
@@ -96,7 +117,7 @@ export function getStatusTimeline(
       return {
         date,
         label: formatDateLabel(date),
-        relativeLabel: format(parseISO(date), "MMM d"),
+        relativeLabel: format(parseLocalDate(date), "MMM d"),
         counts,
         topics: entries.sort((a, b) => {
           const urgency = (e: StatusTopicEntry) => e.isOverdue ? 0 : e.isDueSoon ? 1 : 2;

@@ -50,6 +50,17 @@ export function nowISO(): string {
   return new Date().toISOString();
 }
 
+/** Local calendar date (yyyy-MM-dd) from an ISO timestamp — respects user timezone (e.g. Asia/Dhaka) */
+export function toLocalDateKey(iso: string): string {
+  return format(parseISO(iso), "yyyy-MM-dd");
+}
+
+/** Parse yyyy-MM-dd as local midnight (parseISO treats date-only strings as UTC) */
+export function parseLocalDate(dateStr: string): Date {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
 export function isSubtopicDone(status: ProgressStatus): boolean {
   return status === "completed" || status === "mastered";
 }
