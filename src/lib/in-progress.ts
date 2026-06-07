@@ -2,8 +2,9 @@ import { differenceInDays, format, parseISO } from "date-fns";
 import type { Track, Module, Topic, Subtopic, InProgressTask, InProgressTopicGroup } from "./types";
 import { calculateSubtopicProgress, statusWeight } from "./utils";
 
-export function isTopicComplete(topicId: string, subtopics: Subtopic[]): boolean {
-  const subs = subtopics.filter((s) => s.topicId === topicId && !s.archived);
+export function isTopicComplete(topic: Topic, subtopics: Subtopic[]): boolean {
+  if (topic.status === "completed" || topic.status === "mastered") return true;
+  const subs = subtopics.filter((s) => s.topicId === topic.id && !s.archived);
   if (subs.length === 0) return false;
   return subs.every((s) => s.status === "completed" || s.status === "mastered");
 }
@@ -15,8 +16,9 @@ export function isTopicActive(topic: Topic, subtopics: Subtopic[]): boolean {
   return subs.some((s) => s.status === "in_progress");
 }
 
-/** Progress for one topic: subtopic-weighted when subs exist, else topic status */
+/** Progress for one topic: completed/mastered topic = 100%, else subtopic-based or topic status */
 export function getTopicProgressPercent(topic: Topic, subtopics: Subtopic[]): number {
+  if (topic.status === "completed" || topic.status === "mastered") return 100;
   const subs = subtopics.filter((s) => s.topicId === topic.id && !s.archived);
   if (subs.length > 0) return calculateSubtopicProgress(subs);
   return Math.round(statusWeight(topic.status ?? "not_started") * 100);
@@ -32,11 +34,12 @@ export function calculateTopicsProgress(topics: Topic[], subtopics: Subtopic[]):
 
   for (const topic of active) {
     const subs = subtopics.filter((s) => s.topicId === topic.id && !s.archived);
+    const percent = getTopicProgressPercent(topic, subtopics);
     if (subs.length > 0) {
-      totalWeight += subs.reduce((sum, s) => sum + statusWeight(s.status), 0);
+      totalWeight += (percent / 100) * subs.length;
       totalUnits += subs.length;
     } else {
-      totalWeight += statusWeight(topic.status ?? "not_started");
+      totalWeight += percent / 100;
       totalUnits += 1;
     }
   }

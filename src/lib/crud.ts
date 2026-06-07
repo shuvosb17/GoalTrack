@@ -78,7 +78,8 @@ export async function syncTopicStatusFromSubtopics(topicId: string) {
   if (subs.length === 0) return;
 
   let topicStatus: ProgressStatus = "not_started";
-  if (isTopicComplete(topicId, subs)) {
+  const topic = await db.topics.get(topicId);
+  if (topic && isTopicComplete(topic, subs)) {
     topicStatus = subs.every((s) => s.status === "mastered") ? "mastered" : "completed";
   } else if (subs.some((s) => s.status === "in_progress" || s.status === "completed" || s.status === "mastered")) {
     topicStatus = "in_progress";
@@ -128,6 +129,17 @@ export async function updateTopicStatus(id: string, status: ProgressStatus, dueD
   }
 
   await db.topics.update(id, updates);
+
+  if (status === "completed" || status === "mastered") {
+    const subs = await db.subtopics.where("topicId").equals(id).filter((s) => !s.archived).toArray();
+    await Promise.all(
+      subs
+        .filter((sub) => sub.status !== status)
+        .map((sub) =>
+          db.subtopics.update(sub.id, { status, dueDate: undefined, updatedAt: nowISO() })
+        )
+    );
+  }
 }
 
 export async function updateSubtopicDueDate(id: string, dueDate: string) {

@@ -3,7 +3,7 @@ import type {
   Track, Module, Topic, Subtopic, ProgressStatus,
   StatusTopicEntry, DailyStatusSnapshot, UrgencyAlert,
 } from "./types";
-import { calculateSubtopicProgress } from "./utils";
+import { getTopicProgressPercent } from "./in-progress";
 
 export {
   isTopicComplete,
@@ -58,7 +58,7 @@ function buildStatusEntry(
     trackIcon: track?.icon ?? "📚",
     trackId: topic.trackId,
     moduleId: topic.moduleId,
-    progress: calculateSubtopicProgress(topicSubs),
+    progress: getTopicProgressPercent(topic, subtopics),
     daysRemaining,
     isOverdue: daysRemaining !== null && daysRemaining < 0,
     isDueSoon: daysRemaining !== null && daysRemaining >= 0 && daysRemaining <= 3,

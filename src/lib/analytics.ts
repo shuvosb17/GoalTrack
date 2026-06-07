@@ -45,10 +45,10 @@ export function getTopicProgress(topic: Topic, subtopics: Subtopic[]) {
 export function getModuleProgress(moduleId: string, topics: Topic[], subtopics: Subtopic[]) {
   const moduleTopics = topics.filter((t) => t.moduleId === moduleId && !t.archived);
   const total = moduleTopics.length;
-  const completed = moduleTopics.filter((t) => isTopicComplete(t.id, subtopics)).length;
+  const completed = moduleTopics.filter((t) => isTopicComplete(t, subtopics)).length;
   const inProgress = moduleTopics.filter((t) => {
     const subs = subtopics.filter((s) => s.topicId === t.id && !s.archived);
-    return subs.some((s) => s.status === "in_progress") && !isTopicComplete(t.id, subtopics);
+    return subs.some((s) => s.status === "in_progress") && !isTopicComplete(t, subtopics);
   }).length;
   return {
     total,
@@ -62,10 +62,10 @@ export function getModuleProgress(moduleId: string, topics: Topic[], subtopics: 
 export function getTrackProgress(trackId: string, topics: Topic[], subtopics: Subtopic[]) {
   const trackTopics = topics.filter((t) => t.trackId === trackId && !t.archived);
   const total = trackTopics.length;
-  const completed = trackTopics.filter((t) => isTopicComplete(t.id, subtopics)).length;
+  const completed = trackTopics.filter((t) => isTopicComplete(t, subtopics)).length;
   const inProgress = trackTopics.filter((t) => {
     const subs = subtopics.filter((s) => s.topicId === t.id && !s.archived);
-    return subs.some((s) => s.status === "in_progress") && !isTopicComplete(t.id, subtopics);
+    return subs.some((s) => s.status === "in_progress") && !isTopicComplete(t, subtopics);
   }).length;
   return {
     total,
@@ -79,10 +79,10 @@ export function getTrackProgress(trackId: string, topics: Topic[], subtopics: Su
 export function getGlobalProgress(topics: Topic[], subtopics: Subtopic[]) {
   const activeTopics = topics.filter((t) => !t.archived);
   const total = activeTopics.length;
-  const completed = activeTopics.filter((t) => isTopicComplete(t.id, subtopics)).length;
+  const completed = activeTopics.filter((t) => isTopicComplete(t, subtopics)).length;
   const inProgress = activeTopics.filter((t) => {
     const subs = subtopics.filter((s) => s.topicId === t.id && !s.archived);
-    return subs.some((s) => s.status === "in_progress") && !isTopicComplete(t.id, subtopics);
+    return subs.some((s) => s.status === "in_progress") && !isTopicComplete(t, subtopics);
   }).length;
   return {
     total,
@@ -436,11 +436,11 @@ export function countCompletedItems(subtopics: Subtopic[], modules: Module[], to
   const activeSubs = subtopics.filter((s) => !s.archived);
   const completedSubtopics = activeSubs.filter((s) => s.status === "completed" || s.status === "mastered").length;
 
-  const completedTopics = topics.filter((t) => !t.archived).filter((t) => isTopicComplete(t.id, subtopics)).length;
+  const completedTopics = topics.filter((t) => !t.archived).filter((t) => isTopicComplete(t, subtopics)).length;
 
   const completedModules = modules.filter((m) => !m.archived).filter((m) => {
     const modTopics = topics.filter((t) => t.moduleId === m.id && !t.archived);
-    return modTopics.length > 0 && modTopics.every((t) => isTopicComplete(t.id, subtopics));
+    return modTopics.length > 0 && modTopics.every((t) => isTopicComplete(t, subtopics));
   }).length;
 
   return { completedSubtopics, completedTopics, completedModules };
