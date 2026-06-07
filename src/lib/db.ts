@@ -53,6 +53,9 @@ export class GrowthOSDatabase extends Dexie {
         }
       });
     });
+    this.version(5).stores({
+      journal: "id, date, createdAt, trackId, topicId, subtopicId",
+    });
   }
 }
 

@@ -136,6 +136,11 @@ export interface LearningSession {
 export interface JournalEntry {
   id: string;
   date: string;
+  title?: string;
+  trackId?: string;
+  moduleId?: string;
+  topicId?: string;
+  subtopicId?: string;
   learned: string;
   challenges: string;
   takeaways: string;
