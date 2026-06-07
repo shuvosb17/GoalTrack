@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { format, parseISO } from "date-fns";
 import { cn, formatHoursShort } from "@/lib/utils";
@@ -24,6 +24,7 @@ interface ActivityHeatmapProps {
 
 export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
   const [view, setView] = useState<"week" | "month" | "year">("year");
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const filtered = view === "week" ? data.slice(-7) : view === "month" ? data.slice(-30) : data;
 
@@ -31,6 +32,21 @@ export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
   for (let i = 0; i < filtered.length; i += 7) {
     weeks.push(filtered.slice(i, i + 7));
   }
+
+  const scrollToLatest = useCallback(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollLeft = el.scrollWidth - el.clientWidth;
+  }, []);
+
+  useEffect(() => {
+    scrollToLatest();
+    const id = requestAnimationFrame(scrollToLatest);
+    const t = setTimeout(scrollToLatest, 200);
+    return () => {
+      cancelAnimationFrame(id);
+      clearTimeout(t);
+    };
+  }, [view, filtered.length, scrollToLatest]);
 
   return (
     <div className="space-y-4">
@@ -46,7 +62,7 @@ export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
       </div>
 
       <TooltipProvider>
-        <div className="flex gap-1 overflow-x-auto pb-2">
+        <div ref={scrollRef} className="flex gap-1 overflow-x-auto pb-2 scroll-smooth">
           {weeks.map((week, wi) => (
             <div key={wi} className="flex flex-col gap-1">
               {week.map((day, di) => (

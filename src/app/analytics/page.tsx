@@ -12,7 +12,7 @@ import {
   useTracks, useAllSubtopics, useAllTopics, useSessions,
 } from "@/hooks/use-data";
 import {
-  getHoursByPeriod, withPercentages, getHoursByTrack, getFocusHeatmap,
+  getHoursByPeriod, getHoursByWeek, withPercentages, getHoursByTrack, getFocusHeatmap,
   getTopTopics, getLearningVelocity, getEfficiencyScores, getCompletionTrends,
 } from "@/lib/analytics";
 import { formatHours } from "@/lib/utils";
@@ -27,7 +27,7 @@ export default function AnalyticsPage() {
 
   const distribution = useMemo(() => withPercentages(getHoursByTrack(sessions, tracks)), [sessions, tracks]);
   const dailyHours = useMemo(() => getHoursByPeriod(sessions, 30), [sessions]);
-  const weeklyHours = useMemo(() => getHoursByPeriod(sessions, 12 * 7).filter((_, i) => i % 7 === 0), [sessions]);
+  const weeklyHours = useMemo(() => getHoursByWeek(sessions, 12), [sessions]);
   const heatmap = useMemo(() => getFocusHeatmap(sessions), [sessions]);
   const topTopics = useMemo(() => getTopTopics(sessions, topics), [sessions, topics]);
   const velocity = useMemo(() => getLearningVelocity(subtopics, sessions), [subtopics, sessions]);

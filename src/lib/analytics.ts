@@ -130,6 +130,30 @@ export function getHoursByPeriod(sessions: LearningSession[], days: number) {
   return result;
 }
 
+/** Rolling 7-day buckets ending today so the current week is always included */
+export function getHoursByWeek(sessions: LearningSession[], weekCount = 12) {
+  const result: { date: string; hours: number; label: string }[] = [];
+  const today = new Date();
+
+  for (let w = weekCount - 1; w >= 0; w--) {
+    const weekEnd = subDays(today, w * 7);
+    const weekStart = subDays(weekEnd, 6);
+    const startKey = format(weekStart, "yyyy-MM-dd");
+    const endKey = format(weekEnd, "yyyy-MM-dd");
+    const hours =
+      sessions
+        .filter((s) => s.date >= startKey && s.date <= endKey)
+        .reduce((sum, s) => sum + s.duration, 0) / 3600000;
+
+    result.push({
+      date: endKey,
+      hours,
+      label: w === 0 ? "This week" : format(weekStart, "MMM d"),
+    });
+  }
+  return result;
+}
+
 export function getFocusHeatmap(sessions: LearningSession[]) {
   const grid: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0));
   sessions.forEach((s) => {
