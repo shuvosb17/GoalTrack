@@ -5,19 +5,27 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import type { GoalMilestone, Module, Topic, Track, Subtopic } from "@/lib/types";
-import { GOAL_MONTH_OPTIONS, createGoalMilestone, updateGoalMilestone, resolveGoalProgress } from "@/lib/goal-milestones";
-import { todayISO } from "@/lib/utils";
+import {
+  GOAL_MONTH_OPTIONS,
+  createGoalMilestone,
+  updateGoalMilestone,
+  resolveGoalProgress,
+  getGoalTopicIds,
+  formatGoalScopeLabel,
+} from "@/lib/goal-milestones";
+import { getTopicProgress } from "@/lib/analytics";
+import { cn, todayISO } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
-import { RefreshCw } from "lucide-react";
+import { Check, RefreshCw } from "lucide-react";
 
 interface GoalHierarchy {
   trackId: string;
   moduleId: string;
-  topicId: string;
 }
 
 interface GoalMilestoneDialogProps {
@@ -40,7 +48,8 @@ export function GoalMilestoneDialog({
   editing,
 }: GoalMilestoneDialogProps) {
   const [title, setTitle] = useState("");
-  const [hierarchy, setHierarchy] = useState<GoalHierarchy>({ trackId: "", moduleId: "", topicId: "" });
+  const [hierarchy, setHierarchy] = useState<GoalHierarchy>({ trackId: "", moduleId: "" });
+  const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
   const [startDate, setStartDate] = useState(todayISO());
   const [months, setMonths] = useState(3);
   const [notes, setNotes] = useState("");
@@ -52,14 +61,15 @@ export function GoalMilestoneDialog({
       setHierarchy({
         trackId: editing.trackId,
         moduleId: editing.moduleId ?? "",
-        topicId: editing.topicId ?? "",
       });
+      setSelectedTopicIds(getGoalTopicIds(editing));
       setStartDate(editing.startDate);
       setMonths(editing.months);
       setNotes(editing.notes ?? "");
     } else {
       setTitle("");
-      setHierarchy({ trackId: tracks[0]?.id ?? "", moduleId: "", topicId: "" });
+      setHierarchy({ trackId: tracks[0]?.id ?? "", moduleId: "" });
+      setSelectedTopicIds([]);
       setStartDate(todayISO());
       setMonths(3);
       setNotes("");
@@ -68,58 +78,55 @@ export function GoalMilestoneDialog({
 
   const trackModules = modules.filter((m) => m.trackId === hierarchy.trackId && !m.archived);
   const moduleTopics = topics.filter((t) => t.moduleId === hierarchy.moduleId && !t.archived);
+
+  const scopeInput = {
+    trackId: hierarchy.trackId,
+    moduleId: hierarchy.moduleId || undefined,
+    topicIds: selectedTopicIds.length > 0 ? selectedTopicIds : undefined,
+  };
+
   const liveProgress = hierarchy.trackId
-    ? resolveGoalProgress(
-        { trackId: hierarchy.trackId, moduleId: hierarchy.moduleId || undefined, topicId: hierarchy.topicId || undefined },
-        topics,
-        subtopics
-      )
+    ? resolveGoalProgress(scopeInput, topics, subtopics)
     : 0;
-  const scopeLabel = hierarchy.topicId
-    ? topics.find((t) => t.id === hierarchy.topicId)?.name ?? "Topic"
-    : hierarchy.moduleId
-      ? modules.find((m) => m.id === hierarchy.moduleId)?.name ?? "Module"
-      : tracks.find((t) => t.id === hierarchy.trackId)?.name ?? "Track";
+
+  const scopeLabel = hierarchy.trackId
+    ? formatGoalScopeLabel(scopeInput, topics, modules, tracks)
+    : "Track";
 
   const updateHierarchy = (patch: Partial<GoalHierarchy>) => {
     const next = { ...hierarchy, ...patch };
     if (patch.trackId !== undefined) {
       next.moduleId = "";
-      next.topicId = "";
+      setSelectedTopicIds([]);
     }
-    if (patch.moduleId !== undefined) next.topicId = "";
+    if (patch.moduleId !== undefined) {
+      setSelectedTopicIds([]);
+    }
     setHierarchy(next);
+  };
+
+  const toggleTopic = (topicId: string) => {
+    setSelectedTopicIds((prev) =>
+      prev.includes(topicId) ? prev.filter((id) => id !== topicId) : [...prev, topicId]
+    );
   };
 
   const handleSave = async () => {
     if (!title.trim() || !hierarchy.trackId) return;
+    const payload = {
+      title: title.trim(),
+      trackId: hierarchy.trackId,
+      moduleId: hierarchy.moduleId || undefined,
+      topicIds: selectedTopicIds.length > 0 ? selectedTopicIds : undefined,
+      startDate,
+      months,
+      notes: notes.trim() || undefined,
+    };
+
     if (editing) {
-      await updateGoalMilestone(
-        editing.id,
-        {
-          title: title.trim(),
-          trackId: hierarchy.trackId,
-          moduleId: hierarchy.moduleId || undefined,
-          topicId: hierarchy.topicId || undefined,
-          startDate,
-          months,
-          notes: notes.trim() || undefined,
-        },
-        topics,
-        subtopics
-      );
+      await updateGoalMilestone(editing.id, payload, topics, subtopics);
     } else {
-      await createGoalMilestone({
-        title: title.trim(),
-        trackId: hierarchy.trackId,
-        moduleId: hierarchy.moduleId || undefined,
-        topicId: hierarchy.topicId || undefined,
-        startDate,
-        months,
-        notes: notes.trim() || undefined,
-        topics,
-        subtopics,
-      });
+      await createGoalMilestone({ ...payload, topics, subtopics });
     }
     onOpenChange(false);
   };
@@ -170,23 +177,68 @@ export function GoalMilestoneDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="sm:col-span-2">
-              <label className="text-xs text-muted-foreground">Topic (optional)</label>
-              <Select
-                value={hierarchy.topicId || "none"}
-                onValueChange={(v) => updateHierarchy({ topicId: v === "none" ? "" : v })}
-                disabled={!hierarchy.moduleId}
-              >
-                <SelectTrigger className="mt-1 h-11"><SelectValue placeholder="Whole module" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Whole module</SelectItem>
-                  {moduleTopics.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
+
+          {hierarchy.moduleId && moduleTopics.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <label className="text-xs text-muted-foreground">Topics (select one or more)</label>
+                <div className="flex gap-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-[10px]"
+                    onClick={() => setSelectedTopicIds(moduleTopics.map((t) => t.id))}
+                  >
+                    Select all
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-[10px]"
+                    onClick={() => setSelectedTopicIds([])}
+                  >
+                    Whole module
+                  </Button>
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground mb-2">
+                {selectedTopicIds.length === 0
+                  ? "No topics selected — goal covers the entire module."
+                  : `${selectedTopicIds.length} topic${selectedTopicIds.length === 1 ? "" : "s"} selected`}
+              </p>
+              <div className="rounded-xl border border-border/50 divide-y divide-border/30 max-h-48 overflow-y-auto">
+                {moduleTopics.map((topic) => {
+                  const selected = selectedTopicIds.includes(topic.id);
+                  const pct = getTopicProgress(topic, subtopics).percentage;
+                  return (
+                    <button
+                      key={topic.id}
+                      type="button"
+                      onClick={() => toggleTopic(topic.id)}
+                      className={cn(
+                        "flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-secondary/40",
+                        selected && "bg-primary/10"
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors",
+                          selected ? "border-primary bg-primary text-primary-foreground" : "border-border"
+                        )}
+                      >
+                        {selected && <Check className="h-3 w-3" />}
+                      </div>
+                      <span className="text-sm flex-1 min-w-0 truncate">{topic.name}</span>
+                      <Badge variant="secondary" className="text-[10px] font-mono shrink-0">{pct}%</Badge>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {hierarchy.trackId && (
             <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-2">

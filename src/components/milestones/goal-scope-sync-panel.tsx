@@ -97,7 +97,7 @@ export function GoalScopeSyncPanel({ stats, topics, subtopics, modules }: GoalSc
                     )}
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate">{topic.name}</p>
-                      {stats.scopeType !== "topic" && mod && (
+                      {mod && stats.scopeType !== "track" && (
                         <p className="text-[10px] text-muted-foreground truncate">{mod.name}</p>
                       )}
                     </div>

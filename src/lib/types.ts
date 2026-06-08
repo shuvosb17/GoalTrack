@@ -176,7 +176,10 @@ export interface GoalMilestone {
   title: string;
   trackId: string;
   moduleId?: string;
+  /** @deprecated use topicIds — kept for older backups */
   topicId?: string;
+  /** Selected topics under a module; empty = whole module or track */
+  topicIds?: string[];
   startDate: string;
   months: number;
   endDate: string;
@@ -189,7 +192,7 @@ export interface GoalMilestone {
 }
 
 export type GoalPaceStatus = "ahead" | "on_track" | "behind" | "completed" | "overdue";
-export type GoalScopeType = "track" | "module" | "topic";
+export type GoalScopeType = "track" | "module" | "topic" | "topics";
 
 export interface GoalMilestoneStats {
   goal: GoalMilestone;

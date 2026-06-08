@@ -6,27 +6,46 @@ import type {
   Module, Topic, Track, Subtopic, ProgressStatus,
 } from "./types";
 import { getModuleProgress, getTopicProgress, getTrackProgress } from "./analytics";
-import { isTopicComplete } from "./in-progress";
+import { calculateTopicsProgress, isTopicComplete } from "./in-progress";
 import { nowISO, todayISO, parseLocalDate } from "./utils";
+
+export type GoalScopeInput = Pick<GoalMilestone, "trackId" | "moduleId" | "topicId" | "topicIds">;
 
 export function computeEndDate(startDate: string, months: number): string {
   return format(addMonths(parseLocalDate(startDate), months), "yyyy-MM-dd");
 }
 
-export function getGoalScopeType(goal: Pick<GoalMilestone, "topicId" | "moduleId">): GoalScopeType {
-  if (goal.topicId) return "topic";
+/** Resolve topic IDs from topicIds array or legacy single topicId */
+export function getGoalTopicIds(goal: Pick<GoalMilestone, "topicId" | "topicIds">): string[] {
+  if (goal.topicIds?.length) return goal.topicIds;
+  if (goal.topicId) return [goal.topicId];
+  return [];
+}
+
+export function normalizeGoalTopicScope(topicIds: string[]): Pick<GoalMilestone, "topicId" | "topicIds"> {
+  if (topicIds.length === 0) return { topicId: undefined, topicIds: undefined };
+  return {
+    topicIds,
+    topicId: topicIds.length === 1 ? topicIds[0] : undefined,
+  };
+}
+
+export function getGoalScopeType(goal: Pick<GoalMilestone, "topicId" | "topicIds" | "moduleId">): GoalScopeType {
+  const topicIds = getGoalTopicIds(goal);
+  if (topicIds.length > 1) return "topics";
+  if (topicIds.length === 1) return "topic";
   if (goal.moduleId) return "module";
   return "track";
 }
 
 /** Topics included in this milestone — same boundaries as Tracks hierarchy */
 export function getGoalScopeTopics(
-  goal: Pick<GoalMilestone, "trackId" | "moduleId" | "topicId">,
+  goal: Pick<GoalMilestone, "trackId" | "moduleId" | "topicId" | "topicIds">,
   topics: Topic[]
 ): Topic[] {
-  if (goal.topicId) {
-    const topic = topics.find((t) => t.id === goal.topicId && !t.archived);
-    return topic ? [topic] : [];
+  const topicIds = getGoalTopicIds(goal);
+  if (topicIds.length > 0) {
+    return topics.filter((t) => topicIds.includes(t.id) && !t.archived);
   }
   if (goal.moduleId) {
     return topics.filter((t) => t.moduleId === goal.moduleId && !t.archived);
@@ -39,7 +58,7 @@ function emptyStatusCounts(): Record<ProgressStatus, number> {
 }
 
 export function buildGoalScopeSummary(
-  goal: Pick<GoalMilestone, "trackId" | "moduleId" | "topicId">,
+  goal: Pick<GoalMilestone, "trackId" | "moduleId" | "topicId" | "topicIds">,
   topics: Topic[],
   subtopics: Subtopic[]
 ) {
@@ -65,14 +84,19 @@ export function buildGoalScopeSummary(
 
 /** Live progress from Tracks data — identical formulas to the Tracks page */
 export function resolveGoalProgress(
-  goal: Pick<GoalMilestone, "topicId" | "moduleId" | "trackId">,
+  goal: GoalScopeInput,
   topics: Topic[],
   subtopics: Subtopic[]
 ): number {
-  if (goal.topicId) {
-    const topic = topics.find((t) => t.id === goal.topicId);
+  const topicIds = getGoalTopicIds(goal);
+  if (topicIds.length === 1) {
+    const topic = topics.find((t) => t.id === topicIds[0]);
     if (!topic) return 0;
     return getTopicProgress(topic, subtopics).percentage;
+  }
+  if (topicIds.length > 1) {
+    const scopeTopics = getGoalScopeTopics(goal, topics);
+    return calculateTopicsProgress(scopeTopics, subtopics);
   }
   if (goal.moduleId) {
     return getModuleProgress(goal.moduleId, topics, subtopics).percentage;
@@ -80,9 +104,34 @@ export function resolveGoalProgress(
   return getTrackProgress(goal.trackId, topics, subtopics).percentage;
 }
 
+export function formatGoalScopeLabel(
+  goal: GoalScopeInput,
+  topics: Topic[],
+  modules: Module[],
+  tracks: Track[]
+): string {
+  const scopeTopics = getGoalScopeTopics(goal, topics);
+  const mod = goal.moduleId ? modules.find((m) => m.id === goal.moduleId) : undefined;
+  const track = tracks.find((t) => t.id === goal.trackId);
+
+  if (scopeTopics.length === 1) {
+    const parts = [mod?.name, scopeTopics[0].name].filter(Boolean);
+    return parts.join(" → ");
+  }
+  if (scopeTopics.length > 1) {
+    const names = scopeTopics.map((t) => t.name);
+    const preview = names.slice(0, 2).join(", ");
+    const suffix = names.length > 2 ? ` +${names.length - 2} more` : "";
+    return mod ? `${mod.name} → ${preview}${suffix}` : `${preview}${suffix}`;
+  }
+  if (mod) return mod.name;
+  return track?.name ?? "Track";
+}
+
 export function goalCoversTopic(goal: GoalMilestone, topic: Topic): boolean {
   if (goal.trackId !== topic.trackId) return false;
-  if (goal.topicId) return goal.topicId === topic.id;
+  const topicIds = getGoalTopicIds(goal);
+  if (topicIds.length > 0) return topicIds.includes(topic.id);
   if (goal.moduleId) return goal.moduleId === topic.moduleId;
   return true;
 }
@@ -106,7 +155,8 @@ export function buildGoalStats(
 ): GoalMilestoneStats {
   const track = tracks.find((t) => t.id === goal.trackId);
   const mod = goal.moduleId ? modules.find((m) => m.id === goal.moduleId) : undefined;
-  const topic = goal.topicId ? topics.find((t) => t.id === goal.topicId) : undefined;
+  const topicIds = getGoalTopicIds(goal);
+  const topic = topicIds.length === 1 ? topics.find((t) => t.id === topicIds[0]) : undefined;
 
   const today = parseLocalDate(todayISO());
   const start = parseLocalDate(goal.startDate);
@@ -138,8 +188,7 @@ export function buildGoalStats(
     paceStatus = "behind";
   }
 
-  const scopeParts = [mod?.name, topic?.name].filter(Boolean);
-  const scopeLabel = scopeParts.length > 0 ? scopeParts.join(" → ") : track?.name ?? "Track";
+  const scopeLabel = formatGoalScopeLabel(goal, topics, modules, tracks);
 
   return {
     goal,
@@ -185,7 +234,7 @@ export async function createGoalMilestone(input: {
   title: string;
   trackId: string;
   moduleId?: string;
-  topicId?: string;
+  topicIds?: string[];
   startDate: string;
   months: number;
   targetProgress?: number;
@@ -194,17 +243,19 @@ export async function createGoalMilestone(input: {
   subtopics: Subtopic[];
 }) {
   const count = await db.goalMilestones.count();
-  const baselineProgress = resolveGoalProgress(
-    { trackId: input.trackId, moduleId: input.moduleId, topicId: input.topicId },
-    input.topics,
-    input.subtopics
-  );
+  const topicScope = normalizeGoalTopicScope(input.topicIds ?? []);
+  const scope: GoalScopeInput = {
+    trackId: input.trackId,
+    moduleId: input.moduleId,
+    ...topicScope,
+  };
+  const baselineProgress = resolveGoalProgress(scope, input.topics, input.subtopics);
   const goal: GoalMilestone = {
     id: uuid(),
     title: input.title.trim(),
     trackId: input.trackId,
     moduleId: input.moduleId || undefined,
-    topicId: input.topicId || undefined,
+    ...topicScope,
     startDate: input.startDate,
     months: input.months,
     endDate: computeEndDate(input.startDate, input.months),
@@ -221,7 +272,7 @@ export async function createGoalMilestone(input: {
 
 export async function updateGoalMilestone(
   id: string,
-  input: Partial<Pick<GoalMilestone, "title" | "trackId" | "moduleId" | "topicId" | "startDate" | "months" | "targetProgress" | "notes">>,
+  input: Partial<Pick<GoalMilestone, "title" | "trackId" | "moduleId" | "topicId" | "topicIds" | "startDate" | "months" | "targetProgress" | "notes">>,
   topics?: Topic[],
   subtopics?: Subtopic[]
 ) {
@@ -229,21 +280,33 @@ export async function updateGoalMilestone(
   if (!existing) return;
 
   const updates: Partial<GoalMilestone> = { ...input, updatedAt: nowISO() };
+
+  if (input.topicIds !== undefined) {
+    const topicScope = normalizeGoalTopicScope(input.topicIds);
+    updates.topicIds = topicScope.topicIds;
+    updates.topicId = topicScope.topicId;
+  }
+
   if (input.months !== undefined || input.startDate !== undefined) {
     const start = input.startDate ?? existing.startDate;
     const months = input.months ?? existing.months;
     updates.endDate = computeEndDate(start, months);
   }
-  if ((input.trackId || input.moduleId !== undefined || input.topicId !== undefined) && topics && subtopics) {
-    updates.baselineProgress = resolveGoalProgress(
-      {
-        trackId: input.trackId ?? existing.trackId,
-        moduleId: input.moduleId ?? existing.moduleId,
-        topicId: input.topicId ?? existing.topicId,
-      },
-      topics,
-      subtopics
-    );
+
+  const scopeChanged =
+    input.trackId !== undefined ||
+    input.moduleId !== undefined ||
+    input.topicId !== undefined ||
+    input.topicIds !== undefined;
+
+  if (scopeChanged && topics && subtopics) {
+    const merged: GoalScopeInput = {
+      trackId: input.trackId ?? existing.trackId,
+      moduleId: input.moduleId ?? existing.moduleId,
+      topicId: updates.topicId ?? existing.topicId,
+      topicIds: updates.topicIds ?? existing.topicIds,
+    };
+    updates.baselineProgress = resolveGoalProgress(merged, topics, subtopics);
   }
 
   await db.goalMilestones.update(id, updates);
