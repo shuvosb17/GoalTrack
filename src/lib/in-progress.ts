@@ -74,6 +74,13 @@ export function getEffectiveDueDate(topic: Topic, activeSubtopics: Subtopic[]): 
   return dates.sort((a, b) => parseLocalDate(a).getTime() - parseLocalDate(b).getTime())[0];
 }
 
+/** Earliest due date between a subtopic and its parent topic */
+export function getSubtopicDueDate(sub: Subtopic, topic: Topic): string | undefined {
+  const dates = [sub.dueDate, topic.dueDate].filter(Boolean) as string[];
+  if (dates.length === 0) return undefined;
+  return dates.sort((a, b) => parseLocalDate(a).getTime() - parseLocalDate(b).getTime())[0];
+}
+
 export function getInProgressTopics(
   topics: Topic[],
   subtopics: Subtopic[],

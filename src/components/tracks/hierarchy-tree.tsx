@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { TimerControls } from "@/components/timer/timer-controls";
 import { STATUS_LABELS, DIFFICULTY_LABELS, DIFFICULTY_COLORS } from "@/lib/utils";
-import { formatDeadline, getDaysUntilDue } from "@/lib/in-progress";
+import { formatDeadline, getDaysUntilDue, getSubtopicDueDate } from "@/lib/in-progress";
 import { todayISO } from "@/lib/utils";
 import { db } from "@/lib/db";
 import {
@@ -293,11 +293,20 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                             </SelectContent>
                                                           </Select>
                                                           <span className="text-sm flex-1">{sub.name}</span>
-                                                          {sub.status === "in_progress" && sub.dueDate && (
-                                                            <Badge variant={getDaysUntilDue(sub.dueDate)! < 0 ? "destructive" : "warning"} className="text-[10px]">
-                                                              {formatDeadline(getDaysUntilDue(sub.dueDate), sub.dueDate)}
-                                                            </Badge>
-                                                          )}
+                                                          {sub.status === "in_progress" && (() => {
+                                                            const due = getSubtopicDueDate(sub, topic);
+                                                            if (!due) return null;
+                                                            const days = getDaysUntilDue(due);
+                                                            return (
+                                                              <Badge
+                                                                variant={days! < 0 ? "destructive" : "warning"}
+                                                                className="text-[10px] cursor-pointer hover:opacity-80"
+                                                                onClick={() => setStatusDialog({ id: sub.id, type: "subtopic", dueDate: due })}
+                                                              >
+                                                                {formatDeadline(days, due)}
+                                                              </Badge>
+                                                            );
+                                                          })()}
                                                           <Select
                                                             value={sub.difficulty}
                                                             onValueChange={(v) => updateSubtopicDifficulty(sub.id, v as Difficulty)}

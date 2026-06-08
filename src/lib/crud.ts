@@ -1,7 +1,7 @@
 import { v4 as uuid } from "uuid";
 import { db } from "./db";
 import type { Module, Topic, Subtopic, ProgressStatus, Difficulty } from "./types";
-import { nowISO, todayISO } from "./utils";
+import { nowISO, todayISO, parseLocalDate } from "./utils";
 import { isTopicComplete } from "./in-progress";
 
 export async function renameModule(id: string, name: string) {
@@ -104,6 +104,27 @@ export async function syncTopicStatusFromSubtopics(topicId: string) {
   await db.topics.update(topicId, updates);
 }
 
+/** Keep topic + in-progress subtopic due dates aligned (uses earliest date) */
+async function alignDueDates(topicId: string, dueDate: string) {
+  const topic = await db.topics.get(topicId);
+  if (!topic) return;
+
+  const candidates = [dueDate, topic.dueDate].filter(Boolean) as string[];
+  const earliest = candidates.sort((a, b) => parseLocalDate(a).getTime() - parseLocalDate(b).getTime())[0];
+
+  await db.topics.update(topicId, { dueDate: earliest, updatedAt: nowISO() });
+
+  const subs = await db.subtopics
+    .where("topicId")
+    .equals(topicId)
+    .filter((s) => !s.archived && s.status === "in_progress")
+    .toArray();
+
+  await Promise.all(
+    subs.map((sub) => db.subtopics.update(sub.id, { dueDate: earliest, updatedAt: nowISO() }))
+  );
+}
+
 export async function updateSubtopicStatus(id: string, status: ProgressStatus, dueDate?: string) {
   const sub = await db.subtopics.get(id);
   if (!sub) return;
@@ -124,6 +145,9 @@ export async function updateSubtopicStatus(id: string, status: ProgressStatus, d
   }
 
   await db.subtopics.update(id, updates);
+  if (status === "in_progress" && updates.dueDate) {
+    await alignDueDates(sub.topicId, updates.dueDate);
+  }
   await syncTopicStatusFromSubtopics(sub.topicId);
 }
 
@@ -148,6 +172,10 @@ export async function updateTopicStatus(id: string, status: ProgressStatus, dueD
 
   await db.topics.update(id, updates);
 
+  if (status === "in_progress" && updates.dueDate) {
+    await alignDueDates(id, updates.dueDate);
+  }
+
   if (status === "completed" || status === "mastered") {
     const changedAt = updates.statusChangedAt ?? nowISO();
     const subs = await db.subtopics.where("topicId").equals(id).filter((s) => !s.archived).toArray();
@@ -167,11 +195,15 @@ export async function updateTopicStatus(id: string, status: ProgressStatus, dueD
 }
 
 export async function updateSubtopicDueDate(id: string, dueDate: string) {
+  const sub = await db.subtopics.get(id);
+  if (!sub) return;
   await db.subtopics.update(id, { dueDate, updatedAt: nowISO() });
+  await alignDueDates(sub.topicId, dueDate);
 }
 
 export async function updateTopicDueDate(id: string, dueDate: string) {
   await db.topics.update(id, { dueDate, updatedAt: nowISO() });
+  await alignDueDates(id, dueDate);
 }
 
 export async function updateTopicDifficulty(id: string, difficulty: Difficulty) {
