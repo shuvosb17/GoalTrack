@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { EncryptedBackupEnvelope } from "@/lib/backup-crypto";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 const DEFAULT_OWNER = "shuvosb17";
 const DEFAULT_REPO = "GoalTrack-Backup";
 const DEFAULT_BRANCH = "main";
@@ -25,26 +28,26 @@ function utf8ToBase64(str: string): string {
 }
 
 async function fetchPublicBackup(owner: string, repo: string, branch: string, path: string): Promise<string> {
-  const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
+  const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch)}`;
   const apiRes = await fetch(apiUrl, {
     headers: { Accept: "application/vnd.github+json", "User-Agent": "GoalTrack" },
     cache: "no-store",
   });
   if (apiRes.ok) {
     const json = await apiRes.json();
+    const downloadUrl = (json as { download_url?: string }).download_url;
+    if (downloadUrl) {
+      const dl = await fetch(downloadUrl, { cache: "no-store" });
+      if (dl.ok) return dl.text();
+    }
     const content = (json as { content?: string }).content?.replace(/\n/g, "") ?? "";
     return Buffer.from(content, "base64").toString("utf8");
   }
 
-  const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`;
-  const rawRes = await fetch(rawUrl, { cache: "no-store" });
-  if (!rawRes.ok) {
-    if (rawRes.status === 404 || apiRes.status === 404) {
-      throw new Error("Backup file not found. Run Backup to GitHub from your main device first.");
-    }
-    throw new Error(`Could not fetch backup (${rawRes.status})`);
+  if (apiRes.status === 404) {
+    throw new Error("Backup file not found. Run Backup to GitHub from your main device first.");
   }
-  return rawRes.text();
+  throw new Error(`Could not fetch backup (${apiRes.status})`);
 }
 
 async function getFileSha(

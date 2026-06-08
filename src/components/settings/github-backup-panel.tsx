@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import {
   backupToGitHub,
   importFromGitHub,
+  peekGitHubBackup,
   loadGitHubSyncConfig,
   saveGitHubSyncConfig,
 } from "@/lib/github-sync";
@@ -24,7 +25,7 @@ export function GitHubBackupPanel() {
   const [pin, setPin] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState<"backup" | "import" | null>(null);
+  const [busy, setBusy] = useState<"backup" | "import" | "test" | null>(null);
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [confirmImport, setConfirmImport] = useState(false);
 
@@ -64,17 +65,33 @@ export function GitHubBackupPanel() {
   const runImport = async () => {
     setConfirmImport(false);
     setError(null);
-    setStatus(null);
+    setStatus("Starting import…");
     persistConfig();
     setBusy("import");
     try {
-      await importFromGitHub(pin);
+      await importFromGitHub(pin, (message) => setStatus(message));
       await saveAutoBackup();
       setLastSync(new Date().toISOString());
       setStatus("Import successful. Reloading…");
       window.location.reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Import failed");
+      setStatus(null);
+      setBusy(null);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    setError(null);
+    setStatus(null);
+    persistConfig();
+    setBusy("test");
+    try {
+      const peek = await peekGitHubBackup();
+      setStatus(`Backup found on GitHub (saved ${format(parseISO(peek.exportedAt), "MMM d, yyyy h:mm a")}). Enter PIN and import.`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not reach GitHub backup");
+    } finally {
       setBusy(null);
     }
   };
@@ -146,7 +163,6 @@ export function GitHubBackupPanel() {
             </label>
             <Input
               type="password"
-              inputMode="numeric"
               className="h-11 mt-1"
               placeholder="Your private PIN"
               value={pin}
@@ -164,6 +180,10 @@ export function GitHubBackupPanel() {
           <Button variant="outline" onClick={handleImport} disabled={busy !== null} className="gap-2 h-11 px-6">
             {busy === "import" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CloudDownload className="h-4 w-4" />}
             Import from GitHub
+          </Button>
+          <Button variant="ghost" onClick={handleTestConnection} disabled={busy !== null} className="gap-2 h-11">
+            {busy === "test" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Cloud className="h-4 w-4" />}
+            Test Connection
           </Button>
         </div>
 

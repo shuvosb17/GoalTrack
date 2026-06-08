@@ -129,14 +129,14 @@ export async function importAllData(data: Awaited<ReturnType<typeof exportAllDat
       db.tracks.clear(), db.modules.clear(), db.topics.clear(), db.subtopics.clear(),
       db.sessions.clear(), db.journal.clear(), db.achievements.clear(), db.milestones.clear(), db.settings.clear(),
     ]);
-    await db.tracks.bulkAdd(data.tracks);
-    await db.modules.bulkAdd(data.modules);
-    await db.topics.bulkAdd(data.topics);
-    await db.subtopics.bulkAdd(data.subtopics);
-    await db.sessions.bulkAdd(data.sessions);
-    await db.journal.bulkAdd(data.journal);
-    await db.achievements.bulkAdd(data.achievements);
-    await db.milestones.bulkAdd(data.milestones);
-    await db.settings.bulkAdd(data.settings);
+    if (data.tracks?.length) await db.tracks.bulkAdd(data.tracks);
+    if (data.modules?.length) await db.modules.bulkAdd(data.modules);
+    if (data.topics?.length) await db.topics.bulkAdd(data.topics);
+    if (data.subtopics?.length) await db.subtopics.bulkAdd(data.subtopics);
+    if (data.sessions?.length) await db.sessions.bulkAdd(data.sessions);
+    if (data.journal?.length) await db.journal.bulkAdd(data.journal);
+    if (data.achievements?.length) await db.achievements.bulkAdd(data.achievements);
+    if (data.milestones?.length) await db.milestones.bulkAdd(data.milestones);
+    if (data.settings?.length) await db.settings.bulkAdd(data.settings);
   });
 }
