@@ -21,7 +21,6 @@ export function GitHubBackupPanel() {
   const [repoInput, setRepoInput] = useState(initial.repoInput || DEFAULT_REPO);
   const [branch, setBranch] = useState(initial.branch);
   const [path, setPath] = useState(initial.path);
-  const [token, setToken] = useState(initial.token);
   const [pin, setPin] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +28,7 @@ export function GitHubBackupPanel() {
   const [lastSync, setLastSync] = useState(initial.lastSync);
 
   const persistConfig = () => {
-    saveGitHubSyncConfig({ repoInput, branch, path, token });
+    saveGitHubSyncConfig({ repoInput, branch, path });
   };
 
   const handleBackup = async () => {
@@ -86,17 +85,17 @@ export function GitHubBackupPanel() {
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground leading-relaxed">
-          Sync encrypted backups to{" "}
+          Your public repo{" "}
           <a
             href="https://github.com/shuvosb17/GoalTrack-Backup"
             target="_blank"
             rel="noopener noreferrer"
             className="text-primary hover:underline"
           >
-            your GitHub repo
-          </a>
-          . On mobile or another device, open Settings → enter your PIN → Import from GitHub.
-          Data is encrypted before upload — only your PIN can decrypt it.
+            GoalTrack-Backup
+          </a>{" "}
+          stores PIN-encrypted data. <strong>Import needs only your PIN</strong> — no GitHub token in the app.
+          On mobile: Settings → enter PIN → Import from GitHub.
         </p>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -127,21 +126,6 @@ export function GitHubBackupPanel() {
               onChange={(e) => setPath(e.target.value)}
               onBlur={persistConfig}
             />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="text-xs text-muted-foreground">GitHub token (backup only)</label>
-            <Input
-              type="password"
-              className="h-11 mt-1"
-              placeholder="Fine-grained PAT with Contents read/write on this repo"
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-              onBlur={persistConfig}
-              autoComplete="off"
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Required to upload backups from your main device. Import works without a token on a public repo.
-            </p>
           </div>
           <div className="sm:col-span-2">
             <label className="text-xs text-muted-foreground flex items-center gap-1">
