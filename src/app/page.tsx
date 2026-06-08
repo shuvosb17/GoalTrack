@@ -76,12 +76,12 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Dashboard</h1>
         <p className="text-muted-foreground mt-1">Welcome to GoalTrack — your personal learning command center</p>
       </motion.div>
 
       {/* Hero Section */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
         <StatCard title="Total Hours" value={`${totalHours.toFixed(0)}h`} subtitle={`${todayHours.toFixed(1)}h today`} icon={Clock} gradient="linear-gradient(135deg, #8b5cf6, #3b82f6)" delay={0} />
         <StatCard title="Overall Progress" value={`${globalProgress.percentage}%`} subtitle={`${completed.completedTopics} topics completed`} icon={Target} gradient="linear-gradient(135deg, #10b981, #06b6d4)" delay={0.05} />
         <StatCard title="Current Streak" value={`${streaks.current} days`} subtitle={`Best: ${streaks.longest} days`} icon={Flame} gradient="linear-gradient(135deg, #f59e0b, #ef4444)" delay={0.1} />

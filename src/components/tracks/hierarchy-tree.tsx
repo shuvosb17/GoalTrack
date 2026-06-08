@@ -133,13 +133,13 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
         return (
           <div key={track.id} className="glass-card rounded-xl overflow-hidden">
             <div
-              className="flex items-center gap-3 p-4 cursor-pointer hover:bg-secondary/30 transition-colors"
+              className="flex flex-wrap items-center gap-2 p-3 cursor-pointer hover:bg-secondary/30 transition-colors sm:gap-3 sm:p-4"
               onClick={() => toggle(track.id)}
             >
               <span className="text-xl">{track.icon}</span>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold">{track.name}</h3>
+              <div className="min-w-0 flex-1 basis-[calc(100%-3rem)] sm:basis-auto">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="font-semibold truncate">{track.name}</h3>
                   <Badge variant="outline">{trackProgress}%</Badge>
                 </div>
                 <Progress value={trackProgress} className="h-1 mt-2" />
@@ -169,9 +169,9 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                           return (
                             <SortableItem key={mod.id} id={mod.id}>
                               <div className="rounded-lg border border-border/50 overflow-hidden">
-                                <div className="flex items-center gap-2 p-3 bg-secondary/20 cursor-pointer group" onClick={() => toggle(mod.id)}>
+                                <div className="flex items-center gap-2 overflow-x-auto p-3 bg-secondary/20 cursor-pointer group" onClick={() => toggle(mod.id)}>
                                   {expanded.has(mod.id) ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                                  <span className="text-sm font-medium flex-1">{mod.name}</span>
+                                  <span className="text-sm font-medium flex-1 min-w-[8rem] truncate">{mod.name}</span>
                                   <span className="text-xs text-muted-foreground w-8 text-right">{modProgress.percentage}%</span>
                                   <Progress value={modProgress.percentage} className="h-1 w-16 hidden sm:block" />
                                   <TimerControls
@@ -180,7 +180,7 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                     compact
                                     loggedMs={getModuleLoggedMs(mod.id, subtopics, sessions)}
                                   />
-                                  <div className="opacity-0 group-hover:opacity-100 flex gap-0.5">
+                                  <div className="flex gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
                                     <Button size="icon" variant="ghost" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); setEditDialog({ type: "module", id: mod.id, name: mod.name }); }}>
                                       <Pencil className="h-3 w-3" />
                                     </Button>
@@ -203,9 +203,9 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
 
                                           return (
                                             <div key={topic.id} className="rounded-md border border-border/30">
-                                              <div className="flex items-center gap-2 p-2 pl-4 cursor-pointer hover:bg-secondary/20 group" onClick={() => toggle(topic.id)}>
+                                              <div className="flex items-center gap-2 overflow-x-auto p-2 pl-2 cursor-pointer hover:bg-secondary/20 group sm:pl-4" onClick={() => toggle(topic.id)}>
                                                 {expanded.has(topic.id) ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                                                <span className="text-sm flex-1">{topic.name}</span>
+                                                <span className="text-sm flex-1 min-w-[6rem] truncate">{topic.name}</span>
                                                 <Select
                                                   value={topic.difficulty}
                                                   onValueChange={(v) => updateTopicDifficulty(topic.id, v as Difficulty)}
@@ -257,7 +257,7 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                   compact
                                                   loggedMs={getTopicLoggedMs(topic.id, subtopics, sessions)}
                                                 />
-                                                <div className="opacity-0 group-hover:opacity-100 flex gap-0.5">
+                                                <div className="flex gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
                                                   <Button size="icon" variant="ghost" className="h-5 w-5" onClick={(e) => { e.stopPropagation(); setEditDialog({ type: "topic", id: topic.id, name: topic.name, difficulty: topic.difficulty }); }}>
                                                     <Pencil className="h-3 w-3" />
                                                   </Button>
@@ -275,7 +275,8 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                   <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }}>
                                                     <div className="px-4 pb-2 space-y-1">
                                                       {topicSubs.map((sub) => (
-                                                        <div key={sub.id} className="flex items-center gap-2 p-2 pl-6 rounded hover:bg-secondary/20 group">
+                                                        <div key={sub.id} className="flex flex-col gap-2 rounded p-2 pl-3 hover:bg-secondary/20 group sm:flex-row sm:items-center sm:pl-6">
+                                                          <div className="flex min-w-0 items-center gap-2">
                                                           <Select value={sub.status} onValueChange={(v) => {
                                                             const status = v as ProgressStatus;
                                                             updateSubtopicStatus(sub.id, status, sub.dueDate ?? todayISO());
@@ -292,7 +293,9 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                               ))}
                                                             </SelectContent>
                                                           </Select>
-                                                          <span className="text-sm flex-1">{sub.name}</span>
+                                                          <span className="text-sm flex-1 min-w-0 truncate">{sub.name}</span>
+                                                          </div>
+                                                          <div className="flex flex-wrap items-center gap-2">
                                                           {sub.status === "in_progress" && (() => {
                                                             const due = getSubtopicDueDate(sub, topic);
                                                             if (!due) return null;
@@ -332,10 +335,11 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                             loggedMs={getSubtopicLoggedMs(sub.id, sessions)}
                                                             allowManual
                                                           />
-                                                          <div className="opacity-0 group-hover:opacity-100 flex gap-0.5">
+                                                          <div className="flex gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
                                                             <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => duplicateSubtopic(sub)}><Copy className="h-3 w-3" /></Button>
                                                             <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => archiveSubtopic(sub.id)}><Archive className="h-3 w-3" /></Button>
                                                             <Button size="icon" variant="ghost" className="h-5 w-5 text-destructive" onClick={() => deleteSubtopic(sub.id)}><Trash2 className="h-3 w-3" /></Button>
+                                                          </div>
                                                           </div>
                                                         </div>
                                                       ))}

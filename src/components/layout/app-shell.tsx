@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { Sidebar } from "./sidebar";
+import { MobileHeader } from "./mobile-header";
 import { FocusWidget } from "@/components/timer/focus-widget";
 import { AchievementChecker } from "@/components/providers/achievement-checker";
 import { AutoBackupProvider } from "@/components/providers/auto-backup";
@@ -11,7 +12,6 @@ import { Logo } from "./logo";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { initialized, setInitialized } = useAppStore();
-  const sidebarOpen = useAppStore((s) => s.sidebarOpen);
 
   useEffect(() => {
     seedDatabase().then(() => setInitialized(true));
@@ -31,9 +31,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen">
+      <MobileHeader />
       <Sidebar />
-      <main className={sidebarOpen ? "ml-64" : ""}>
-        <div className="p-8 max-w-[1600px] mx-auto">{children}</div>
+      <main className="min-w-0 lg:ml-64">
+        <div className="mx-auto max-w-[1600px] px-4 py-6 pt-[4.5rem] sm:px-6 sm:py-8 lg:px-8 lg:pt-8">
+          {children}
+        </div>
       </main>
       <FocusWidget />
       <AchievementChecker />

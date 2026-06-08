@@ -76,10 +76,10 @@ export default function SettingsPage() {
   return (
     <div className="space-y-8 max-w-4xl">
       <div>
-        <h1 className="text-4xl font-bold tracking-tight flex items-center gap-3">
-          <Settings className="h-9 w-9 text-primary" /> Settings
+        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight sm:gap-3 sm:text-3xl lg:text-4xl">
+          <Settings className="h-7 w-7 shrink-0 text-primary sm:h-9 sm:w-9" /> Settings
         </h1>
-        <p className="text-muted-foreground mt-2 text-lg">Configure your learning command center</p>
+        <p className="mt-2 text-base text-muted-foreground sm:text-lg">Configure your learning command center</p>
       </div>
 
       {/* Data safety notice */}

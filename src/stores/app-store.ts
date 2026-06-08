@@ -5,6 +5,7 @@ interface AppStore {
   initialized: boolean;
   setInitialized: (v: boolean) => void;
   sidebarOpen: boolean;
+  setSidebarOpen: (v: boolean) => void;
   toggleSidebar: () => void;
   insights: Insight[];
   setInsights: (insights: Insight[]) => void;
@@ -16,7 +17,8 @@ interface AppStore {
 export const useAppStore = create<AppStore>((set) => ({
   initialized: false,
   setInitialized: (v) => set({ initialized: v }),
-  sidebarOpen: true,
+  sidebarOpen: false,
+  setSidebarOpen: (v) => set({ sidebarOpen: v }),
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
   insights: [],
   setInsights: (insights) => set({ insights }),

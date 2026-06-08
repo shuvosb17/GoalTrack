@@ -32,7 +32,7 @@ export function FocusWidget() {
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 100, opacity: 0 }}
-        className="fixed bottom-6 right-6 z-50 glass-card rounded-2xl p-4 shadow-2xl border border-primary/20 min-w-[320px]"
+        className="fixed bottom-4 left-4 right-4 z-50 glass-card rounded-2xl border border-primary/20 p-4 shadow-2xl sm:bottom-6 sm:left-auto sm:right-6 sm:max-w-[320px]"
       >
         <div className="flex items-center gap-3 mb-3">
           <div className="p-2 rounded-xl bg-primary/20">

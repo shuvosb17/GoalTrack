@@ -84,7 +84,7 @@ export default function AnnualReviewPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight sm:gap-3 sm:text-3xl">
             <FileText className="h-8 w-8 text-primary" /> Annual Review {year}
           </h1>
           <p className="text-muted-foreground mt-1">Your year in learning</p>

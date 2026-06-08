@@ -151,7 +151,7 @@ export default function JournalPage() {
   return (
     <div className="space-y-8">
       {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl glass-card p-8">
+      <div className="relative overflow-hidden rounded-2xl glass-card p-4 sm:p-8">
         <div className="absolute inset-0 bg-gradient-to-br from-violet-600/20 via-transparent to-blue-600/10 pointer-events-none" />
         <div className="relative flex flex-wrap items-start justify-between gap-6">
           <div>
@@ -159,17 +159,17 @@ export default function JournalPage() {
               <div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-blue-500">
                 <NotebookPen className="h-6 w-6 text-white" />
               </div>
-              <h1 className="text-3xl font-bold tracking-tight">Learning Journal</h1>
+              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Learning Journal</h1>
             </div>
             <p className="text-muted-foreground max-w-lg">
               Capture what you learned under any track, module, topic, or subtopic — and reflect with purpose.
             </p>
           </div>
-          <Button size="lg" onClick={openNew} className="shadow-lg shadow-primary/25">
+          <Button size="lg" onClick={openNew} className="w-full shadow-lg shadow-primary/25 sm:w-auto">
             <Plus className="h-4 w-4" /> New Entry
           </Button>
         </div>
-        <div className="relative grid grid-cols-3 gap-4 mt-8 max-w-md">
+        <div className="relative mt-6 grid max-w-md grid-cols-1 gap-3 sm:mt-8 sm:grid-cols-3 sm:gap-4">
           {[
             { label: "Total Entries", value: stats.total, icon: BookOpen },
             { label: "This Week", value: stats.thisWeek, icon: Sparkles },

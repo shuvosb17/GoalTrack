@@ -28,7 +28,7 @@ export function StatusPanel({ topics, subtopics, modules, tracks }: StatusPanelP
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <CardTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5 text-primary" />
@@ -49,7 +49,7 @@ export function StatusPanel({ topics, subtopics, modules, tracks }: StatusPanelP
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Mini status counts */}
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {(["in_progress", "completed", "mastered", "not_started"] as const).map((status) => (
             <div key={status} className={`rounded-lg p-2 text-center border ${STATUS_BG[status]}`}>
               <p className="text-lg font-bold" style={{ color: STATUS_COLORS[status] }}>{counts[status]}</p>

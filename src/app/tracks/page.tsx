@@ -21,14 +21,14 @@ function TracksContent() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-          <BookOpen className="h-8 w-8 text-primary" /> Learning Tracks
+        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight sm:gap-3 sm:text-3xl">
+          <BookOpen className="h-7 w-7 shrink-0 text-primary sm:h-8 sm:w-8" /> Learning Tracks
         </h1>
         <p className="text-muted-foreground mt-1">Manage your hierarchical learning structure</p>
       </div>
 
       <Tabs value={selectedTrack || "all"} onValueChange={(v) => setSelectedTrack(v === "all" ? undefined : v)}>
-        <TabsList>
+        <TabsList className="h-auto w-full max-w-full flex-wrap justify-start gap-1 overflow-x-auto">
           <TabsTrigger value="all">All Tracks</TabsTrigger>
           {tracks.map((t) => (
             <TabsTrigger key={t.id} value={t.id}>{t.icon} {t.name}</TabsTrigger>
