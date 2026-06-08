@@ -1,8 +1,8 @@
 import { v4 as uuid } from "uuid";
 import { db } from "./db";
 import type { Module, Topic, Subtopic, ProgressStatus, Difficulty } from "./types";
-import { nowISO } from "./utils";
-import { defaultDueDate, isTopicComplete } from "./in-progress";
+import { nowISO, todayISO } from "./utils";
+import { isTopicComplete } from "./in-progress";
 
 export async function renameModule(id: string, name: string) {
   await db.modules.update(id, { name, updatedAt: nowISO() });
@@ -115,7 +115,7 @@ export async function updateSubtopicStatus(id: string, status: ProgressStatus, d
 
   if (status === "in_progress") {
     updates.startedAt = sub.startedAt ?? nowISO();
-    updates.dueDate = dueDate ?? sub.dueDate ?? defaultDueDate(7);
+    updates.dueDate = dueDate ?? sub.dueDate ?? todayISO();
   } else if (status === "not_started") {
     updates.startedAt = undefined;
     updates.dueDate = undefined;
@@ -138,7 +138,7 @@ export async function updateTopicStatus(id: string, status: ProgressStatus, dueD
 
   if (status === "in_progress") {
     updates.startedAt = topic.startedAt ?? nowISO();
-    updates.dueDate = dueDate ?? topic.dueDate ?? defaultDueDate(7);
+    updates.dueDate = dueDate ?? topic.dueDate ?? todayISO();
   } else if (status === "not_started") {
     updates.startedAt = undefined;
     updates.dueDate = undefined;

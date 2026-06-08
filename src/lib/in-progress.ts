@@ -1,6 +1,6 @@
-import { differenceInDays, format, parseISO } from "date-fns";
+import { differenceInCalendarDays, format } from "date-fns";
 import type { Track, Module, Topic, Subtopic, InProgressTask, InProgressTopicGroup } from "./types";
-import { calculateSubtopicProgress, statusWeight } from "./utils";
+import { calculateSubtopicProgress, statusWeight, parseLocalDate, todayISO } from "./utils";
 
 export function isTopicComplete(topic: Topic, subtopics: Subtopic[]): boolean {
   if (topic.status === "completed" || topic.status === "mastered") return true;
@@ -49,7 +49,7 @@ export function calculateTopicsProgress(topics: Topic[], subtopics: Subtopic[]):
 
 export function getDaysUntilDue(dueDate?: string): number | null {
   if (!dueDate) return null;
-  return differenceInDays(parseISO(dueDate), new Date());
+  return differenceInCalendarDays(parseLocalDate(dueDate), parseLocalDate(todayISO()));
 }
 
 export function formatDeadline(daysRemaining: number | null, dueDate?: string): string {
@@ -62,7 +62,7 @@ export function formatDeadline(daysRemaining: number | null, dueDate?: string): 
 }
 
 export function formatDueDate(dueDate: string): string {
-  return format(parseISO(dueDate), "MMM d, yyyy");
+  return format(parseLocalDate(dueDate), "MMM d, yyyy");
 }
 
 export function getEffectiveDueDate(topic: Topic, activeSubtopics: Subtopic[]): string | undefined {
@@ -71,7 +71,7 @@ export function getEffectiveDueDate(topic: Topic, activeSubtopics: Subtopic[]): 
     ...activeSubtopics.map((s) => s.dueDate).filter(Boolean),
   ].filter(Boolean) as string[];
   if (dates.length === 0) return undefined;
-  return dates.sort((a, b) => parseISO(a).getTime() - parseISO(b).getTime())[0];
+  return dates.sort((a, b) => parseLocalDate(a).getTime() - parseLocalDate(b).getTime())[0];
 }
 
 export function getInProgressTopics(
@@ -148,7 +148,7 @@ export function sortInProgressTopicsByUrgency(groups: InProgressTopicGroup[]): I
     if (!a.dueDate && !b.dueDate) return b.progress - a.progress;
     if (!a.dueDate) return 1;
     if (!b.dueDate) return -1;
-    return parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime();
+    return parseLocalDate(a.dueDate).getTime() - parseLocalDate(b.dueDate).getTime();
   });
 }
 
@@ -159,11 +159,12 @@ export function sortInProgressByUrgency(tasks: InProgressTask[]): InProgressTask
     if (!aDue && !bDue) return 0;
     if (!aDue) return 1;
     if (!bDue) return -1;
-    return parseISO(aDue).getTime() - parseISO(bDue).getTime();
+    return parseLocalDate(aDue).getTime() - parseLocalDate(bDue).getTime();
   });
 }
 
-export function defaultDueDate(daysFromNow = 7): string {
+/** Default deadline — today unless daysFromNow is specified */
+export function defaultDueDate(daysFromNow = 0): string {
   const d = new Date();
   d.setDate(d.getDate() + daysFromNow);
   return format(d, "yyyy-MM-dd");

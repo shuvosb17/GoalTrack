@@ -9,7 +9,7 @@ import type { HierarchyPath } from "@/lib/types";
 import { isTimerActiveForPath } from "@/lib/time-log";
 import { db } from "@/lib/db";
 import { updateSubtopicStatus } from "@/lib/crud";
-import { defaultDueDate } from "@/lib/in-progress";
+import { todayISO } from "@/lib/utils";
 import { ManualTimeDialog } from "./manual-time-dialog";
 
 interface TimerControlsProps {
@@ -50,7 +50,7 @@ export function TimerControls({ path, label, compact, loggedMs = 0, allowManual 
     if (path.subtopicId) {
       const sub = await db.subtopics.get(path.subtopicId);
       if (sub?.status === "not_started") {
-        await updateSubtopicStatus(path.subtopicId, "in_progress", sub.dueDate ?? defaultDueDate(7));
+        await updateSubtopicStatus(path.subtopicId, "in_progress", sub.dueDate ?? todayISO());
       }
     }
   };

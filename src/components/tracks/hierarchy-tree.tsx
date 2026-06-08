@@ -23,7 +23,8 @@ import {
 } from "@/components/ui/select";
 import { TimerControls } from "@/components/timer/timer-controls";
 import { STATUS_LABELS, DIFFICULTY_LABELS, DIFFICULTY_COLORS } from "@/lib/utils";
-import { defaultDueDate, formatDeadline, getDaysUntilDue } from "@/lib/in-progress";
+import { formatDeadline, getDaysUntilDue } from "@/lib/in-progress";
+import { todayISO } from "@/lib/utils";
 import { db } from "@/lib/db";
 import {
   createModule, createTopic, createSubtopic, updateSubtopicStatus, updateTopicStatus,
@@ -234,8 +235,8 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                   onValueChange={(v) => {
                                                     const status = v as ProgressStatus;
                                                     if (status === "in_progress") {
-                                                      updateTopicStatus(topic.id, status, topic.dueDate ?? defaultDueDate(7));
-                                                      setStatusDialog({ id: topic.id, type: "topic", dueDate: topic.dueDate ?? defaultDueDate(7) });
+                                                      updateTopicStatus(topic.id, status, topic.dueDate ?? todayISO());
+                                                      setStatusDialog({ id: topic.id, type: "topic", dueDate: topic.dueDate ?? todayISO() });
                                                     } else {
                                                       updateTopicStatus(topic.id, status);
                                                     }
@@ -277,9 +278,9 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                         <div key={sub.id} className="flex items-center gap-2 p-2 pl-6 rounded hover:bg-secondary/20 group">
                                                           <Select value={sub.status} onValueChange={(v) => {
                                                             const status = v as ProgressStatus;
-                                                            updateSubtopicStatus(sub.id, status, sub.dueDate ?? defaultDueDate(7));
+                                                            updateSubtopicStatus(sub.id, status, sub.dueDate ?? todayISO());
                                                             if (status === "in_progress") {
-                                                              setStatusDialog({ id: sub.id, type: "subtopic", dueDate: sub.dueDate ?? defaultDueDate(7) });
+                                                              setStatusDialog({ id: sub.id, type: "subtopic", dueDate: sub.dueDate ?? todayISO() });
                                                             }
                                                           }}>
                                                             <SelectTrigger className="h-7 w-[130px] text-xs">
@@ -436,10 +437,10 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
       <Dialog open={!!statusDialog} onOpenChange={() => setStatusDialog(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Set Deadline (optional)</DialogTitle>
+            <DialogTitle>Set Deadline</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Already marked in progress. Set or adjust the deadline — it appears on the Status page sorted by urgency.
+            Defaults to today in your local timezone. Adjust if needed — shown on Tracks and Status pages.
           </p>
           <div>
             <label className="text-xs text-muted-foreground">Due date</label>
