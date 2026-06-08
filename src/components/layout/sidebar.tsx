@@ -7,6 +7,7 @@ import { X } from "lucide-react";
 import {
   LayoutDashboard,
   BookOpen,
+  Flag,
   BarChart3,
   NotebookPen,
   Trophy,
@@ -25,6 +26,7 @@ import { useEffect, useMemo } from "react";
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/tracks", label: "Tracks", icon: BookOpen },
+  { href: "/milestones", label: "Milestones", icon: Flag },
   { href: "/status", label: "Status", icon: Activity, badge: true },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/journal", label: "Journal", icon: NotebookPen },

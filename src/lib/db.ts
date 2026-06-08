@@ -8,6 +8,7 @@ import type {
   JournalEntry,
   Achievement,
   Milestone,
+  GoalMilestone,
   AppSettings,
 } from "./types";
 
@@ -20,6 +21,7 @@ export class GrowthOSDatabase extends Dexie {
   journal!: Table<JournalEntry>;
   achievements!: Table<Achievement>;
   milestones!: Table<Milestone>;
+  goalMilestones!: Table<GoalMilestone>;
   settings!: Table<AppSettings>;
 
   constructor() {
@@ -55,6 +57,9 @@ export class GrowthOSDatabase extends Dexie {
     });
     this.version(5).stores({
       journal: "id, date, createdAt, trackId, topicId, subtopicId",
+    });
+    this.version(8).stores({
+      goalMilestones: "id, trackId, moduleId, topicId, startDate, endDate, order",
     });
     this.version(7).stores({}).upgrade(async (tx) => {
       const topics = await tx.table("topics").toArray();

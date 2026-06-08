@@ -170,6 +170,56 @@ export interface Milestone {
   value?: number;
 }
 
+/** User-defined learning goal with a timeline (module/topic under a track) */
+export interface GoalMilestone {
+  id: string;
+  title: string;
+  trackId: string;
+  moduleId?: string;
+  topicId?: string;
+  startDate: string;
+  months: number;
+  endDate: string;
+  baselineProgress: number;
+  targetProgress: number;
+  notes?: string;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type GoalPaceStatus = "ahead" | "on_track" | "behind" | "completed" | "overdue";
+export type GoalScopeType = "track" | "module" | "topic";
+
+export interface GoalMilestoneStats {
+  goal: GoalMilestone;
+  trackName: string;
+  trackIcon: string;
+  trackColor: string;
+  moduleName?: string;
+  topicName?: string;
+  scopeLabel: string;
+  scopeType: GoalScopeType;
+  /** Same formula as Tracks page for this scope */
+  currentProgress: number;
+  /** Full track % when scope is module/topic (for comparison) */
+  trackWideProgress: number;
+  progressGained: number;
+  timeProgress: number;
+  daysTotal: number;
+  daysElapsed: number;
+  daysRemaining: number;
+  expectedProgress: number;
+  paceDelta: number;
+  paceStatus: GoalPaceStatus;
+  isActive: boolean;
+  topicsTotal: number;
+  topicsCompleted: number;
+  subtopicsTotal: number;
+  subtopicsCompleted: number;
+  topicStatusCounts: Record<ProgressStatus, number>;
+}
+
 export interface AppSettings {
   id: string;
   yearStart: string;

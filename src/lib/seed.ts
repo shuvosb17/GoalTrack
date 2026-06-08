@@ -116,18 +116,20 @@ export async function seedDatabase(): Promise<void> {
 }
 
 export async function exportAllData() {
-  const [tracks, modules, topics, subtopics, sessions, journal, achievements, milestones, settings] = await Promise.all([
+  const [tracks, modules, topics, subtopics, sessions, journal, achievements, milestones, goalMilestones, settings] = await Promise.all([
     db.tracks.toArray(), db.modules.toArray(), db.topics.toArray(), db.subtopics.toArray(),
-    db.sessions.toArray(), db.journal.toArray(), db.achievements.toArray(), db.milestones.toArray(), db.settings.toArray(),
+    db.sessions.toArray(), db.journal.toArray(), db.achievements.toArray(), db.milestones.toArray(),
+    db.goalMilestones.toArray(), db.settings.toArray(),
   ]);
-  return { version: 1, exportedAt: nowISO(), tracks, modules, topics, subtopics, sessions, journal, achievements, milestones, settings };
+  return { version: 1, exportedAt: nowISO(), tracks, modules, topics, subtopics, sessions, journal, achievements, milestones, goalMilestones, settings };
 }
 
 export async function importAllData(data: Awaited<ReturnType<typeof exportAllData>>) {
-  await db.transaction("rw", [db.tracks, db.modules, db.topics, db.subtopics, db.sessions, db.journal, db.achievements, db.milestones, db.settings], async () => {
+  await db.transaction("rw", [db.tracks, db.modules, db.topics, db.subtopics, db.sessions, db.journal, db.achievements, db.milestones, db.goalMilestones, db.settings], async () => {
     await Promise.all([
       db.tracks.clear(), db.modules.clear(), db.topics.clear(), db.subtopics.clear(),
-      db.sessions.clear(), db.journal.clear(), db.achievements.clear(), db.milestones.clear(), db.settings.clear(),
+      db.sessions.clear(), db.journal.clear(), db.achievements.clear(), db.milestones.clear(),
+      db.goalMilestones.clear(), db.settings.clear(),
     ]);
     if (data.tracks?.length) await db.tracks.bulkAdd(data.tracks);
     if (data.modules?.length) await db.modules.bulkAdd(data.modules);
@@ -137,6 +139,7 @@ export async function importAllData(data: Awaited<ReturnType<typeof exportAllDat
     if (data.journal?.length) await db.journal.bulkAdd(data.journal);
     if (data.achievements?.length) await db.achievements.bulkAdd(data.achievements);
     if (data.milestones?.length) await db.milestones.bulkAdd(data.milestones);
+    if (data.goalMilestones?.length) await db.goalMilestones.bulkAdd(data.goalMilestones);
     if (data.settings?.length) await db.settings.bulkAdd(data.settings);
   });
 }

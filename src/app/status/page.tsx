@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Activity, AlertTriangle, Clock, CalendarDays, CheckCircle2,
-  Loader2, Sparkles, Circle, Bell, ChevronRight,
+  Loader2, Sparkles, Circle, Bell, ChevronRight, Flag,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,8 +14,9 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TimerControls } from "@/components/timer/timer-controls";
 import {
-  useTracks, useAllModules, useAllTopics, useAllSubtopics,
+  useTracks, useAllModules, useAllTopics, useAllSubtopics, useGoalMilestones,
 } from "@/hooks/use-data";
+import { getActiveGoalsForTopic } from "@/lib/goal-milestones";
 import {
   getStatusTimeline, getGlobalStatusCounts, getUrgencyAlerts,
   getTodaySnapshot, ALL_STATUSES, formatDeadline,
@@ -41,6 +42,7 @@ export default function StatusPage() {
   const modules = useAllModules();
   const topics = useAllTopics();
   const subtopics = useAllSubtopics();
+  const goalMilestones = useGoalMilestones();
   const [statusFilter, setStatusFilter] = useState<Filter>("all");
   const [trackFilter, setTrackFilter] = useState("all");
 
@@ -274,6 +276,13 @@ export default function StatusPage() {
                             {entry.isDueSoon && !entry.isOverdue && status === "in_progress" && (
                               <Badge variant="warning" className="text-[10px]">Due Soon</Badge>
                             )}
+                            {getActiveGoalsForTopic(entry.topic, goalMilestones).map((goal) => (
+                              <Link key={goal.id} href="/milestones">
+                                <Badge variant="outline" className="text-[10px] gap-1 hover:bg-secondary/50">
+                                  <Flag className="h-3 w-3" /> {goal.title}
+                                </Badge>
+                              </Link>
+                            ))}
                           </div>
                           <p className="text-xs text-muted-foreground mt-0.5">
                             {entry.trackName} → {entry.moduleName}

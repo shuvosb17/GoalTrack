@@ -66,6 +66,10 @@ export function useMilestones() {
   return useLiveQuery(() => db.milestones.orderBy("date").reverse().toArray(), []) ?? [];
 }
 
+export function useGoalMilestones() {
+  return useLiveQuery(() => db.goalMilestones.orderBy("order").toArray(), []) ?? [];
+}
+
 export function useSettings() {
   return useLiveQuery(() => db.settings.get("default"), []) ?? null;
 }
