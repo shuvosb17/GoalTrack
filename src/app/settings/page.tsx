@@ -15,6 +15,7 @@ import { exportAllData, importAllData } from "@/lib/seed";
 import { saveAutoBackup, getLastBackupTime, downloadBackup } from "@/lib/auto-backup";
 import { nowISO, todayISO, formatDuration } from "@/lib/utils";
 import { MdImportPanel } from "@/components/settings/md-import-panel";
+import { GitHubBackupPanel } from "@/components/settings/github-backup-panel";
 import { format, parseISO } from "date-fns";
 
 export default function SettingsPage() {
@@ -93,8 +94,10 @@ export default function SettingsPage() {
                 Progress in one won&apos;t appear in another automatically.
               </p>
               <p className="text-muted-foreground leading-relaxed">
-                <strong>To keep your data safe:</strong> Export JSON backup before switching browsers or deploying to Vercel.
-                Then Import that file in the new environment. Auto-backup also saves locally every 45 seconds.
+                <strong>For mobile / other devices:</strong> use <strong>Cloud Sync (GitHub)</strong> below — backup from your main device, then import with your PIN on any device.
+              </p>
+              <p className="text-muted-foreground leading-relaxed">
+                <strong>Local backup:</strong> Export JSON before switching browsers. Auto-backup also saves locally every 45 seconds.
               </p>
               {lastBackup && (
                 <p className="text-xs text-emerald-400">
@@ -128,6 +131,8 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <GitHubBackupPanel />
 
       <MdImportPanel />
 
