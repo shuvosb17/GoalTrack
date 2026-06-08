@@ -31,6 +31,14 @@ export function loadGitHubSyncConfig(): {
   path: string;
   lastSync: string | null;
 } {
+  if (typeof window === "undefined") {
+    return {
+      repoInput: "shuvosb17/GoalTrack-Backup",
+      branch: "main",
+      path: "backup.enc.json",
+      lastSync: null,
+    };
+  }
   return {
     repoInput: localStorage.getItem(CONFIG_KEYS.repo) ?? "shuvosb17/GoalTrack-Backup",
     branch: localStorage.getItem(CONFIG_KEYS.branch) ?? "main",
@@ -44,6 +52,7 @@ export function saveGitHubSyncConfig(input: {
   branch: string;
   path: string;
 }) {
+  if (typeof window === "undefined") return;
   localStorage.setItem(CONFIG_KEYS.repo, input.repoInput.trim());
   localStorage.setItem(CONFIG_KEYS.branch, input.branch.trim() || "main");
   localStorage.setItem(CONFIG_KEYS.path, input.path.trim() || "backup.enc.json");
@@ -70,13 +79,81 @@ function apiQuery(config: GitHubSyncConfig): string {
   }).toString();
 }
 
-export async function fetchEncryptedBackupFromGitHub(config: GitHubSyncConfig): Promise<EncryptedBackupEnvelope> {
-  const res = await fetch(`/api/github-backup?${apiQuery(config)}`);
+function base64ToUtf8(b64: string): string {
+  const binary = atob(b64.replace(/\n/g, ""));
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new TextDecoder().decode(bytes);
+}
+
+async function fetchBackupTextFromRaw(config: GitHubSyncConfig): Promise<string> {
+  const url = `https://raw.githubusercontent.com/${config.owner}/${config.repo}/${config.branch}/${config.path}`;
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) {
+    throw new Error(
+      res.status === 404
+        ? "Backup file not found. Run Backup to GitHub from your main device first."
+        : `Could not fetch backup (${res.status})`
+    );
+  }
+  return res.text();
+}
+
+async function fetchBackupTextFromGitHubApi(config: GitHubSyncConfig): Promise<string> {
+  const url = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/${config.path}?ref=${config.branch}`;
+  const res = await fetch(url, {
+    headers: { Accept: "application/vnd.github+json" },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(
+      res.status === 404
+        ? "Backup file not found. Run Backup to GitHub from your main device first."
+        : `Could not fetch backup (${res.status})`
+    );
+  }
+  const json = await res.json();
+  const content = (json as { content?: string }).content ?? "";
+  return base64ToUtf8(content);
+}
+
+async function fetchBackupTextFromServerApi(config: GitHubSyncConfig): Promise<string> {
+  const res = await fetch(`/api/github-backup?${apiQuery(config)}`, { cache: "no-store" });
   const json = await res.json();
   if (!res.ok) {
     throw new Error((json as { error?: string }).error ?? `Could not fetch backup (${res.status})`);
   }
-  return json as EncryptedBackupEnvelope;
+  return JSON.stringify(json);
+}
+
+export async function fetchEncryptedBackupFromGitHub(config: GitHubSyncConfig): Promise<EncryptedBackupEnvelope> {
+  let text: string | null = null;
+  let lastError: Error | null = null;
+
+  for (const attempt of [
+    () => fetchBackupTextFromRaw(config),
+    () => fetchBackupTextFromGitHubApi(config),
+    () => fetchBackupTextFromServerApi(config),
+  ]) {
+    try {
+      text = await attempt();
+      break;
+    } catch (e) {
+      lastError = e instanceof Error ? e : new Error("Fetch failed");
+    }
+  }
+
+  if (!text) {
+    throw lastError ?? new Error("Could not fetch backup from GitHub");
+  }
+
+  try {
+    return JSON.parse(text) as EncryptedBackupEnvelope;
+  } catch {
+    throw new Error("Invalid backup file format on GitHub");
+  }
 }
 
 export async function backupToGitHub(pin: string): Promise<void> {

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Cloud, CloudDownload, CloudUpload, Github, KeyRound, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   backupToGitHub,
   importFromGitHub,
@@ -17,15 +18,23 @@ import { format, parseISO } from "date-fns";
 const DEFAULT_REPO = "shuvosb17/GoalTrack-Backup";
 
 export function GitHubBackupPanel() {
-  const initial = loadGitHubSyncConfig();
-  const [repoInput, setRepoInput] = useState(initial.repoInput || DEFAULT_REPO);
-  const [branch, setBranch] = useState(initial.branch);
-  const [path, setPath] = useState(initial.path);
+  const [repoInput, setRepoInput] = useState(DEFAULT_REPO);
+  const [branch, setBranch] = useState("main");
+  const [path, setPath] = useState("backup.enc.json");
   const [pin, setPin] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<"backup" | "import" | null>(null);
-  const [lastSync, setLastSync] = useState(initial.lastSync);
+  const [lastSync, setLastSync] = useState<string | null>(null);
+  const [confirmImport, setConfirmImport] = useState(false);
+
+  useEffect(() => {
+    const cfg = loadGitHubSyncConfig();
+    setRepoInput(cfg.repoInput || DEFAULT_REPO);
+    setBranch(cfg.branch);
+    setPath(cfg.path);
+    setLastSync(cfg.lastSync);
+  }, []);
 
   const persistConfig = () => {
     saveGitHubSyncConfig({ repoInput, branch, path });
@@ -52,16 +61,10 @@ export function GitHubBackupPanel() {
     }
   };
 
-  const handleImport = async () => {
+  const runImport = async () => {
+    setConfirmImport(false);
     setError(null);
     setStatus(null);
-    if (!pin.trim()) {
-      setError("Enter your backup PIN to decrypt and import.");
-      return;
-    }
-    if (!window.confirm("Import replaces all data in this browser with the GitHub backup. Continue?")) {
-      return;
-    }
     persistConfig();
     setBusy("import");
     try {
@@ -74,6 +77,16 @@ export function GitHubBackupPanel() {
       setError(e instanceof Error ? e.message : "Import failed");
       setBusy(null);
     }
+  };
+
+  const handleImport = () => {
+    setError(null);
+    setStatus(null);
+    if (!pin.trim()) {
+      setError("Enter your backup PIN to decrypt and import.");
+      return;
+    }
+    setConfirmImport(true);
   };
 
   return (
@@ -163,6 +176,25 @@ export function GitHubBackupPanel() {
         {status && <p className="text-sm text-emerald-400">{status}</p>}
         {error && <p className="text-sm text-destructive">{error}</p>}
       </CardContent>
+
+      <Dialog open={confirmImport} onOpenChange={setConfirmImport}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Import from GitHub?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            This replaces all data in this browser with your GitHub backup. Continue?
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Button variant="outline" onClick={() => setConfirmImport(false)} className="flex-1">
+              Cancel
+            </Button>
+            <Button onClick={runImport} disabled={busy === "import"} className="flex-1">
+              {busy === "import" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Import"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
