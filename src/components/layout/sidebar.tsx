@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { X } from "lucide-react";
+import { X, Sparkles } from "lucide-react";
 import {
   LayoutDashboard,
   BookOpen,
@@ -23,16 +23,39 @@ import { useAllTopics, useAllModules, useAllSubtopics, useTracks } from "@/hooks
 import { getUrgencyAlerts } from "@/lib/status";
 import { useEffect, useMemo } from "react";
 
-const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/tracks", label: "Tracks", icon: BookOpen },
-  { href: "/milestones", label: "Milestones", icon: Flag },
-  { href: "/status", label: "Status", icon: Activity, badge: true },
-  { href: "/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/journal", label: "Journal", icon: NotebookPen },
-  { href: "/achievements", label: "Achievements", icon: Trophy },
-  { href: "/review", label: "Annual Review", icon: FileText },
-  { href: "/settings", label: "Settings", icon: Settings },
+type NavItem = {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  badge?: boolean;
+  accent: string;
+};
+
+const navGroups: { label: string; items: NavItem[] }[] = [
+  {
+    label: "Learn",
+    items: [
+      { href: "/", label: "Dashboard", icon: LayoutDashboard, accent: "from-violet-500 to-indigo-500" },
+      { href: "/tracks", label: "Tracks", icon: BookOpen, accent: "from-blue-500 to-cyan-500" },
+      { href: "/milestones", label: "Milestones", icon: Flag, accent: "from-fuchsia-500 to-pink-500" },
+      { href: "/status", label: "Status", icon: Activity, badge: true, accent: "from-emerald-500 to-teal-500" },
+    ],
+  },
+  {
+    label: "Insights",
+    items: [
+      { href: "/analytics", label: "Analytics", icon: BarChart3, accent: "from-amber-500 to-orange-500" },
+      { href: "/journal", label: "Journal", icon: NotebookPen, accent: "from-sky-500 to-blue-500" },
+      { href: "/achievements", label: "Achievements", icon: Trophy, accent: "from-yellow-500 to-amber-500" },
+      { href: "/review", label: "Annual Review", icon: FileText, accent: "from-rose-500 to-red-500" },
+    ],
+  },
+  {
+    label: "System",
+    items: [
+      { href: "/settings", label: "Settings", icon: Settings, accent: "from-zinc-400 to-zinc-600" },
+    ],
+  },
 ];
 
 export function Sidebar() {
@@ -65,7 +88,7 @@ export function Sidebar() {
     <>
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
           onClick={() => setSidebarOpen(false)}
           aria-hidden
         />
@@ -73,64 +96,125 @@ export function Sidebar() {
 
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 flex h-screen w-64 flex-col border-r border-border/50 glass transition-transform duration-200 ease-out",
+          "fixed left-0 top-0 z-50 flex h-screen w-[17.5rem] flex-col border-r border-white/[0.06] transition-transform duration-300 ease-out",
+          "bg-[#0a0a0c]/95 backdrop-blur-xl",
           "lg:translate-x-0",
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
-        <div className="flex items-center justify-between border-b border-border/50 p-4 lg:p-6">
-          <Link href="/" className="flex items-center min-w-0">
-            <Logo size="md" />
-          </Link>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 shrink-0 lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-            aria-label="Close menu"
-          >
-            <X className="h-4 w-4" />
-          </Button>
+        {/* Ambient glow */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -left-16 top-24 h-48 w-48 rounded-full bg-violet-600/15 blur-3xl" />
+          <div className="absolute -left-8 bottom-32 h-40 w-40 rounded-full bg-blue-600/10 blur-3xl" />
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto p-4">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
-            return (
-              <Link key={item.href} href={item.href} onClick={() => setSidebarOpen(false)}>
-                <motion.div
-                  whileHover={{ x: 4 }}
-                  className={cn(
-                    "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                    isActive ? "text-foreground" : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
-                  )}
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="sidebar-active"
-                      className="absolute inset-0 rounded-lg border border-primary/20 bg-primary/10"
-                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                    />
-                  )}
-                  <item.icon className={cn("relative z-10 h-4 w-4", isActive && "text-primary")} />
-                  <span className="relative z-10 flex-1">{item.label}</span>
-                  {"badge" in item && item.badge && urgentCount > 0 && (
-                    <span className="relative z-10 rounded-full bg-red-500/20 px-1.5 py-0.5 text-[10px] font-bold text-red-400">
-                      {urgentCount}
-                    </span>
-                  )}
-                </motion.div>
-              </Link>
-            );
-          })}
+        <div className="relative border-b border-white/[0.06] px-5 py-5">
+          <div className="flex items-center justify-between">
+            <Link href="/" className="flex min-w-0 items-center group">
+              <Logo size="md" />
+            </Link>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0 rounded-lg lg:hidden hover:bg-white/5"
+              onClick={() => setSidebarOpen(false)}
+              aria-label="Close menu"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        <nav className="relative flex-1 space-y-6 overflow-y-auto px-3 py-4 scrollbar-thin">
+          {navGroups.map((group) => (
+            <div key={group.label}>
+              <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/70">
+                {group.label}
+              </p>
+              <div className="space-y-0.5">
+                {group.items.map((item) => {
+                  const isActive =
+                    pathname === item.href ||
+                    (item.href !== "/" && pathname.startsWith(item.href));
+
+                  return (
+                    <Link key={item.href} href={item.href} onClick={() => setSidebarOpen(false)}>
+                      <motion.div
+                        whileHover={{ x: 3 }}
+                        whileTap={{ scale: 0.98 }}
+                        className={cn(
+                          "group/item relative flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm font-medium transition-all duration-200",
+                          isActive
+                            ? "text-foreground"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        {isActive && (
+                          <motion.div
+                            layoutId="sidebar-active"
+                            className="absolute inset-0 rounded-xl border border-white/[0.08] bg-gradient-to-r from-white/[0.07] to-white/[0.02] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]"
+                            transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
+                          />
+                        )}
+                        {isActive && (
+                          <motion.div
+                            layoutId="sidebar-accent"
+                            className={cn(
+                              "absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-gradient-to-b",
+                              item.accent
+                            )}
+                            transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
+                          />
+                        )}
+
+                        <div
+                          className={cn(
+                            "relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200",
+                            isActive
+                              ? cn("bg-gradient-to-br shadow-lg", item.accent, "shadow-black/30")
+                              : "bg-white/[0.04] group-hover/item:bg-white/[0.07]"
+                          )}
+                        >
+                          <item.icon
+                            className={cn(
+                              "h-4 w-4 transition-colors",
+                              isActive ? "text-white" : "text-muted-foreground group-hover/item:text-foreground"
+                            )}
+                          />
+                        </div>
+
+                        <span className="relative z-10 flex-1">{item.label}</span>
+
+                        {item.badge && urgentCount > 0 && (
+                          <span className="relative z-10 flex h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-br from-red-500 to-rose-600 px-1.5 text-[10px] font-bold text-white shadow-lg shadow-red-500/30">
+                            {urgentCount}
+                          </span>
+                        )}
+                      </motion.div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
-        <div className="border-t border-border/50 p-4">
-          <div className="glass-card rounded-lg p-3 text-center">
-            <p className="text-xs text-muted-foreground">Your Year of Growth</p>
-            <p className="mt-1 bg-gradient-to-r from-violet-400 to-blue-400 bg-clip-text text-sm font-semibold text-transparent">
-              Learn. Track. Master.
-            </p>
+        <div className="relative border-t border-white/[0.06] p-4">
+          <div className="gradient-border relative overflow-hidden rounded-2xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-violet-600/20 via-fuchsia-600/10 to-blue-600/20" />
+            <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-violet-500/20 blur-2xl" />
+            <div className="absolute -bottom-4 -left-4 h-16 w-16 rounded-full bg-blue-500/15 blur-2xl" />
+            <div className="relative p-4 text-center">
+              <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-blue-500 shadow-lg shadow-violet-500/25">
+                <Sparkles className="h-3.5 w-3.5 text-white" />
+              </div>
+              <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+                Your Year of Growth
+              </p>
+              <p className="mt-1.5 bg-gradient-to-r from-violet-300 via-fuchsia-300 to-blue-300 bg-clip-text text-sm font-bold tracking-tight text-transparent">
+                Learn. Track. Master.
+              </p>
+            </div>
           </div>
         </div>
       </aside>
