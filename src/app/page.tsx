@@ -60,7 +60,7 @@ export default function DashboardPage() {
 
   const trackStats = useMemo(() => {
     return tracks.map((track) => {
-      const progress = getTrackProgress(track.id, topics, subtopics);
+      const progress = getTrackProgress(track.id, topics, subtopics, modules);
       const today = todayISO();
       const hours = sessions
         .filter((s) => s.trackId === track.id && s.date === today)
@@ -72,7 +72,7 @@ export default function DashboardPage() {
       const trackStreak = calculateStreaks(trackDates).current;
       return { track, progress: progress.percentage, hours, remaining, streak: trackStreak, currentFocus: focusTopic };
     });
-  }, [tracks, subtopics, sessions, topics]);
+  }, [tracks, modules, subtopics, sessions, topics]);
 
   return (
     <div className="space-y-8">

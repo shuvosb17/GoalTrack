@@ -128,7 +128,7 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
     <div className="space-y-4">
       {filteredTracks.map((track) => {
         const trackModules = modules.filter((m) => m.trackId === track.id).sort((a, b) => a.order - b.order);
-        const trackProgress = getTrackProgress(track.id, topics, subtopics).percentage;
+        const trackProgress = getTrackProgress(track.id, topics, subtopics, modules).percentage;
 
         return (
           <div key={track.id} className="glass-card rounded-xl overflow-hidden">

@@ -86,7 +86,7 @@ export function GoalMilestoneDialog({
   };
 
   const liveProgress = hierarchy.trackId
-    ? resolveGoalProgress(scopeInput, topics, subtopics)
+    ? resolveGoalProgress(scopeInput, topics, subtopics, modules)
     : 0;
 
   const scopeLabel = hierarchy.trackId
@@ -124,9 +124,9 @@ export function GoalMilestoneDialog({
     };
 
     if (editing) {
-      await updateGoalMilestone(editing.id, payload, topics, subtopics);
+      await updateGoalMilestone(editing.id, payload, topics, subtopics, modules);
     } else {
-      await createGoalMilestone({ ...payload, topics, subtopics });
+      await createGoalMilestone({ ...payload, topics, subtopics, modules });
     }
     onOpenChange(false);
   };
