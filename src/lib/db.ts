@@ -61,6 +61,18 @@ export class GrowthOSDatabase extends Dexie {
     this.version(8).stores({
       goalMilestones: "id, trackId, moduleId, topicId, startDate, endDate, order",
     });
+    this.version(9).stores({}).upgrade(async (tx) => {
+      const settings = await tx.table("settings").get("default");
+      if (!settings) return;
+      const isCalendarYear =
+        settings.yearStart?.endsWith("-01-01") && settings.yearEnd?.endsWith("-12-31");
+      if (isCalendarYear) {
+        await tx.table("settings").update("default", {
+          yearStart: "2026-06-01",
+          yearEnd: "2027-04-30",
+        });
+      }
+    });
     this.version(7).stores({}).upgrade(async (tx) => {
       const topics = await tx.table("topics").toArray();
       for (const topic of topics) {

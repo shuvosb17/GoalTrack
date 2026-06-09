@@ -12,7 +12,7 @@ import {
 } from "recharts";
 
 interface ForecastChartProps {
-  data: { label: string; actual: number; projected: number }[];
+  data: { label: string; actual?: number; projected: number }[];
   goal: number;
 }
 
@@ -38,7 +38,7 @@ export function ForecastChart({ data, goal }: ForecastChartProps) {
           labelStyle={{ color: "#fafafa" }}
         />
         <ReferenceLine y={goal} stroke="#f59e0b" strokeDasharray="5 5" label={{ value: "Goal", fill: "#f59e0b", fontSize: 10 }} />
-        <Area type="monotone" dataKey="actual" stroke="#8b5cf6" fill="url(#colorActual)" strokeWidth={2} />
+        <Area type="monotone" dataKey="actual" stroke="#8b5cf6" fill="url(#colorActual)" strokeWidth={2} connectNulls={false} />
         <Area type="monotone" dataKey="projected" stroke="#3b82f6" fill="url(#colorProjected)" strokeWidth={2} strokeDasharray="5 5" />
       </AreaChart>
     </ResponsiveContainer>

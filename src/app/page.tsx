@@ -21,10 +21,8 @@ import { calculateStreaks, generateHeatmapData, getMomentumColor, todayISO } fro
 import {
   getGlobalProgress, getTotalHours, getTodayHours, getTrackProgress, getGoalForecast,
   calculateMomentumScore, generateInsights, getRadarData, countCompletedItems,
-  getDaysRemainingInYear,
+  getDaysRemainingInYear, buildForecastChartData, DEFAULT_YEAR_START, DEFAULT_YEAR_END,
 } from "@/lib/analytics";
-import { differenceInDays, format, startOfYear, eachMonthOfInterval, endOfYear } from "date-fns";
-
 export default function DashboardPage() {
   const tracks = useTracks();
   const subtopics = useAllSubtopics();
@@ -34,7 +32,8 @@ export default function DashboardPage() {
   const settings = useSettings();
 
   const yearlyGoal = settings?.yearlyHourGoal ?? 1000;
-  const yearEnd = settings?.yearEnd ?? format(endOfYear(new Date()), "yyyy-MM-dd");
+  const yearStart = settings?.yearStart ?? DEFAULT_YEAR_START;
+  const yearEnd = settings?.yearEnd ?? DEFAULT_YEAR_END;
 
   const globalProgress = useMemo(() => getGlobalProgress(topics, subtopics), [topics, subtopics]);
   const totalHours = useMemo(() => getTotalHours(sessions) / 3600000, [sessions]);
@@ -42,23 +41,22 @@ export default function DashboardPage() {
   const streaks = useMemo(() => calculateStreaks(sessions.map((s) => s.date)), [sessions]);
   const heatmapData = useMemo(() => generateHeatmapData(sessions), [sessions]);
   const momentum = useMemo(() => calculateMomentumScore(sessions, topics, subtopics, streaks.current, yearlyGoal), [sessions, topics, subtopics, streaks, yearlyGoal]);
-  const forecast = useMemo(() => getGoalForecast(sessions, topics, subtopics, yearlyGoal, yearEnd), [sessions, topics, subtopics, yearlyGoal, yearEnd]);
-  const insights = useMemo(() => generateInsights(tracks, modules, topics, subtopics, sessions, streaks.current, yearlyGoal), [tracks, modules, topics, subtopics, sessions, streaks, yearlyGoal]);
+  const forecast = useMemo(
+    () => getGoalForecast(sessions, topics, subtopics, yearlyGoal, yearStart, yearEnd),
+    [sessions, topics, subtopics, yearlyGoal, yearStart, yearEnd]
+  );
+  const insights = useMemo(
+    () => generateInsights(tracks, modules, topics, subtopics, sessions, streaks.current, yearlyGoal, yearStart, yearEnd),
+    [tracks, modules, topics, subtopics, sessions, streaks, yearlyGoal, yearStart, yearEnd]
+  );
   const radarData = useMemo(() => getRadarData(tracks, modules, topics, subtopics, sessions), [tracks, modules, topics, subtopics, sessions]);
   const completed = useMemo(() => countCompletedItems(subtopics, modules, topics), [subtopics, modules, topics]);
   const daysRemaining = useMemo(() => getDaysRemainingInYear(yearEnd), [yearEnd]);
 
-  const forecastChartData = useMemo(() => {
-    const months = eachMonthOfInterval({ start: startOfYear(new Date()), end: endOfYear(new Date()) });
-    const daysElapsed = differenceInDays(new Date(), startOfYear(new Date())) + 1;
-    const dailyAvg = daysElapsed > 0 ? totalHours / daysElapsed : 0;
-    return months.map((month) => {
-      const monthDay = differenceInDays(month, startOfYear(new Date())) + 1;
-      const actual = monthDay <= daysElapsed ? Math.min(totalHours, dailyAvg * monthDay) : totalHours;
-      const projected = dailyAvg * Math.min(monthDay, 365);
-      return { label: format(month, "MMM"), actual: Math.round(actual), projected: Math.round(projected) };
-    });
-  }, [totalHours]);
+  const forecastChartData = useMemo(
+    () => buildForecastChartData(sessions, yearStart, yearEnd),
+    [sessions, yearStart, yearEnd]
+  );
 
   const trackStats = useMemo(() => {
     return tracks.map((track) => {
@@ -98,7 +96,7 @@ export default function DashboardPage() {
         <StatCard title="Current Streak" value={`${streaks.current} days`} subtitle={`Best: ${streaks.longest} days`} icon={Flame} gradient="linear-gradient(135deg, #f59e0b, #ef4444)" delay={0.1} />
         <StatCard title="Longest Streak" value={`${streaks.longest} days`} subtitle={`${streaks.missedDays} missed days`} icon={Zap} delay={0.15} />
         <StatCard title="Active Goals" value={tracks.length} subtitle={`${yearlyGoal}h yearly target`} icon={BookOpen} delay={0.2} />
-        <StatCard title="Days Remaining" value={daysRemaining} subtitle="Until year end" icon={Calendar} gradient="linear-gradient(135deg, #ec4899, #8b5cf6)" delay={0.25} />
+        <StatCard title="Days Remaining" value={daysRemaining} subtitle="Until Apr 2027" icon={Calendar} gradient="linear-gradient(135deg, #ec4899, #8b5cf6)" delay={0.25} />
       </div>
 
       {/* Growth Command Center */}
@@ -185,7 +183,7 @@ export default function DashboardPage() {
       <div className="grid lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Goal Forecasting</CardTitle>
+            <CardTitle>Goal Forecasting <span className="text-xs font-normal text-muted-foreground">Jun 2026 – Apr 2027</span></CardTitle>
           </CardHeader>
           <CardContent>
             <ForecastChart data={forecastChartData} goal={yearlyGoal} />

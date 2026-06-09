@@ -94,12 +94,10 @@ export async function seedDatabase(): Promise<void> {
   if (restored) return;
 
   const { tracks, modules, topics, subtopics } = buildSeedData();
-  const year = new Date().getFullYear();
-
   const settings: AppSettings = {
     id: "default",
-    yearStart: `${year}-01-01`,
-    yearEnd: `${year}-12-31`,
+    yearStart: "2026-06-01",
+    yearEnd: "2027-04-30",
     yearlyHourGoal: 1000,
     dailyHourGoal: 3,
     theme: "dark",

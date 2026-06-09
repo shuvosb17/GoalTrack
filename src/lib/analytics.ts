@@ -3,8 +3,10 @@ import {
   parseISO,
   format,
   subDays,
-  startOfYear,
-  endOfYear,
+  addDays,
+  eachMonthOfInterval,
+  startOfMonth,
+  endOfMonth,
 } from "date-fns";
 import type {
   Track,
@@ -20,7 +22,88 @@ import {
   calculateSubtopicProgress,
   getMomentumLevel,
   todayISO,
+  parseLocalDate,
 } from "./utils";
+
+export const DEFAULT_YEAR_START = "2026-06-01";
+export const DEFAULT_YEAR_END = "2027-04-30";
+
+const RADAR_TRACK_MAP: Record<string, string[]> = {
+  Algorithms: ["CS Fundamentals", "LeetCode"],
+  "Data Structures": ["LeetCode", "CS Fundamentals"],
+  "Competitive Programming": ["CS Fundamentals"],
+  "Problem Solving": ["LeetCode"],
+  "Backend Engineering": ["Development"],
+  Databases: ["Development"],
+  Cloud: ["Development"],
+  DevOps: ["Development"],
+  "System Design": ["System Design"],
+  "Academic Knowledge": ["Academic"],
+};
+
+function getPeriodLearningStats(
+  sessions: LearningSession[],
+  yearStart: string,
+  yearEnd: string
+) {
+  const todayStr = todayISO();
+  const start = parseLocalDate(yearStart);
+  const end = parseLocalDate(yearEnd);
+  const today = parseLocalDate(todayStr);
+
+  const periodSessions = sessions.filter(
+    (s) => s.date >= yearStart && s.date <= yearEnd && s.date <= todayStr
+  );
+  const totalHours = periodSessions.reduce((sum, s) => sum + s.duration, 0) / 3600000;
+
+  const firstSessionDate =
+    periodSessions.length > 0
+      ? periodSessions.map((s) => s.date).sort()[0]
+      : yearStart;
+  const trackingStart = firstSessionDate > yearStart ? firstSessionDate : yearStart;
+
+  const elapsedEnd = today < start ? start : today > end ? end : today;
+  const daysElapsed = Math.max(1, differenceInDays(elapsedEnd, parseLocalDate(trackingStart)) + 1);
+  const daysRemaining = Math.max(0, differenceInDays(end, today));
+  const dailyAvg = totalHours / daysElapsed;
+
+  return { periodSessions, totalHours, daysElapsed, daysRemaining, dailyAvg, end };
+}
+
+export function buildForecastChartData(
+  sessions: LearningSession[],
+  yearStart: string,
+  yearEnd: string
+): { label: string; actual?: number; projected: number }[] {
+  const { periodSessions, dailyAvg } = getPeriodLearningStats(sessions, yearStart, yearEnd);
+  const start = parseLocalDate(yearStart);
+  const end = parseLocalDate(yearEnd);
+  const todayStr = todayISO();
+  const months = eachMonthOfInterval({ start, end });
+
+  return months.map((month) => {
+    const monthEnd = endOfMonth(month);
+    const rangeEnd = monthEnd > end ? end : monthEnd;
+    const rangeEndStr = format(rangeEnd, "yyyy-MM-dd");
+    const monthStart = startOfMonth(month);
+    const effectiveStart = monthStart < start ? start : monthStart;
+
+    const daysFromPeriodStart = differenceInDays(rangeEnd, start) + 1;
+    const projected = Math.round(dailyAvg * Math.max(0, daysFromPeriodStart) * 10) / 10;
+
+    if (rangeEndStr < yearStart || effectiveStart > parseLocalDate(todayStr)) {
+      return { label: format(month, "MMM yy"), projected };
+    }
+
+    const cutoff = rangeEndStr > todayStr ? todayStr : rangeEndStr;
+    const ms = periodSessions
+      .filter((s) => s.date <= cutoff)
+      .reduce((sum, s) => sum + s.duration, 0);
+    const actual = Math.round((ms / 3600000) * 10) / 10;
+
+    return { label: format(month, "MMM yy"), actual, projected };
+  });
+}
 import { isTopicComplete, calculateTopicsProgress, getTopicProgressPercent } from "./in-progress";
 
 export function getSubtopicProgress(subtopics: Subtopic[]) {
@@ -254,30 +337,37 @@ export function getGoalForecast(
   topics: Topic[],
   subtopics: Subtopic[],
   yearlyGoalHours: number,
+  yearStart: string,
   yearEnd: string
 ) {
-  const totalHours = getTotalHours(sessions) / 3600000;
+  const { totalHours, daysElapsed, daysRemaining, dailyAvg } = getPeriodLearningStats(
+    sessions,
+    yearStart,
+    yearEnd
+  );
   const progress = getGlobalProgress(topics, subtopics).percentage;
-  const daysElapsed = differenceInDays(new Date(), startOfYear(new Date())) + 1;
-  const daysRemaining = Math.max(0, differenceInDays(parseISO(yearEnd), new Date()));
-  const dailyAvg = daysElapsed > 0 ? totalHours / daysElapsed : 0;
   const projectedHours = totalHours + dailyAvg * daysRemaining;
 
-  const remainingProgress = 100 - progress;
-  const dailyProgressRate = daysElapsed > 0 ? progress / daysElapsed : 0;
-  const estimatedDaysToComplete = dailyProgressRate > 0 ? Math.ceil(remainingProgress / dailyProgressRate) : 999;
-  const estimatedDate = format(subDays(new Date(), -estimatedDaysToComplete), "MMM d, yyyy");
+  const hoursRemaining = Math.max(0, yearlyGoalHours - totalHours);
+  let estimatedCompletionDate = "—";
+  if (totalHours >= yearlyGoalHours) {
+    estimatedCompletionDate = "Goal reached";
+  } else if (dailyAvg > 0) {
+    const daysToGoal = Math.ceil(hoursRemaining / dailyAvg);
+    estimatedCompletionDate = format(addDays(new Date(), daysToGoal), "MMM d, yyyy");
+  }
 
   const successProbability = Math.min(100, Math.round((projectedHours / yearlyGoalHours) * 100));
-  const confidence = Math.min(100, Math.round(dailyAvg > 0 ? 60 + Math.min(40, daysElapsed / 3) : 20));
+  const confidence = Math.min(100, Math.round(dailyAvg > 0 ? 50 + Math.min(50, daysElapsed / 2) : 15));
 
   return {
     projectedHours: Math.round(projectedHours),
-    estimatedCompletionDate: estimatedDate,
+    estimatedCompletionDate,
     successProbability,
     confidence,
     dailyAverage: dailyAvg,
     onTrack: projectedHours >= yearlyGoalHours,
+    progress,
   };
 }
 
@@ -302,20 +392,40 @@ export function getRadarData(
   ];
 
   return dimensions.map((dim) => {
-    const matchingModules = modules.filter((m) =>
-      dim.keywords.some((k) => m.name.toLowerCase().includes(k))
+    const matchingTrackIds = tracks
+      .filter((t) => RADAR_TRACK_MAP[dim.name]?.includes(t.name))
+      .map((t) => t.id);
+
+    const matchingModules = modules.filter(
+      (m) =>
+        matchingTrackIds.includes(m.trackId) ||
+        dim.keywords.some((k) => m.name.toLowerCase().includes(k))
     );
-    const matchingTopicEntities = topics.filter((t) =>
-      !t.archived && (
-        matchingModules.some((m) => m.id === t.moduleId) ||
-        dim.keywords.some((k) => t.name.toLowerCase().includes(k))
-      )
+
+    const matchingTopicEntities = topics.filter(
+      (t) =>
+        !t.archived &&
+        (matchingTrackIds.includes(t.trackId) ||
+          matchingModules.some((m) => m.id === t.moduleId) ||
+          dim.keywords.some((k) => t.name.toLowerCase().includes(k)))
     );
-    const progress = matchingTopicEntities.length > 0 ? calculateTopicsProgress(matchingTopicEntities, subtopics) : 0;
-    const hours = sessions
-      .filter((s) => matchingModules.some((m) => m.id === s.moduleId) || matchingTopicEntities.some((t) => t.id === s.topicId))
-      .reduce((sum, s) => sum + s.duration, 0) / 3600000;
-    const value = Math.min(100, Math.round(progress * 0.6 + Math.min(hours * 2, 40)));
+
+    const progress =
+      matchingTopicEntities.length > 0
+        ? calculateTopicsProgress(matchingTopicEntities, subtopics)
+        : 0;
+
+    const hours =
+      sessions
+        .filter(
+          (s) =>
+            matchingTrackIds.includes(s.trackId) ||
+            (s.moduleId && matchingModules.some((m) => m.id === s.moduleId)) ||
+            (s.topicId && matchingTopicEntities.some((t) => t.id === s.topicId))
+        )
+        .reduce((sum, s) => sum + s.duration, 0) / 3600000;
+
+    const value = Math.min(100, Math.round(progress * 0.55 + Math.min(hours * 4, 45)));
     return { name: dim.name, value, fullMark: 100 };
   });
 }
@@ -327,7 +437,9 @@ export function generateInsights(
   subtopics: Subtopic[],
   sessions: LearningSession[],
   streak: number,
-  yearlyGoalHours: number
+  yearlyGoalHours: number,
+  yearStart: string = DEFAULT_YEAR_START,
+  yearEnd: string = DEFAULT_YEAR_END
 ): Insight[] {
   const insights: Insight[] = [];
   const distribution = withPercentages(getHoursByTrack(sessions, tracks));
@@ -386,7 +498,7 @@ export function generateInsights(
     });
   }
 
-  const forecast = getGoalForecast(sessions, topics, subtopics, yearlyGoalHours, format(endOfYear(new Date()), "yyyy-MM-dd"));
+  const forecast = getGoalForecast(sessions, topics, subtopics, yearlyGoalHours, yearStart, yearEnd);
   if (forecast.onTrack) {
     const excess = forecast.projectedHours - yearlyGoalHours;
     if (excess > 0) {
