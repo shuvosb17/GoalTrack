@@ -11,10 +11,11 @@ interface StatCardProps {
   icon?: LucideIcon;
   gradient?: string;
   className?: string;
+  valueClassName?: string;
   delay?: number;
 }
 
-export function StatCard({ title, value, subtitle, icon: Icon, gradient, className, delay = 0 }: StatCardProps) {
+export function StatCard({ title, value, subtitle, icon: Icon, gradient, className, valueClassName, delay = 0 }: StatCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -37,7 +38,7 @@ export function StatCard({ title, value, subtitle, icon: Icon, gradient, classNa
             </div>
           )}
         </div>
-        <div className="text-3xl font-bold tracking-tight">{value}</div>
+        <div className={cn("text-3xl font-bold tracking-tight", valueClassName)}>{value}</div>
         {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
       </div>
     </motion.div>

@@ -17,7 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   useTracks, useAllSubtopics, useAllModules, useAllTopics, useSessions, useSettings,
 } from "@/hooks/use-data";
-import { calculateStreaks, generateHeatmapData, getMomentumColor } from "@/lib/utils";
+import { calculateStreaks, generateHeatmapData, getMomentumColor, todayISO } from "@/lib/utils";
 import {
   getGlobalProgress, getTotalHours, getTodayHours, getTrackProgress, getGoalForecast,
   calculateMomentumScore, generateInsights, getRadarData, countCompletedItems,
@@ -63,7 +63,10 @@ export default function DashboardPage() {
   const trackStats = useMemo(() => {
     return tracks.map((track) => {
       const progress = getTrackProgress(track.id, topics, subtopics);
-      const hours = sessions.filter((s) => s.trackId === track.id).reduce((sum, s) => sum + s.duration, 0) / 3600000;
+      const today = todayISO();
+      const hours = sessions
+        .filter((s) => s.trackId === track.id && s.date === today)
+        .reduce((sum, s) => sum + s.duration, 0) / 3600000;
       const remaining = subtopics.filter((s) => s.trackId === track.id && !s.archived && s.status === "not_started").length;
       const inProgress = subtopics.find((s) => s.trackId === track.id && s.status === "in_progress");
       const focusTopic = inProgress ? topics.find((t) => t.id === inProgress.topicId)?.name : undefined;
@@ -82,7 +85,15 @@ export default function DashboardPage() {
 
       {/* Hero Section */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-        <StatCard title="Total Hours" value={`${totalHours.toFixed(0)}h`} subtitle={`${todayHours.toFixed(1)}h today`} icon={Clock} gradient="linear-gradient(135deg, #8b5cf6, #3b82f6)" delay={0} />
+        <StatCard
+          title="Today's Hours"
+          value={`${todayHours.toFixed(1)}h`}
+          subtitle={`${totalHours.toFixed(0)}h total invested`}
+          icon={Clock}
+          gradient="linear-gradient(135deg, #8b5cf6, #3b82f6)"
+          valueClassName="text-4xl sm:text-5xl"
+          delay={0}
+        />
         <StatCard title="Overall Progress" value={`${globalProgress.percentage}%`} subtitle={`${completed.completedTopics} topics completed`} icon={Target} gradient="linear-gradient(135deg, #10b981, #06b6d4)" delay={0.05} />
         <StatCard title="Current Streak" value={`${streaks.current} days`} subtitle={`Best: ${streaks.longest} days`} icon={Flame} gradient="linear-gradient(135deg, #f59e0b, #ef4444)" delay={0.1} />
         <StatCard title="Longest Streak" value={`${streaks.longest} days`} subtitle={`${streaks.missedDays} missed days`} icon={Zap} delay={0.15} />

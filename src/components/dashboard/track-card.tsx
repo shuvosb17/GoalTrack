@@ -46,9 +46,10 @@ export function TrackCard({ track, progress, hours, remaining, streak, currentFo
           <Progress value={progress} className="h-1.5 mb-4" indicatorClassName="transition-all" style={{ ["--progress-color" as string]: track.color } as React.CSSProperties} />
 
           <div className="grid grid-cols-3 gap-2 text-xs">
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Clock className="h-3 w-3" />
-              <span>{formatHours(hours * 3600000, 0)}h</span>
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <Clock className="h-3.5 w-3.5 shrink-0" />
+              <span className="text-sm font-semibold text-foreground">{formatHours(hours * 3600000, 1)}h</span>
+              <span className="text-[10px]">today</span>
             </div>
             <div className="flex items-center gap-1 text-muted-foreground">
               <Target className="h-3 w-3" />
