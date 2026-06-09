@@ -62,13 +62,13 @@ export function TimerControls({ path, label, compact, loggedMs = 0, allowManual 
       <>
         <div className="flex items-center gap-1 shrink-0">
           {loggedLabel && (
-            <span className="text-[10px] font-mono text-muted-foreground tabular-nums" title="Total logged time">
+            <span className="min-w-[2.5rem] text-sm font-semibold font-mono text-foreground tabular-nums" title="Total logged time">
               {loggedLabel}
             </span>
           )}
           {isActive ? (
             <>
-              <span className="text-xs font-mono text-primary tabular-nums">{formatDuration(elapsed)}</span>
+              <span className="text-sm font-mono font-semibold text-primary tabular-nums">{formatDuration(elapsed)}</span>
               {isPaused ? (
                 <Button size="icon" variant="ghost" className="h-6 w-6" onClick={resume}><Play className="h-3 w-3" /></Button>
               ) : (
@@ -97,7 +97,7 @@ export function TimerControls({ path, label, compact, loggedMs = 0, allowManual 
   return (
     <div className="flex items-center gap-2">
       {loggedLabel && (
-        <span className="text-xs font-mono text-muted-foreground tabular-nums">{loggedLabel} logged</span>
+        <span className="text-sm font-semibold font-mono text-foreground tabular-nums">{loggedLabel} logged</span>
       )}
       {isActive ? (
         <>
