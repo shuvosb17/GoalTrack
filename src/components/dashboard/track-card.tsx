@@ -45,19 +45,23 @@ export function TrackCard({ track, progress, hours, remaining, streak, currentFo
 
           <Progress value={progress} className="h-1.5 mb-4" indicatorClassName="transition-all" style={{ ["--progress-color" as string]: track.color } as React.CSSProperties} />
 
-          <div className="grid grid-cols-3 gap-2 text-xs">
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Clock className="h-3.5 w-3.5 shrink-0" />
-              <span className="text-sm font-semibold text-foreground">{formatHours(hours * 3600000, 1)}h</span>
-              <span className="text-[10px]">today</span>
+          <div className="flex items-end justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <div className="min-w-0 leading-tight">
+                <p className="text-sm font-semibold tabular-nums text-foreground">
+                  {formatHours(hours * 3600000, 1)}h
+                </p>
+                <p className="text-[10px] text-muted-foreground">today</p>
+              </div>
             </div>
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Target className="h-3 w-3" />
-              <span>{remaining} left</span>
+            <div className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+              <Target className="h-3 w-3 shrink-0" />
+              <span className="whitespace-nowrap">{remaining} left</span>
             </div>
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Flame className="h-3 w-3" />
-              <span>{streak}d</span>
+            <div className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+              <Flame className="h-3 w-3 shrink-0" />
+              <span className="whitespace-nowrap">{streak}d</span>
             </div>
           </div>
         </div>
