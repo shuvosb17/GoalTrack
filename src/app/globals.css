@@ -44,14 +44,12 @@ body {
 }
 
 .glass {
-  background: rgba(24, 24, 27, 0.6);
-  backdrop-filter: blur(12px);
+  background: rgba(24, 24, 27, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .glass-card {
-  background: linear-gradient(135deg, rgba(24, 24, 27, 0.8) 0%, rgba(39, 39, 42, 0.4) 100%);
-  backdrop-filter: blur(16px);
+  background: linear-gradient(135deg, #18181b 0%, #1c1c20 100%);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }

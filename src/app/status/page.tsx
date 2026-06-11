@@ -203,8 +203,7 @@ export default function StatusPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="relative space-y-8 pl-8">
-          <div className="absolute left-3 top-2 bottom-2 w-px bg-gradient-to-b from-primary/50 via-border to-transparent" />
+        <div className="relative ml-3 space-y-8 border-l border-primary/30 pl-8">
 
           {timeline.map((day, di) => (
             <motion.div
@@ -215,7 +214,7 @@ export default function StatusPage() {
               className="relative"
             >
               {/* Date node */}
-              <div className="absolute -left-5 top-6 w-3 h-3 rounded-full bg-primary border-2 border-background shadow-lg shadow-primary/30" />
+              <div className="absolute -left-[calc(2rem+0.375rem)] top-6 h-3 w-3 rounded-full border-2 border-background bg-primary shadow-lg shadow-primary/30" />
 
               <div className="glass-card rounded-2xl overflow-hidden">
                 {/* Date header */}
@@ -244,15 +243,12 @@ export default function StatusPage() {
 
                 {/* Topic cards */}
                 <div className="p-4 space-y-3">
-                  {day.topics.map((entry, ti) => {
+                  {day.topics.map((entry) => {
                     const status = entry.topic.status;
                     const StatusIcon = STATUS_ICONS[status];
                     return (
-                      <motion.div
+                      <div
                         key={entry.topic.id}
-                        initial={{ opacity: 0, x: 10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: ti * 0.04 }}
                         className={cn(
                           "rounded-xl border p-4 flex gap-4 items-start",
                           STATUS_BG[status],
@@ -320,7 +316,7 @@ export default function StatusPage() {
                           <p className="text-xl font-bold" style={{ color: entry.trackColor }}>{entry.progress}%</p>
                           <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto mt-1" />
                         </div>
-                      </motion.div>
+                      </div>
                     );
                   })}
                 </div>

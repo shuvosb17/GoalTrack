@@ -96,18 +96,12 @@ export function Sidebar() {
 
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 isolate flex h-screen w-[17.5rem] flex-col overflow-hidden border-r border-white/[0.06] transition-transform duration-300 ease-out",
-          "bg-[#0a0a0c]/95 backdrop-blur-xl",
+          "fixed left-0 top-0 z-50 flex h-screen w-[17.5rem] flex-col overflow-hidden border-r border-white/[0.06] transition-transform duration-300 ease-out",
+          "bg-[#0a0a0c]",
           "lg:translate-x-0",
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
-        {/* Ambient glow */}
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -left-16 top-24 h-48 w-48 rounded-full bg-violet-600/15 blur-3xl" />
-          <div className="absolute -left-8 bottom-32 h-40 w-40 rounded-full bg-blue-600/10 blur-3xl" />
-        </div>
-
         <div className="relative border-b border-white/[0.06] px-5 py-5">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex min-w-0 items-center group">
@@ -141,7 +135,7 @@ export function Sidebar() {
                     <Link key={item.href} href={item.href} onClick={() => setSidebarOpen(false)}>
                       <div
                         className={cn(
-                          "group/item relative flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm font-medium transition-colors duration-200",
+                          "group/item relative flex items-center gap-3 overflow-hidden rounded-xl px-2.5 py-2 text-sm font-medium transition-colors duration-200",
                           isActive
                             ? "text-foreground"
                             : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"
