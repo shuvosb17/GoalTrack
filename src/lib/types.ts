@@ -232,6 +232,44 @@ export interface AppSettings {
   theme: "dark" | "light";
 }
 
+/** Per-track completion deadline for estimation charts */
+export interface TrackEstimate {
+  trackId: string;
+  targetMonths: number;
+  startDate: string;
+  updatedAt: string;
+}
+
+export type TrackPaceStatus = "ahead" | "on_track" | "behind" | "completed" | "not_started";
+
+export interface TrackEstimationPoint {
+  label: string;
+  target: number;
+  actual?: number;
+  projected?: number;
+}
+
+export interface TrackEstimationStats {
+  track: Track;
+  estimate: TrackEstimate;
+  currentProgress: number;
+  targetMonths: number;
+  startDate: string;
+  endDate: string;
+  daysElapsed: number;
+  daysRemaining: number;
+  daysToComplete: number | null;
+  projectedCompletionDate: string;
+  projectedProgressAtDeadline: number;
+  successProbability: number;
+  paceStatus: TrackPaceStatus;
+  paceDelta: number;
+  hoursInvested: number;
+  hoursPerWeek: number;
+  chartData: TrackEstimationPoint[];
+  insight: string;
+}
+
 export interface TimerState {
   isRunning: boolean;
   isPaused: boolean;

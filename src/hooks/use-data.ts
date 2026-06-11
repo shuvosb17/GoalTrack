@@ -70,6 +70,10 @@ export function useGoalMilestones() {
   return useLiveQuery(() => db.goalMilestones.orderBy("order").toArray(), []) ?? [];
 }
 
+export function useTrackEstimates() {
+  return useLiveQuery(() => db.trackEstimates.toArray(), []) ?? [];
+}
+
 export function useSettings() {
   return useLiveQuery(() => db.settings.get("default"), []) ?? null;
 }

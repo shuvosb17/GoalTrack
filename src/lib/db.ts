@@ -9,6 +9,7 @@ import type {
   Achievement,
   Milestone,
   GoalMilestone,
+  TrackEstimate,
   AppSettings,
 } from "./types";
 
@@ -22,6 +23,7 @@ export class GrowthOSDatabase extends Dexie {
   achievements!: Table<Achievement>;
   milestones!: Table<Milestone>;
   goalMilestones!: Table<GoalMilestone>;
+  trackEstimates!: Table<TrackEstimate>;
   settings!: Table<AppSettings>;
 
   constructor() {
@@ -71,6 +73,14 @@ export class GrowthOSDatabase extends Dexie {
           yearStart: "2026-06-01",
           yearEnd: "2027-04-30",
         });
+      }
+    });
+    this.version(10).stores({
+      trackEstimates: "trackId, targetMonths, startDate",
+    }).upgrade(async (tx) => {
+      const settings = await tx.table("settings").get("default");
+      if (settings?.yearEnd === "2027-04-30") {
+        await tx.table("settings").update("default", { yearEnd: "2026-12-31" });
       }
     });
     this.version(7).stores({}).upgrade(async (tx) => {

@@ -96,7 +96,7 @@ export default function DashboardPage() {
         <StatCard title="Current Streak" value={`${streaks.current} days`} subtitle={`Best: ${streaks.longest} days`} icon={Flame} gradient="linear-gradient(135deg, #f59e0b, #ef4444)" delay={0.1} />
         <StatCard title="Longest Streak" value={`${streaks.longest} days`} subtitle={`${streaks.missedDays} missed days`} icon={Zap} delay={0.15} />
         <StatCard title="Active Goals" value={tracks.length} subtitle={`${yearlyGoal}h yearly target`} icon={BookOpen} delay={0.2} />
-        <StatCard title="Days Remaining" value={daysRemaining} subtitle="Until Apr 2027" icon={Calendar} gradient="linear-gradient(135deg, #ec4899, #8b5cf6)" delay={0.25} />
+        <StatCard title="Days Remaining" value={daysRemaining} subtitle="Until Dec 2026" icon={Calendar} gradient="linear-gradient(135deg, #ec4899, #8b5cf6)" delay={0.25} />
       </div>
 
       {/* Growth Command Center */}
@@ -183,7 +183,7 @@ export default function DashboardPage() {
       <div className="grid lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Goal Forecasting <span className="text-xs font-normal text-muted-foreground">Jun 2026 – Apr 2027</span></CardTitle>
+            <CardTitle>Goal Forecasting <span className="text-xs font-normal text-muted-foreground">Jun – Dec 2026</span></CardTitle>
           </CardHeader>
           <CardContent>
             <ForecastChart data={forecastChartData} goal={yearlyGoal} />

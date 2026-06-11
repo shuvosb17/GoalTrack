@@ -26,7 +26,7 @@ import {
 } from "./utils";
 
 export const DEFAULT_YEAR_START = "2026-06-01";
-export const DEFAULT_YEAR_END = "2027-04-30";
+export const DEFAULT_YEAR_END = "2026-12-31";
 
 const RADAR_TRACK_MAP: Record<string, string[]> = {
   Algorithms: ["CS Fundamentals", "LeetCode"],
