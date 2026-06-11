@@ -21,6 +21,7 @@ import type {
 import {
   calculateSubtopicProgress,
   getMomentumLevel,
+  isSubtopicDone,
   todayISO,
   parseLocalDate,
 } from "./utils";
@@ -176,6 +177,27 @@ export function getTrackProgress(
     inProgress,
     percentage,
   };
+}
+
+/** Incomplete learning units in a track (subtopics + topic-only items). */
+export function getTrackRemainingCount(
+  trackId: string,
+  topics: Topic[],
+  subtopics: Subtopic[]
+): number {
+  const trackTopics = topics.filter((t) => t.trackId === trackId && !t.archived);
+  let remaining = 0;
+
+  for (const topic of trackTopics) {
+    const subs = subtopics.filter((s) => s.topicId === topic.id && !s.archived);
+    if (subs.length > 0) {
+      remaining += subs.filter((s) => !isSubtopicDone(s.status)).length;
+    } else if (!isTopicComplete(topic, subtopics)) {
+      remaining += 1;
+    }
+  }
+
+  return remaining;
 }
 
 export function getGlobalProgress(topics: Topic[], subtopics: Subtopic[]) {

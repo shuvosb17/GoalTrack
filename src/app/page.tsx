@@ -19,7 +19,7 @@ import {
 } from "@/hooks/use-data";
 import { calculateStreaks, generateHeatmapData, getMomentumColor, todayISO } from "@/lib/utils";
 import {
-  getGlobalProgress, getTotalHours, getTodayHours, getTrackProgress, getGoalForecast,
+  getGlobalProgress, getTotalHours, getTodayHours, getTrackProgress, getTrackRemainingCount, getGoalForecast,
   calculateMomentumScore, generateInsights, getRadarData, countCompletedItems,
   getDaysRemainingInYear, buildForecastChartData, DEFAULT_YEAR_START, DEFAULT_YEAR_END,
 } from "@/lib/analytics";
@@ -65,7 +65,7 @@ export default function DashboardPage() {
       const hours = sessions
         .filter((s) => s.trackId === track.id && s.date === today)
         .reduce((sum, s) => sum + s.duration, 0) / 3600000;
-      const remaining = subtopics.filter((s) => s.trackId === track.id && !s.archived && s.status === "not_started").length;
+      const remaining = getTrackRemainingCount(track.id, topics, subtopics);
       const inProgress = subtopics.find((s) => s.trackId === track.id && s.status === "in_progress");
       const focusTopic = inProgress ? topics.find((t) => t.id === inProgress.topicId)?.name : undefined;
       const trackDates = sessions.filter((s) => s.trackId === track.id).map((s) => s.date);
