@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import {
   LayoutDashboard,
@@ -97,7 +96,7 @@ export function Sidebar() {
 
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 flex h-screen w-[17.5rem] flex-col border-r border-white/[0.06] transition-transform duration-300 ease-out",
+          "fixed left-0 top-0 z-50 isolate flex h-screen w-[17.5rem] flex-col overflow-hidden border-r border-white/[0.06] transition-transform duration-300 ease-out",
           "bg-[#0a0a0c]/95 backdrop-blur-xl",
           "lg:translate-x-0",
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
@@ -140,31 +139,23 @@ export function Sidebar() {
 
                   return (
                     <Link key={item.href} href={item.href} onClick={() => setSidebarOpen(false)}>
-                      <motion.div
-                        whileHover={{ x: 3 }}
-                        whileTap={{ scale: 0.98 }}
+                      <div
                         className={cn(
-                          "group/item relative flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm font-medium transition-all duration-200",
+                          "group/item relative flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm font-medium transition-colors duration-200",
                           isActive
                             ? "text-foreground"
-                            : "text-muted-foreground hover:text-foreground"
+                            : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"
                         )}
                       >
                         {isActive && (
-                          <motion.div
-                            layoutId="sidebar-active"
-                            className="absolute inset-0 rounded-xl border border-white/[0.08] bg-gradient-to-r from-white/[0.07] to-white/[0.02] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]"
-                            transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
-                          />
+                          <div className="absolute inset-0 rounded-xl border border-white/[0.08] bg-gradient-to-r from-white/[0.07] to-white/[0.02] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]" />
                         )}
                         {isActive && (
-                          <motion.div
-                            layoutId="sidebar-accent"
+                          <div
                             className={cn(
                               "absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-gradient-to-b",
                               item.accent
                             )}
-                            transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
                           />
                         )}
 
@@ -191,7 +182,7 @@ export function Sidebar() {
                             {urgentCount}
                           </span>
                         )}
-                      </motion.div>
+                      </div>
                     </Link>
                   );
                 })}
