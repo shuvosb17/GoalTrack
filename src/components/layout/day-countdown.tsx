@@ -73,8 +73,8 @@ export function DayCountdown() {
             style={{ width: `${time.dayProgress * 100}%` }}
           />
         </div>
-        <p className="mt-1 text-center text-[8px] text-muted-foreground/70">
-          {Math.round(time.dayProgress * 100)}% of today elapsed
+        <p className="mt-1.5 text-center text-sm font-semibold tabular-nums text-muted-foreground">
+          {Math.round(time.dayProgress * 100)}%
         </p>
       </div>
     </div>
