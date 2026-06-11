@@ -19,33 +19,45 @@ interface TrackCardProps {
 
 export function TrackCard({ track, progress, hours, remaining, streak, currentFocus, delay = 0 }: TrackCardProps) {
   return (
-    <Link href={`/tracks?track=${track.id}`}>
+    <Link href={`/tracks?track=${track.id}`} className="block h-full">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay }}
         whileHover={{ y: -4, scale: 1.02 }}
-        className="glass-card rounded-xl p-5 cursor-pointer group relative overflow-hidden"
+        className="glass-card group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-xl p-5"
       >
         <div
-          className="absolute inset-0 opacity-5 group-hover:opacity-10 transition-opacity"
+          className="absolute inset-0 opacity-5 transition-opacity group-hover:opacity-10"
           style={{ background: `linear-gradient(135deg, ${track.color}, transparent)` }}
         />
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-4">
-            <span className="text-2xl">{track.icon}</span>
-            <div className="flex-1">
-              <h3 className="font-semibold">{track.name}</h3>
-              {currentFocus && (
-                <p className="text-xs text-muted-foreground truncate">Focus: {currentFocus}</p>
-              )}
+        <div className="relative z-10 flex h-full flex-col">
+          <div className="mb-4 flex min-h-[4.75rem] items-start gap-3">
+            <span className="shrink-0 text-2xl leading-none">{track.icon}</span>
+            <div className="min-w-0 flex-1">
+              <h3 className="min-h-[2.5rem] line-clamp-2 font-semibold leading-tight">
+                {track.name}
+              </h3>
+              <p className="mt-0.5 h-4 truncate text-xs text-muted-foreground">
+                {currentFocus ? `Focus: ${currentFocus}` : "\u00A0"}
+              </p>
             </div>
-            <span className="text-lg font-bold" style={{ color: track.color }}>{progress}%</span>
+            <span
+              className="shrink-0 text-lg font-bold tabular-nums"
+              style={{ color: track.color }}
+            >
+              {progress}%
+            </span>
           </div>
 
-          <Progress value={progress} className="h-1.5 mb-4" indicatorClassName="transition-all" style={{ ["--progress-color" as string]: track.color } as React.CSSProperties} />
+          <Progress
+            value={progress}
+            className="mb-4 h-1.5 shrink-0"
+            indicatorClassName="transition-all"
+            style={{ ["--progress-color" as string]: track.color } as React.CSSProperties}
+          />
 
-          <div className="flex items-end justify-between gap-3">
+          <div className="mt-auto flex items-end justify-between gap-2">
             <div className="flex min-w-0 items-center gap-1.5">
               <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               <div className="min-w-0 leading-tight">

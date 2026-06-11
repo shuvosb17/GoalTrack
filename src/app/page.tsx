@@ -158,7 +158,7 @@ export default function DashboardPage() {
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <Layers className="h-5 w-5" /> Track Overview
         </h2>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <div className="grid auto-rows-fr gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {trackStats.map((ts, i) => (
             <TrackCard key={ts.track.id} {...ts} delay={i * 0.05} />
           ))}
