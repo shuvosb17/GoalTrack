@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "./logo";
+import { DayCountdown } from "./day-countdown";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/stores/app-store";
 import { useAllTopics, useAllModules, useAllSubtopics, useTracks } from "@/hooks/use-data";
@@ -214,6 +215,7 @@ export function Sidebar() {
               <p className="mt-1.5 bg-gradient-to-r from-violet-300 via-fuchsia-300 to-blue-300 bg-clip-text text-sm font-bold tracking-tight text-transparent">
                 Learn. Track. Master.
               </p>
+              <DayCountdown />
             </div>
           </div>
         </div>
