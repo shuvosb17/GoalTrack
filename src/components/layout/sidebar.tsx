@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { X, Sparkles } from "lucide-react";
+import { X } from "lucide-react";
 import {
   LayoutDashboard,
   BookOpen,
@@ -200,21 +200,10 @@ export function Sidebar() {
           ))}
         </nav>
 
-        <div className="relative border-t border-white/[0.06] p-4">
-          <div className="gradient-border relative overflow-hidden rounded-2xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-violet-600/20 via-fuchsia-600/10 to-blue-600/20" />
-            <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-violet-500/20 blur-2xl" />
-            <div className="absolute -bottom-4 -left-4 h-16 w-16 rounded-full bg-blue-500/15 blur-2xl" />
-            <div className="relative p-4 text-center">
-              <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-blue-500 shadow-lg shadow-violet-500/25">
-                <Sparkles className="h-3.5 w-3.5 text-white" />
-              </div>
-              <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-                Your Year of Growth
-              </p>
-              <p className="mt-1.5 bg-gradient-to-r from-violet-300 via-fuchsia-300 to-blue-300 bg-clip-text text-sm font-bold tracking-tight text-transparent">
-                Learn. Track. Master.
-              </p>
+        <div className="relative border-t border-white/[0.06] p-3">
+          <div className="gradient-border relative overflow-hidden rounded-xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-violet-600/15 via-fuchsia-600/5 to-blue-600/10" />
+            <div className="relative px-3 py-2.5">
               <DayCountdown />
             </div>
           </div>
