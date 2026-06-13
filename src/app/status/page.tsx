@@ -493,21 +493,32 @@ export default function StatusPage() {
                               </div>
                             )}
                             <div>
-                              <div className="mb-1 flex items-center justify-between text-[10px] font-medium uppercase tracking-wider text-muted-foreground/80">
+                              <div className={cn(
+                                "mb-1 flex items-center justify-between text-[10px] font-medium uppercase tracking-wider",
+                                entry.focalSubtopic ? "text-red-400/90" : "text-muted-foreground/80"
+                              )}>
                                 <span>
                                   {entry.focalSubtopic ? `Topic · ${entry.topic.name}` : "Topic"}
                                   {entry.subtopicsTotal > 0 && (
-                                    <span className="ml-1 normal-case tracking-normal text-muted-foreground/60">
+                                    <span className={cn(
+                                      "ml-1 normal-case tracking-normal",
+                                      entry.focalSubtopic ? "text-red-400/60" : "text-muted-foreground/60"
+                                    )}>
                                       ({entry.subtopicsDone}/{entry.subtopicsTotal} done)
                                     </span>
                                   )}
                                 </span>
-                                <span className="tabular-nums text-foreground">{entry.topicProgress}%</span>
+                                <span className={cn(
+                                  "tabular-nums",
+                                  entry.focalSubtopic ? "text-red-400" : "text-foreground"
+                                )}>
+                                  {entry.topicProgress}%
+                                </span>
                               </div>
                               <Progress
                                 value={entry.topicProgress}
                                 className="h-1.5"
-                                indicatorClassName={entry.focalSubtopic ? "bg-white/30" : "bg-primary"}
+                                indicatorClassName={entry.focalSubtopic ? "bg-red-500" : "bg-primary"}
                               />
                             </div>
                           </div>
