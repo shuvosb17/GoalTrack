@@ -2,12 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { v4 as uuid } from "uuid";
-import { format, parseISO, subDays, isAfter } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  NotebookPen, Plus, Lightbulb, AlertCircle, Star, ArrowRight,
-  Clock, Trash2, Pencil, BookOpen, Sparkles,
+  Plus, Lightbulb, AlertCircle, Star, ArrowRight, Clock, Trash2, Pencil,
 } from "lucide-react";
+import { IconNotebook, IconBulb } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,11 +16,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { SectionHeading } from "@/components/shared/section-heading";
 import {
   useJournal, useSessions, useTracks, useAllModules, useAllTopics, useAllSubtopics,
 } from "@/hooks/use-data";
 import { db } from "@/lib/db";
 import { nowISO, todayISO, formatDuration } from "@/lib/utils";
+import {
+  getJournalStats, getUnjournaledStudyDays, groupEntriesByMonth,
+} from "@/lib/journal";
 import {
   HierarchyPicker, getHierarchyPath, matchSessionsForJournal, type JournalHierarchy,
 } from "@/components/journal/hierarchy-picker";
@@ -29,10 +33,10 @@ import type { JournalEntry } from "@/lib/types";
 const EMPTY_HIERARCHY: JournalHierarchy = { trackId: "", moduleId: "", topicId: "", subtopicId: "" };
 
 const FIELDS = [
-  { key: "learned" as const, label: "What I Learned", icon: Lightbulb, color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20" },
-  { key: "challenges" as const, label: "Challenges", icon: AlertCircle, color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20" },
-  { key: "takeaways" as const, label: "Key Takeaways", icon: Star, color: "text-violet-400", bg: "bg-violet-500/10 border-violet-500/20" },
-  { key: "nextActions" as const, label: "Next Actions", icon: ArrowRight, color: "text-blue-400", bg: "bg-blue-500/10 border-blue-500/20" },
+  { key: "learned" as const, label: "Learned", icon: Lightbulb, color: "#10b981" },
+  { key: "challenges" as const, label: "Challenges", icon: AlertCircle, color: "#f59e0b" },
+  { key: "takeaways" as const, label: "Takeaways", icon: Star, color: "#8b5cf6" },
+  { key: "nextActions" as const, label: "Next", icon: ArrowRight, color: "#3b82f6" },
 ];
 
 type FormState = {
@@ -69,17 +73,16 @@ export default function JournalPage() {
   const [trackFilter, setTrackFilter] = useState("all");
   const [search, setSearch] = useState("");
 
+  const stats = useMemo(() => getJournalStats(entries), [entries]);
+  const unjournaledDays = useMemo(
+    () => getUnjournaledStudyDays(sessions, entries, 7),
+    [sessions, entries]
+  );
+
   const linkedSessions = useMemo(
     () => matchSessionsForJournal(sessions, form.date, form.hierarchy),
     [sessions, form.date, form.hierarchy]
   );
-
-  const stats = useMemo(() => {
-    const weekAgo = subDays(new Date(), 7);
-    const thisWeek = entries.filter((e) => isAfter(parseISO(e.date), weekAgo)).length;
-    const withTrack = entries.filter((e) => e.trackId).length;
-    return { total: entries.length, thisWeek, withTrack };
-  }, [entries]);
 
   const filteredEntries = useMemo(() => {
     let list = entries;
@@ -93,9 +96,11 @@ export default function JournalPage() {
     return list;
   }, [entries, trackFilter, search]);
 
-  const openNew = () => {
+  const grouped = useMemo(() => groupEntriesByMonth(filteredEntries), [filteredEntries]);
+
+  const openNew = (date?: string) => {
     setEditingId(null);
-    setForm(emptyForm());
+    setForm({ ...emptyForm(), date: date ?? todayISO() });
     setOpen(true);
   };
 
@@ -144,56 +149,68 @@ export default function JournalPage() {
     setEditingId(null);
   };
 
-  const handleDelete = async (id: string) => {
-    await db.journal.delete(id);
-  };
-
   return (
     <div className="space-y-8">
-      {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl glass-card p-4 sm:p-8">
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-600/20 via-transparent to-blue-600/10 pointer-events-none" />
-        <div className="relative flex flex-wrap items-start justify-between gap-6">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-blue-500">
-                <NotebookPen className="h-6 w-6 text-white" />
-              </div>
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Learning Journal</h1>
-            </div>
-            <p className="text-muted-foreground max-w-lg">
-              Capture what you learned under any track, module, topic, or subtopic — and reflect with purpose.
-            </p>
-          </div>
-          <Button size="lg" onClick={openNew} className="w-full shadow-lg shadow-primary/25 sm:w-auto">
-            <Plus className="h-4 w-4" /> New Entry
-          </Button>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-medium tracking-tight sm:text-3xl">
+            <IconNotebook className="h-7 w-7 text-primary" stroke={1.5} /> Journal
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Capture what you learned and link reflections to your tracks.
+          </p>
         </div>
-        <div className="relative mt-6 grid max-w-md grid-cols-1 gap-3 sm:mt-8 sm:grid-cols-3 sm:gap-4">
-          {[
-            { label: "Total Entries", value: stats.total, icon: BookOpen },
-            { label: "This Week", value: stats.thisWeek, icon: Sparkles },
-            { label: "Linked to Tracks", value: stats.withTrack, icon: NotebookPen },
-          ].map((s) => (
-            <div key={s.label} className="rounded-xl bg-secondary/40 border border-border/50 p-3 text-center">
-              <s.icon className="h-4 w-4 text-primary mx-auto mb-1" />
-              <p className="text-xl font-bold">{s.value}</p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{s.label}</p>
-            </div>
-          ))}
-        </div>
+        <Button onClick={() => openNew()} className="gap-2">
+          <Plus className="h-4 w-4" /> New Entry
+        </Button>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 items-center">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {[
+          { label: "Total entries", value: stats.total },
+          { label: "This week", value: stats.thisWeek },
+          { label: "Journaling streak", value: `${stats.streak}d` },
+          { label: "Linked to tracks", value: stats.withTrack },
+        ].map((item) => (
+          <div key={item.label} className="rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.02] p-3 sm:p-4 text-center">
+            <p className="metric-value text-2xl tabular-nums sm:text-3xl">{item.value}</p>
+            <p className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">{item.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {unjournaledDays.length > 0 && (
+        <div className="rounded-xl border-[0.5px] border-amber-500/25 bg-amber-500/[0.04] p-4">
+          <p className="mb-3 flex items-center gap-2 text-xs font-medium text-amber-400/90">
+            <IconBulb className="h-3.5 w-3.5" stroke={1.5} />
+            Reflect on a study day
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {unjournaledDays.map((date) => (
+              <button
+                key={date}
+                type="button"
+                onClick={() => openNew(date)}
+                className="rounded-lg border-[0.5px] border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-xs hover:bg-white/[0.06] transition-colors"
+              >
+                {format(parseISO(date), "EEE, MMM d")}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-3">
         <Input
           placeholder="Search entries..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="max-w-xs"
+          className="max-w-xs border-[0.5px] border-white/[0.08] bg-white/[0.02]"
         />
         <Select value={trackFilter} onValueChange={setTrackFilter}>
-          <SelectTrigger className="w-[200px]"><SelectValue placeholder="All Tracks" /></SelectTrigger>
+          <SelectTrigger className="w-[200px] border-[0.5px] border-white/[0.08] bg-white/[0.02]">
+            <SelectValue placeholder="All Tracks" />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Tracks</SelectItem>
             {tracks.map((t) => (
@@ -203,107 +220,113 @@ export default function JournalPage() {
         </Select>
       </div>
 
-      {/* Entries */}
       {filteredEntries.length === 0 ? (
-        <div className="glass-card rounded-2xl py-20 text-center">
-          <NotebookPen className="h-16 w-16 text-muted-foreground/20 mx-auto mb-4" />
-          <h3 className="font-semibold text-lg">No journal entries yet</h3>
-          <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">
-            Start documenting your learning journey — link entries to specific topics for better recall.
+        <div className="rounded-xl border border-dashed border-white/[0.08] py-16 text-center">
+          <IconNotebook className="mx-auto mb-4 h-12 w-12 text-muted-foreground/25" stroke={1.25} />
+          <h3 className="text-lg font-medium">No journal entries yet</h3>
+          <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
+            Start documenting your learning — link entries to topics for better recall.
           </p>
-          <Button className="mt-6" onClick={openNew}><Plus className="h-4 w-4" /> Write First Entry</Button>
+          <Button className="mt-6 gap-2" onClick={() => openNew()}>
+            <Plus className="h-4 w-4" /> Write first entry
+          </Button>
         </div>
       ) : (
-        <div className="grid gap-4">
-          <AnimatePresence>
-            {filteredEntries.map((entry, i) => {
-              const path = getHierarchyPath(entry, tracks, modules, topics, subtopics);
-              const linked = sessions.filter((s) => entry.sessionIds.includes(s.id));
-              const trackColor = path?.track?.color ?? "#8b5cf6";
+        <div className="space-y-8">
+          {grouped.map((group) => (
+            <div key={group.key}>
+              <SectionHeading>{group.label}</SectionHeading>
+              <div className="space-y-3">
+                <AnimatePresence>
+                  {group.entries.map((entry, i) => {
+                    const path = getHierarchyPath(entry, tracks, modules, topics, subtopics);
+                    const linked = sessions.filter((s) => entry.sessionIds.includes(s.id));
+                    const trackColor = path?.track?.color ?? "#8b5cf6";
 
-              return (
-                <motion.div
-                  key={entry.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ delay: i * 0.03 }}
-                  className="glass-card rounded-2xl overflow-hidden group"
-                  style={{ borderLeftWidth: 4, borderLeftColor: trackColor }}
-                >
-                  <div className="p-5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-lg">{path?.track?.icon ?? "📝"}</span>
-                          <h3 className="font-semibold text-lg">
-                            {entry.title || format(parseISO(entry.date), "EEEE, MMM d")}
-                          </h3>
-                          <Badge variant="outline" className="text-[10px]">
-                            {format(parseISO(entry.date), "yyyy-MM-dd")}
-                          </Badge>
-                        </div>
-                        {path && (
-                          <p className="text-xs text-muted-foreground mt-1 truncate" title={path.label}>
-                            {path.label}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(entry)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDelete(entry.id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="grid sm:grid-cols-2 gap-3 mt-4">
-                      {FIELDS.map((field) => {
-                        const text = entry[field.key];
-                        if (!text) return null;
-                        const Icon = field.icon;
-                        return (
-                          <div key={field.key} className={`rounded-xl border p-3 ${field.bg}`}>
-                            <div className={`flex items-center gap-1.5 text-xs font-medium mb-1.5 ${field.color}`}>
-                              <Icon className="h-3.5 w-3.5" /> {field.label}
+                    return (
+                      <motion.div
+                        key={entry.id}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ delay: i * 0.02 }}
+                        className="group rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.02] overflow-hidden"
+                        style={{ borderLeftWidth: 3, borderLeftColor: trackColor }}
+                      >
+                        <div className="p-4 sm:p-5">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span>{path?.track?.icon ?? "📝"}</span>
+                                <h3 className="font-semibold">
+                                  {entry.title || format(parseISO(entry.date), "EEEE, MMM d")}
+                                </h3>
+                                <Badge variant="outline" className="text-[10px] border-white/[0.08]">
+                                  {entry.date}
+                                </Badge>
+                              </div>
+                              {path && (
+                                <p className="mt-1 truncate text-xs text-muted-foreground" title={path.label}>
+                                  {path.label}
+                                </p>
+                              )}
                             </div>
-                            <p className="text-sm leading-relaxed">{text}</p>
+                            <div className="flex shrink-0 gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(entry)}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => db.journal.delete(entry.id)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
                           </div>
-                        );
-                      })}
-                    </div>
 
-                    {linked.length > 0 && (
-                      <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border/40 text-xs text-muted-foreground">
-                        <Clock className="h-3.5 w-3.5" />
-                        {linked.length} linked session{linked.length > 1 ? "s" : ""} · {formatDuration(linked.reduce((s, sess) => s + sess.duration, 0))}
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
+                          <div className="mt-3 flex flex-wrap gap-1.5">
+                            {FIELDS.map((field) => {
+                              const text = entry[field.key];
+                              if (!text) return null;
+                              const Icon = field.icon;
+                              return (
+                                <div
+                                  key={field.key}
+                                  className="max-w-full rounded-lg border-[0.5px] border-white/[0.06] bg-white/[0.02] px-2.5 py-2"
+                                >
+                                  <div className="mb-1 flex items-center gap-1 text-[10px] font-medium" style={{ color: field.color }}>
+                                    <Icon className="h-3 w-3" /> {field.label}
+                                  </div>
+                                  <p className="text-xs leading-relaxed line-clamp-3">{text}</p>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {linked.length > 0 && (
+                            <div className="mt-3 flex items-center gap-2 border-t border-white/[0.06] pt-3 text-xs text-muted-foreground">
+                              <Clock className="h-3.5 w-3.5" />
+                              {linked.length} session{linked.length > 1 ? "s" : ""} · {formatDuration(linked.reduce((s, sess) => s + sess.duration, 0))}
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Entry dialog */}
       <Dialog open={open} onOpenChange={(v) => { if (!v) { setOpen(false); setEditingId(null); } }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingId ? "Edit Journal Entry" : "New Journal Entry"}</DialogTitle>
+            <DialogTitle>{editingId ? "Edit Entry" : "New Entry"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-5">
-            <div className="grid sm:grid-cols-2 gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <label className="text-xs text-muted-foreground">Title (optional)</label>
-                <Input
-                  placeholder="e.g. Class 01 reflection"
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                />
+                <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g. Class 01 reflection" />
               </div>
               <div className="space-y-1">
                 <label className="text-xs text-muted-foreground">Date</label>
@@ -311,8 +334,8 @@ export default function JournalPage() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
-              <p className="text-xs font-medium text-primary">Link to Learning Path</p>
+            <div className="rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.02] p-4 space-y-3">
+              <p className="text-xs font-medium text-muted-foreground">Link to learning path</p>
               <HierarchyPicker
                 value={form.hierarchy}
                 onChange={(hierarchy) => setForm({ ...form, hierarchy })}
@@ -327,11 +350,11 @@ export default function JournalPage() {
               const Icon = field.icon;
               return (
                 <div key={field.key} className="space-y-1">
-                  <label className={`text-xs font-medium flex items-center gap-1.5 ${field.color}`}>
+                  <label className="flex items-center gap-1.5 text-xs font-medium" style={{ color: field.color }}>
                     <Icon className="h-3.5 w-3.5" /> {field.label}
                   </label>
                   <Textarea
-                    placeholder={`Write your ${field.label.toLowerCase()}...`}
+                    placeholder={`${field.label}...`}
                     value={form[field.key]}
                     onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
                     rows={2}
@@ -341,7 +364,7 @@ export default function JournalPage() {
             })}
 
             {linkedSessions.length > 0 && (
-              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Clock className="h-3.5 w-3.5" />
                 Will link {linkedSessions.length} session{linkedSessions.length > 1 ? "s" : ""} ({formatDuration(linkedSessions.reduce((s, sess) => s + sess.duration, 0))})
               </p>
