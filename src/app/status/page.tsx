@@ -28,8 +28,9 @@ import type { ProgressStatus } from "@/lib/types";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { updateTopicStatus, markTopicReviewed } from "@/lib/crud";
-import { getTopicsDueForReview } from "@/lib/metrics";
+import { updateTopicStatus } from "@/lib/crud";
+import { getTopicsDueForReview, isTopicDueForReview } from "@/lib/metrics";
+import { TopicConfidenceDialog } from "@/components/tracks/topic-confidence-dialog";
 
 const STATUS_ICONS: Record<ProgressStatus, typeof Circle> = {
   not_started: Circle,
@@ -78,6 +79,7 @@ export default function StatusPage() {
   const goalMilestones = useGoalMilestones();
   const [statusFilter, setStatusFilter] = useState<Filter>("all");
   const [trackFilter, setTrackFilter] = useState("all");
+  const [reviewDialog, setReviewDialog] = useState<{ id: string; name: string } | null>(null);
 
   const globalCounts = useMemo(() => getGlobalStatusCounts(topics), [topics]);
   const alerts = useMemo(
@@ -309,8 +311,8 @@ export default function StatusPage() {
             <CardContent className="py-16 text-center">
               <BookmarkCheck className="mx-auto mb-4 h-12 w-12 text-muted-foreground/25" />
               <h3 className="text-lg font-medium">Nothing due for review</h3>
-              <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
-                Topics you complete with low confidence reappear here when it&apos;s time to refresh them.
+              <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+                When you complete a topic, rate your confidence. Low scores schedule a review here so you refresh before forgetting.
               </p>
             </CardContent>
           </Card>
@@ -337,8 +339,12 @@ export default function StatusPage() {
                   <Link href={`/tracks?track=${topic.trackId}&topic=${topic.id}`}>
                     <Button variant="outline" size="sm" className="h-8 text-xs">Open</Button>
                   </Link>
-                  <Button size="sm" className="h-8 gap-1 text-xs" onClick={() => markTopicReviewed(topic.id)}>
-                    <BookmarkCheck className="h-3.5 w-3.5" /> Reviewed
+                  <Button
+                    size="sm"
+                    className="h-8 gap-1 text-xs"
+                    onClick={() => setReviewDialog({ id: topic.id, name: topic.name })}
+                  >
+                    <BookmarkCheck className="h-3.5 w-3.5" /> Re-rate
                   </Button>
                 </div>
               </motion.div>
@@ -430,6 +436,11 @@ export default function StatusPage() {
                                 </Badge>
                               </Link>
                             ))}
+                            {isTopicDueForReview(entry.topic) && (
+                              <Badge variant="outline" className="gap-1 border-violet-500/30 text-[10px] text-violet-300">
+                                <BookmarkCheck className="h-3 w-3" /> Review due
+                              </Badge>
+                            )}
                           </div>
                           <p className="mt-0.5 text-xs text-muted-foreground">
                             {entry.trackName} → {entry.moduleName}
@@ -461,6 +472,16 @@ export default function StatusPage() {
                                 ))}
                               </SelectContent>
                             </Select>
+                            {isTopicDueForReview(entry.topic) && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 gap-1 border-violet-500/30 px-2 text-[10px] text-violet-300"
+                                onClick={() => setReviewDialog({ id: entry.topic.id, name: entry.topic.name })}
+                              >
+                                <BookmarkCheck className="h-3 w-3" /> Review
+                              </Button>
+                            )}
                           </div>
                         </div>
                         <Link
@@ -481,6 +502,14 @@ export default function StatusPage() {
           ))}
         </div>
       )}
+
+      <TopicConfidenceDialog
+        open={!!reviewDialog}
+        onOpenChange={() => setReviewDialog(null)}
+        topicId={reviewDialog?.id ?? null}
+        topicName={reviewDialog?.name ?? ""}
+        mode="review"
+      />
     </div>
   );
 }

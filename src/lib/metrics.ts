@@ -1,4 +1,4 @@
-import { differenceInDays, format, parseISO, subDays } from "date-fns";
+import { differenceInDays, format, parseISO, subDays, addDays } from "date-fns";
 import type {
   AppSettings,
   LearningSession,
@@ -220,12 +220,35 @@ export function getNextUpHref(item: PinnedNextItem, trackId: string): string {
   return `${base}&subtopic=${item.id}`;
 }
 
+export function computeNextReviewDate(confidence: 1 | 2 | 3 | 4 | 5, fromDate?: string): string {
+  const base = fromDate ? parseLocalDate(fromDate) : parseLocalDate(todayISO());
+  return format(addDays(base, confidence * 3), "yyyy-MM-dd");
+}
+
+export function isTopicDueForReview(topic: Topic): boolean {
+  if (!topic.completionMeta) return false;
+  if (topic.status !== "completed" && topic.status !== "mastered") return false;
+  return (
+    topic.completionMeta.nextReviewDue <= todayISO() &&
+    topic.completionMeta.confidenceRating < 4
+  );
+}
+
+export function getReviewDueLabel(topic: Topic): string | null {
+  if (!topic.completionMeta) return null;
+  if (topic.status !== "completed" && topic.status !== "mastered") return null;
+  const days = differenceInDays(
+    parseLocalDate(topic.completionMeta.nextReviewDue),
+    parseLocalDate(todayISO())
+  );
+  if (days < 0) return `Review overdue · ${Math.abs(days)}d`;
+  if (days === 0) return "Review due today";
+  if (days <= 2) return `Review in ${days}d`;
+  return null;
+}
+
 export function getTopicsDueForReview(topics: Topic[]): Topic[] {
-  const today = todayISO();
-  return topics.filter((t) => {
-    if (!t.completionMeta) return false;
-    return t.completionMeta.nextReviewDue <= today && t.completionMeta.confidenceRating < 4;
-  });
+  return topics.filter(isTopicDueForReview);
 }
 
 export function getQualityWeight(rating?: 1 | 2 | 3): number {

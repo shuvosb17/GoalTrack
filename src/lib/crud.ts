@@ -2,6 +2,7 @@ import { v4 as uuid } from "uuid";
 import { db } from "./db";
 import type { Module, Topic, Subtopic, ProgressStatus, Difficulty } from "./types";
 import { nowISO, todayISO } from "./utils";
+import { computeNextReviewDate } from "./metrics";
 import { isTopicComplete } from "./in-progress";
 
 export async function renameModule(id: string, name: string) {
@@ -162,6 +163,13 @@ export async function updateTopicStatus(id: string, status: ProgressStatus, dueD
     updates.dueDate = undefined;
   } else if (status === "completed" || status === "mastered") {
     updates.dueDate = undefined;
+    if (!topic.completionMeta) {
+      updates.completionMeta = {
+        completedAt: nowISO(),
+        confidenceRating: 3,
+        nextReviewDue: computeNextReviewDate(3),
+      };
+    }
   }
 
   await db.topics.update(id, updates);
@@ -192,22 +200,29 @@ export async function updateTopicStatus(id: string, status: ProgressStatus, dueD
  * Records a retention-confidence rating (1–5) on a completed topic and schedules
  * the next review for `confidence * 3` days out. Lower confidence ⇒ sooner review.
  */
-export async function setTopicCompletionConfidence(id: string, confidence: 1 | 2 | 3 | 4 | 5) {
+export async function setTopicCompletionConfidence(
+  id: string,
+  confidence: 1 | 2 | 3 | 4 | 5,
+  options?: { isReview?: boolean }
+) {
   const topic = await db.topics.get(id);
   if (!topic) return;
   const completedAt = topic.completionMeta?.completedAt ?? nowISO();
-  const due = new Date();
-  due.setDate(due.getDate() + confidence * 3);
-  const nextReviewDue = `${due.getFullYear()}-${String(due.getMonth() + 1).padStart(2, "0")}-${String(due.getDate()).padStart(2, "0")}`;
+  const nextReviewDue = computeNextReviewDate(confidence);
   await db.topics.update(id, {
     completionMeta: {
       completedAt,
       confidenceRating: confidence,
       nextReviewDue,
-      reviewedAt: topic.completionMeta?.reviewedAt,
+      reviewedAt: options?.isReview ? nowISO() : topic.completionMeta?.reviewedAt,
     },
     updatedAt: nowISO(),
   });
+}
+
+/** Re-rate retention after a scheduled review — reschedules the next review date. */
+export async function markTopicReviewed(id: string, confidence: 1 | 2 | 3 | 4 | 5) {
+  await setTopicCompletionConfidence(id, confidence, { isReview: true });
 }
 
 /** Logs a solved LeetCode problem: bumps the aggregate counter and appends a dated entry. */
@@ -236,16 +251,6 @@ export async function removeLeetCodeProblem(difficulty: "easy" | "medium" | "har
     ...settings,
     leetCodeStats: { ...stats, [difficulty]: Math.max(0, (stats[difficulty] ?? 0) - 1) },
     leetCodeLog: log,
-  });
-}
-
-/** Marks a due-for-review topic as reviewed today (clears it from the review queue). */
-export async function markTopicReviewed(id: string) {
-  const topic = await db.topics.get(id);
-  if (!topic?.completionMeta) return;
-  await db.topics.update(id, {
-    completionMeta: { ...topic.completionMeta, reviewedAt: nowISO(), confidenceRating: 5 },
-    updatedAt: nowISO(),
   });
 }
 

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronRight, ChevronDown, Plus, GripVertical,
-  Archive, Copy, Trash2, Pencil,
+  Archive, Copy, Trash2, Pencil, BookmarkCheck,
 } from "lucide-react";
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent,
@@ -22,7 +22,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { TimerControls } from "@/components/timer/timer-controls";
-import { STATUS_LABELS, DIFFICULTY_LABELS, DIFFICULTY_COLORS } from "@/lib/utils";
+import { STATUS_LABELS, DIFFICULTY_LABELS, DIFFICULTY_COLORS, cn } from "@/lib/utils";
 import { formatDeadline, getDaysUntilDue, getSubtopicDueDate } from "@/lib/in-progress";
 import { todayISO } from "@/lib/utils";
 import { db } from "@/lib/db";
@@ -31,8 +31,9 @@ import {
   updateTopicDifficulty, updateSubtopicDifficulty,
   renameModule, renameTopic, deleteModule, deleteTopic,
   archiveSubtopic, deleteSubtopic, duplicateSubtopic, reorderItems,
-  setTopicCompletionConfidence,
 } from "@/lib/crud";
+import { isTopicDueForReview, getReviewDueLabel } from "@/lib/metrics";
+import { TopicConfidenceDialog, type TopicConfidenceMode } from "@/components/tracks/topic-confidence-dialog";
 import type { Track, Module, Topic, Subtopic, ProgressStatus, Difficulty } from "@/lib/types";
 import { getModuleProgress, getTopicProgress, getTrackProgress } from "@/lib/analytics";
 import { useSessions } from "@/hooks/use-data";
@@ -70,7 +71,7 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
   const [statusDialog, setStatusDialog] = useState<{ id: string; type: "topic" | "subtopic"; dueDate: string } | null>(null);
   const [editDialog, setEditDialog] = useState<{ type: "module" | "topic"; id: string; name: string; difficulty?: Difficulty } | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<{ type: "module" | "topic"; id: string; name: string } | null>(null);
-  const [confidenceDialog, setConfidenceDialog] = useState<{ id: string; name: string } | null>(null);
+  const [confidenceDialog, setConfidenceDialog] = useState<{ id: string; name: string; mode: TopicConfidenceMode } | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -202,9 +203,17 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                         {modTopics.map((topic) => {
                                           const topicSubs = subtopics.filter((s) => s.topicId === topic.id && !s.archived).sort((a, b) => a.order - b.order);
                                           const topicProgress = getTopicProgress(topic, subtopics);
+                                          const reviewDue = isTopicDueForReview(topic);
+                                          const reviewLabel = getReviewDueLabel(topic);
 
                                           return (
-                                            <div key={topic.id} className="rounded-md border border-border/30">
+                                            <div
+                                              key={topic.id}
+                                              className={cn(
+                                                "rounded-md border border-border/30",
+                                                reviewDue && "ring-1 ring-violet-500/40 bg-violet-500/[0.03]"
+                                              )}
+                                            >
                                               <div className="flex items-center gap-2 overflow-x-auto p-2 pl-2 cursor-pointer hover:bg-secondary/20 group sm:pl-4" onClick={() => toggle(topic.id)}>
                                                 {expanded.has(topic.id) ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                                                 <span className="text-sm flex-1 min-w-[6rem] truncate">{topic.name}</span>
@@ -232,6 +241,14 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                 {(topic.status === "in_progress" || topicProgress.inProgress > 0) && (
                                                   <Badge variant="warning" className="text-[10px]">Active</Badge>
                                                 )}
+                                                {reviewDue && (
+                                                  <Badge variant="outline" className="gap-1 border-violet-500/30 text-[10px] text-violet-300">
+                                                    <BookmarkCheck className="h-3 w-3" /> Review due
+                                                  </Badge>
+                                                )}
+                                                {reviewLabel && !reviewDue && (
+                                                  <span className="hidden text-[10px] text-muted-foreground sm:inline">{reviewLabel}</span>
+                                                )}
                                                 <Select
                                                   value={topic.status ?? "not_started"}
                                                   onValueChange={(v) => {
@@ -243,7 +260,7 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                     } else {
                                                       updateTopicStatus(topic.id, status);
                                                       if ((status === "completed" || status === "mastered") && !wasComplete) {
-                                                        setConfidenceDialog({ id: topic.id, name: topic.name });
+                                                        setConfidenceDialog({ id: topic.id, name: topic.name, mode: "complete" });
                                                       }
                                                     }
                                                   }}
@@ -257,6 +274,19 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                     ))}
                                                   </SelectContent>
                                                 </Select>
+                                                {reviewDue && (
+                                                  <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="h-6 gap-1 border-violet-500/30 px-2 text-[10px] text-violet-300"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      setConfidenceDialog({ id: topic.id, name: topic.name, mode: "review" });
+                                                    }}
+                                                  >
+                                                    <BookmarkCheck className="h-3 w-3" /> Review
+                                                  </Button>
+                                                )}
                                                 <TimerControls
                                                   path={{ trackId: track.id, moduleId: mod.id, topicId: topic.id }}
                                                   label={`${mod.name} → ${topic.name}`}
@@ -486,41 +516,13 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!confidenceDialog} onOpenChange={() => setConfidenceDialog(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>How well do you know it?</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Completed <span className="font-medium text-foreground">{confidenceDialog?.name}</span>. Rate your retention — lower confidence schedules a sooner review.
-          </p>
-          <div className="grid grid-cols-5 gap-1.5">
-            {([1, 2, 3, 4, 5] as const).map((n) => (
-              <button
-                key={n}
-                type="button"
-                onClick={async () => {
-                  if (confidenceDialog) await setTopicCompletionConfidence(confidenceDialog.id, n);
-                  setConfidenceDialog(null);
-                }}
-                className="flex flex-col items-center gap-1 rounded-lg border-[0.5px] border-white/[0.08] bg-white/[0.03] py-3 text-xs text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground"
-              >
-                <span className="text-base font-medium text-foreground">{n}</span>
-                {n === 1 && "Shaky"}
-                {n === 3 && "OK"}
-                {n === 5 && "Solid"}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={() => setConfidenceDialog(null)}
-            className="text-xs text-muted-foreground hover:text-foreground"
-          >
-            Skip
-          </button>
-        </DialogContent>
-      </Dialog>
+      <TopicConfidenceDialog
+        open={!!confidenceDialog}
+        onOpenChange={() => setConfidenceDialog(null)}
+        topicId={confidenceDialog?.id ?? null}
+        topicName={confidenceDialog?.name ?? ""}
+        mode={confidenceDialog?.mode ?? "complete"}
+      />
     </div>
   );
 }
