@@ -3,10 +3,9 @@ import type { Track, Module, Topic, Subtopic, InProgressTask, InProgressTopicGro
 import { isSubtopicDone, statusWeight, parseLocalDate, todayISO, calculateSubtopicProgress } from "./utils";
 
 export function isTopicComplete(topic: Topic, subtopics: Subtopic[]): boolean {
-  if (topic.status === "completed" || topic.status === "mastered") return true;
   const subs = subtopics.filter((s) => s.topicId === topic.id && !s.archived);
-  if (subs.length === 0) return false;
-  return subs.every((s) => s.status === "completed" || s.status === "mastered");
+  if (subs.length > 0) return subs.every((s) => isSubtopicDone(s.status));
+  return topic.status === "completed" || topic.status === "mastered";
 }
 
 export function isTopicActive(topic: Topic, subtopics: Subtopic[]): boolean {
@@ -21,35 +20,34 @@ export function calculateTopicSubtopicProgress(subtopics: Subtopic[]): number {
   return calculateSubtopicProgress(subtopics);
 }
 
-/** Resolve topic status from both the topic record and its subtopics. */
+/** Resolve topic status from subtopics when they exist; otherwise use the topic record. */
 export function getEffectiveTopicStatus(topic: Topic, subtopics: Subtopic[]): ProgressStatus {
   if (topic.archived) return "not_started";
   const subs = subtopics.filter((s) => s.topicId === topic.id && !s.archived);
 
-  if (topic.status === "mastered" || (subs.length > 0 && subs.every((s) => s.status === "mastered"))) {
-    return "mastered";
+  if (subs.length > 0) {
+    if (subs.every((s) => s.status === "mastered")) return "mastered";
+    if (subs.every((s) => isSubtopicDone(s.status))) return "completed";
+    if (subs.some((s) => s.status === "in_progress") || subs.some((s) => isSubtopicDone(s.status))) {
+      return "in_progress";
+    }
+    return topic.status ?? "not_started";
   }
-  if (topic.status === "completed" || (subs.length > 0 && subs.every((s) => isSubtopicDone(s.status)))) {
-    return "completed";
-  }
-  if (
-    topic.status === "in_progress" ||
-    subs.some((s) => s.status === "in_progress") ||
-    subs.some((s) => isSubtopicDone(s.status))
-  ) {
-    return "in_progress";
-  }
+
   return topic.status ?? "not_started";
 }
 
-/** Progress for one topic: completed/mastered = 100%, else subtopic-based or topic status */
+/**
+ * Topic progress — when subtopics exist, always count how many are done (never trust
+ * topic.status alone, which can be out of sync with subtopic work).
+ */
 export function getTopicProgressPercent(topic: Topic, subtopics: Subtopic[]): number {
-  const effective = getEffectiveTopicStatus(topic, subtopics);
-  if (effective === "completed" || effective === "mastered") return 100;
   const subs = subtopics.filter((s) => s.topicId === topic.id && !s.archived);
   if (subs.length > 0) return calculateTopicSubtopicProgress(subs);
-  if (topic.status === "in_progress") return 0;
-  return Math.round(statusWeight(topic.status ?? "not_started") * 100);
+  const status = topic.status ?? "not_started";
+  if (status === "completed" || status === "mastered") return 100;
+  if (status === "in_progress") return 0;
+  return Math.round(statusWeight(status) * 100);
 }
 
 /**
