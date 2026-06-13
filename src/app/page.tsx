@@ -145,7 +145,6 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl font-medium tracking-tight sm:text-3xl">Dashboard</h1>
-        <p className="mt-1 text-muted-foreground">Welcome to GoalTrack — your personal learning command center</p>
       </motion.div>
 
       {/* Row 0 — What to do right now */}

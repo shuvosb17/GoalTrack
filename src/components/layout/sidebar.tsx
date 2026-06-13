@@ -135,16 +135,16 @@ export function Sidebar() {
                     <Link key={item.href} href={item.href} onClick={() => setSidebarOpen(false)}>
                       <div
                         className={cn(
-                          "group/item flex items-center gap-3 py-2 pr-3 text-sm transition-colors duration-200",
+                          "group/item flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-200",
                           isActive
-                            ? "rounded-r-md border-l-2 border-[#7c5cfc] bg-[rgba(99,60,200,0.12)] pl-[6px] font-medium text-[#c4b5fd]"
-                            : "rounded-lg border-l-2 border-transparent pl-3 font-medium text-muted-foreground hover:bg-white/[0.03] hover:text-foreground"
+                            ? "bg-white/[0.08] text-foreground"
+                            : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"
                         )}
                       >
                         <item.icon
                           className={cn(
                             "h-[18px] w-[18px] shrink-0",
-                            isActive ? "text-[#c4b5fd]" : "text-muted-foreground group-hover/item:text-foreground"
+                            isActive ? "text-primary" : "text-muted-foreground group-hover/item:text-foreground"
                           )}
                           stroke={1.5}
                         />
