@@ -467,16 +467,23 @@ export default function StatusPage() {
                                   {entry.focalSubtopic.status === "in_progress" ? (
                                     <span style={{ color: STATUS_COLORS.in_progress }}>Working on it</span>
                                   ) : (
-                                    <span className="tabular-nums text-foreground">{entry.subtopicProgress}%</span>
+                                    <span
+                                      className="tabular-nums"
+                                      style={{ color: STATUS_COLORS[entry.displayStatus] }}
+                                    >
+                                      {entry.subtopicProgress}%
+                                    </span>
                                   )}
                                 </div>
                                 {entry.focalSubtopic.status === "in_progress" ? (
                                   <ActiveProgressBar color={STATUS_COLORS.in_progress} />
                                 ) : (
                                   <Progress
-                                    value={entry.subtopicProgress}
+                                    value={100}
                                     className="h-1.5"
-                                    indicatorClassName="bg-primary"
+                                    indicatorClassName={
+                                      entry.displayStatus === "mastered" ? "bg-violet-500" : "bg-blue-500"
+                                    }
                                   />
                                 )}
                               </div>
@@ -569,13 +576,25 @@ export default function StatusPage() {
                                   : "In progress"}
                               </p>
                             </>
+                          ) : entry.focalSubtopic ? (
+                            <>
+                              <p
+                                className="metric-value text-xl tabular-nums"
+                                style={{ color: STATUS_COLORS[entry.displayStatus] }}
+                              >
+                                {entry.subtopicProgress}%
+                              </p>
+                              <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60">
+                                Subtopic
+                              </p>
+                            </>
                           ) : (
                             <>
                               <p className="metric-value text-xl tabular-nums" style={{ color: entry.trackColor }}>
                                 {entry.progress}%
                               </p>
                               <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60">
-                                {entry.focalSubtopic ? "Subtopic" : "Topic"}
+                                Topic
                               </p>
                             </>
                           )}

@@ -112,8 +112,10 @@ export interface StatusTopicEntry {
   displayName: string;
   /** Resolved status from topic + subtopic states */
   displayStatus: ProgressStatus;
-  /** When the row represents one in-progress subtopic */
+  /** When the row represents a focal subtopic (in progress or recently completed) */
   focalSubtopic?: Subtopic;
+  /** Topic-level status (for filters when focal subtopic status differs) */
+  topicEffectiveStatus: ProgressStatus;
   activeSubtopics: Subtopic[];
   /** 2nd-order: parent topic completion across all its subtopics */
   topicProgress: number;

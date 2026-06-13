@@ -65,6 +65,48 @@ function getTopicStatusDate(topic: Topic, subtopics: Subtopic[]): string {
   return timestamps.map(toLocalDateKey).sort()[0];
 }
 
+function entryMatchesFilter(
+  entry: StatusTopicEntry,
+  statusFilter: ProgressStatus | "all"
+): boolean {
+  if (statusFilter === "all") {
+    return entry.topicEffectiveStatus !== "not_started";
+  }
+  if (entry.focalSubtopic) {
+    if (entry.displayStatus === statusFilter) return true;
+    // Topic still underway — show completed subtopic rows under In Progress too
+    if (statusFilter === "in_progress" && entry.topicEffectiveStatus === "in_progress") return true;
+    return false;
+  }
+  return entry.displayStatus === statusFilter;
+}
+
+function buildSubtopicFocalEntry(
+  base: Omit<StatusTopicEntry, "displayName" | "displayStatus" | "focalSubtopic" | "subtopicProgress" | "progress" | "daysRemaining" | "isOverdue" | "isDueSoon" | "dueDate" | "statusDate">,
+  sub: Subtopic,
+  topic: Topic,
+  subtopics: Subtopic[]
+): StatusTopicEntry {
+  const subDue = getSubtopicDueDate(sub, topic);
+  const subDays = getDaysUntilDue(subDue);
+  const subtopicProgress = getSubtopicProgressPercent(sub);
+  const isActive = sub.status === "in_progress";
+
+  return {
+    ...base,
+    displayName: sub.name,
+    displayStatus: sub.status,
+    focalSubtopic: sub,
+    subtopicProgress,
+    progress: subtopicProgress,
+    dueDate: subDue,
+    daysRemaining: subDays,
+    isOverdue: isActive && subDays !== null && subDays < 0,
+    isDueSoon: isActive && subDays !== null && subDays >= 0 && subDays <= 3,
+    statusDate: sub.statusChangedAt ? toLocalDateKey(sub.statusChangedAt) : getTopicStatusDate(topic, subtopics),
+  };
+}
+
 function buildStatusEntries(
   topic: Topic,
   subtopics: Subtopic[],
@@ -77,7 +119,6 @@ function buildStatusEntries(
   const activeSubs = topicSubs.filter((s) => s.status === "in_progress");
   const effectiveStatus = getEffectiveTopicStatus(topic, subtopics);
 
-  // 2nd-order: parent topic completion across all its subtopics.
   const topicProgress = getTopicProgressPercent(topic, subtopics);
   const subtopicsTotal = topicSubs.length;
   const subtopicsDone = topicSubs.filter((s) => isSubtopicDone(s.status)).length;
@@ -90,42 +131,27 @@ function buildStatusEntries(
     trackIcon: track?.icon ?? "📚",
     trackId: topic.trackId,
     moduleId: topic.moduleId,
-    displayStatus: effectiveStatus,
+    topicEffectiveStatus: effectiveStatus,
     activeSubtopics: activeSubs,
     topicProgress,
     subtopicsDone,
     subtopicsTotal,
   };
 
-  // A subtopic in progress gets its own row leading with the subtopic (1st order),
-  // while still carrying the parent topic progress (2nd order) for context.
-  if (effectiveStatus === "in_progress" && activeSubs.length > 0) {
-    return activeSubs.map((sub) => {
-      const subDue = getSubtopicDueDate(sub, topic);
-      const subDays = getDaysUntilDue(subDue);
-      const subtopicProgress = getSubtopicProgressPercent(sub);
-      return {
-        ...base,
-        displayName: sub.name,
-        focalSubtopic: sub,
-        subtopicProgress,
-        progress: topicProgress,
-        dueDate: subDue,
-        daysRemaining: subDays,
-        isOverdue: subDays !== null && subDays < 0,
-        isDueSoon: subDays !== null && subDays >= 0 && subDays <= 3,
-        statusDate: sub.statusChangedAt ? toLocalDateKey(sub.statusChangedAt) : getTopicStatusDate(topic, subtopics),
-      };
-    });
+  // Subtopics that have started (in progress, completed, or mastered) each get a focal row.
+  const focalSubs = topicSubs.filter((s) => s.status !== "not_started");
+
+  if (effectiveStatus === "in_progress" && focalSubs.length > 0) {
+    return focalSubs.map((sub) => buildSubtopicFocalEntry(base, sub, topic, subtopics));
   }
 
-  // Topic-level row (no active subtopics): the headline is the topic itself (2nd order).
   const dueDate = getEffectiveDueDate(topic, activeSubs);
   const daysRemaining = getDaysUntilDue(dueDate);
   return [
     {
       ...base,
       displayName: topic.name,
+      displayStatus: effectiveStatus,
       subtopicProgress: undefined,
       progress: topicProgress,
       dueDate,
@@ -149,8 +175,7 @@ export function getStatusTimeline(
 
   active.forEach((topic) => {
     buildStatusEntries(topic, subtopics, modules, tracks).forEach((entry) => {
-      if (statusFilter !== "all" && entry.displayStatus !== statusFilter) return;
-      if (statusFilter === "all" && entry.displayStatus === "not_started") return;
+      if (!entryMatchesFilter(entry, statusFilter)) return;
       const existing = byDate.get(entry.statusDate) ?? [];
       existing.push(entry);
       byDate.set(entry.statusDate, existing);
