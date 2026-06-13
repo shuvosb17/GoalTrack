@@ -3,16 +3,22 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
 import {
-  Clock, Target, Flame, Calendar, TrendingUp, Zap, BookOpen, Layers,
-} from "lucide-react";
+  IconClock,
+  IconTarget,
+  IconFlame,
+  IconBolt,
+  IconBook,
+  IconCalendar,
+  IconTrendingUp,
+  IconStack2,
+} from "@tabler/icons-react";
 import { StatCard } from "@/components/shared/stat-card";
-import { CircularProgress } from "@/components/shared/circular-progress";
+import { SectionHeading } from "@/components/shared/section-heading";
 import { ActivityHeatmap } from "@/components/shared/activity-heatmap";
 import { TrackCard } from "@/components/dashboard/track-card";
 import { InsightsPanel } from "@/components/dashboard/insights-panel";
 import { GrowthRadarChart } from "@/components/charts/radar-chart";
 import { ForecastChart } from "@/components/charts/forecast-chart";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   useTracks, useAllSubtopics, useAllModules, useAllTopics, useSessions, useSettings,
@@ -23,6 +29,7 @@ import {
   calculateMomentumScore, generateInsights, getRadarData, countCompletedItems,
   getDaysRemainingInYear, buildForecastChartData, DEFAULT_YEAR_START, DEFAULT_YEAR_END,
 } from "@/lib/analytics";
+
 export default function DashboardPage() {
   const tracks = useTracks();
   const subtopics = useAllSubtopics();
@@ -77,87 +84,71 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Welcome to GoalTrack — your personal learning command center</p>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Dashboard</h1>
+        <p className="mt-1 text-muted-foreground">Welcome to GoalTrack — your personal learning command center</p>
       </motion.div>
 
-      {/* Hero Section */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
         <StatCard
           title="Today's Hours"
           value={`${todayHours.toFixed(1)}h`}
           subtitle={`${totalHours.toFixed(0)}h total invested`}
-          icon={Clock}
+          icon={IconClock}
           gradient="linear-gradient(135deg, #8b5cf6, #3b82f6)"
           valueClassName="text-4xl sm:text-5xl"
           delay={0}
         />
-        <StatCard title="Overall Progress" value={`${globalProgress.percentage}%`} subtitle={`${completed.completedTopics} topics completed`} icon={Target} gradient="linear-gradient(135deg, #10b981, #06b6d4)" delay={0.05} />
-        <StatCard title="Current Streak" value={`${streaks.current} days`} subtitle={`Best: ${streaks.longest} days`} icon={Flame} gradient="linear-gradient(135deg, #f59e0b, #ef4444)" delay={0.1} />
-        <StatCard title="Longest Streak" value={`${streaks.longest} days`} subtitle={`${streaks.missedDays} missed days`} icon={Zap} delay={0.15} />
-        <StatCard title="Active Goals" value={tracks.length} subtitle={`${yearlyGoal}h yearly target`} icon={BookOpen} delay={0.2} />
-        <StatCard title="Days Remaining" value={daysRemaining} subtitle="Until Dec 2026" icon={Calendar} gradient="linear-gradient(135deg, #ec4899, #8b5cf6)" delay={0.25} />
+        <StatCard title="Overall Progress" value={`${globalProgress.percentage}%`} subtitle={`${completed.completedTopics} topics completed`} icon={IconTarget} gradient="linear-gradient(135deg, #10b981, #06b6d4)" delay={0.05} />
+        <StatCard title="Current Streak" value={`${streaks.current} days`} subtitle={`Best: ${streaks.longest} days`} icon={IconFlame} gradient="linear-gradient(135deg, #f59e0b, #ef4444)" delay={0.1} />
+        <StatCard title="Longest Streak" value={`${streaks.longest} days`} subtitle={`${streaks.missedDays} missed days`} icon={IconBolt} delay={0.15} />
+        <StatCard title="Active Goals" value={tracks.length} subtitle={`${yearlyGoal}h yearly target`} icon={IconBook} delay={0.2} />
+        <StatCard title="Days Remaining" value={daysRemaining} subtitle="Until Dec 2026" icon={IconCalendar} gradient="linear-gradient(135deg, #ec4899, #8b5cf6)" delay={0.25} />
       </div>
 
-      {/* Growth Command Center */}
-      <div className="grid lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" /> Growth Overview
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-              <div className="text-center">
-                <p className="text-3xl font-bold">{totalHours.toFixed(0)}</p>
-                <p className="text-xs text-muted-foreground">Hours Invested</p>
-              </div>
-              <div className="text-center">
-                <p className="text-3xl font-bold">{completed.completedModules}</p>
-                <p className="text-xs text-muted-foreground">Modules Done</p>
-              </div>
-              <div className="text-center">
-                <p className="text-3xl font-bold">{completed.completedTopics}</p>
-                <p className="text-xs text-muted-foreground">Topics Done</p>
-              </div>
-              <div className="text-center">
-                <p className="text-3xl font-bold">{completed.completedSubtopics}</p>
-                <p className="text-xs text-muted-foreground">Subtopics Done</p>
-              </div>
-              <div className="text-center">
-                <p className="text-3xl font-bold">{globalProgress.percentage}%</p>
-                <p className="text-xs text-muted-foreground">Completion</p>
-              </div>
-              <div className="text-center">
-                <Badge variant="default" className="text-base px-3 py-1 capitalize" style={{ color: getMomentumColor(momentum.level) }}>
-                  {momentum.level}
-                </Badge>
-                <p className="text-xs text-muted-foreground mt-1">Momentum ({momentum.score})</p>
-              </div>
+      <Card>
+        <CardHeader className="border-b border-white/[0.06] pb-4">
+          <CardTitle className="flex items-center gap-2">
+            <IconTrendingUp className="h-4 w-4 opacity-70" stroke={1.5} /> Growth Overview
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-2 gap-6 md:grid-cols-4 lg:grid-cols-7">
+            <div className="text-center">
+              <p className="metric-value text-3xl tabular-nums">{totalHours.toFixed(0)}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Hours Invested</p>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6 flex flex-col items-center">
-            <CircularProgress value={globalProgress.percentage} size={140} color="#8b5cf6" label="Global" />
-            <div className="mt-4 text-center">
-              <p className="text-sm font-medium">Learning Momentum</p>
-              <p className="text-2xl font-bold capitalize" style={{ color: getMomentumColor(momentum.level) }}>
+            <div className="text-center">
+              <p className="metric-value text-3xl tabular-nums">{completed.completedModules}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Modules Done</p>
+            </div>
+            <div className="text-center">
+              <p className="metric-value text-3xl tabular-nums">{completed.completedTopics}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Topics Done</p>
+            </div>
+            <div className="text-center">
+              <p className="metric-value text-3xl tabular-nums">{completed.completedSubtopics}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Subtopics Done</p>
+            </div>
+            <div className="text-center">
+              <p className="metric-value text-3xl tabular-nums">{globalProgress.percentage}%</p>
+              <p className="mt-1 text-xs text-muted-foreground">Completion</p>
+            </div>
+            <div className="text-center">
+              <p className="metric-value text-3xl capitalize tabular-nums" style={{ color: getMomentumColor(momentum.level) }}>
                 {momentum.level}
               </p>
-              <p className="text-xs text-muted-foreground">Score: {momentum.score}/100</p>
+              <p className="mt-1 text-xs text-muted-foreground">Momentum</p>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+            <div className="text-center">
+              <p className="metric-value text-3xl tabular-nums">{momentum.score}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Score / 100</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Track Overview */}
       <div>
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Layers className="h-5 w-5" /> Track Overview
-        </h2>
+        <SectionHeading icon={IconStack2}>Track Overview</SectionHeading>
         <div className="grid auto-rows-fr gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {trackStats.map((ts, i) => (
             <TrackCard key={ts.track.id} {...ts} delay={i * 0.05} />
@@ -165,8 +156,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Heatmap + Insights */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardContent className="pt-6">
             <ActivityHeatmap data={heatmapData} />
@@ -179,29 +169,31 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Forecast + Radar */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <CardHeader>
-            <CardTitle>Goal Forecasting <span className="text-xs font-normal text-muted-foreground">Jun – Dec 2026</span></CardTitle>
+          <CardHeader className="border-b border-white/[0.06] pb-4">
+            <CardTitle>
+              Goal Forecasting{" "}
+              <span className="text-xs font-normal text-muted-foreground/80">Jun – Dec 2026</span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <ForecastChart data={forecastChartData} goal={yearlyGoal} />
-            <div className="grid grid-cols-2 gap-4 mt-4">
-              <div className="glass rounded-lg p-3 text-center">
-                <p className="text-lg font-bold">{forecast.projectedHours}h</p>
+            <div className="mt-4 grid grid-cols-2 gap-4">
+              <div className="glass rounded-[10px] p-3 text-center">
+                <p className="metric-value text-lg tabular-nums">{forecast.projectedHours}h</p>
                 <p className="text-xs text-muted-foreground">Projected Yearly Hours</p>
               </div>
-              <div className="glass rounded-lg p-3 text-center">
-                <p className="text-lg font-bold">{forecast.successProbability}%</p>
+              <div className="glass rounded-[10px] p-3 text-center">
+                <p className="metric-value text-lg tabular-nums">{forecast.successProbability}%</p>
                 <p className="text-xs text-muted-foreground">Success Probability</p>
               </div>
-              <div className="glass rounded-lg p-3 text-center">
-                <p className="text-lg font-bold">{forecast.estimatedCompletionDate}</p>
+              <div className="glass rounded-[10px] p-3 text-center">
+                <p className="metric-value text-lg tabular-nums">{forecast.estimatedCompletionDate}</p>
                 <p className="text-xs text-muted-foreground">Est. Completion</p>
               </div>
-              <div className="glass rounded-lg p-3 text-center">
-                <p className="text-lg font-bold">{forecast.confidence}%</p>
+              <div className="glass rounded-[10px] p-3 text-center">
+                <p className="metric-value text-lg tabular-nums">{forecast.confidence}%</p>
                 <p className="text-xs text-muted-foreground">Confidence</p>
               </div>
             </div>
@@ -209,7 +201,7 @@ export default function DashboardPage() {
         </Card>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="border-b border-white/[0.06] pb-4">
             <CardTitle>Growth Radar</CardTitle>
           </CardHeader>
           <CardContent>

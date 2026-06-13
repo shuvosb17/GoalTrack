@@ -2,18 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { X } from "lucide-react";
 import {
-  LayoutDashboard,
-  BookOpen,
-  Flag,
-  BarChart3,
-  NotebookPen,
-  Trophy,
-  FileText,
-  Settings,
-  Activity,
-} from "lucide-react";
+  IconLayoutDashboard,
+  IconBooks,
+  IconFlag,
+  IconActivity,
+  IconChartBar,
+  IconNotebook,
+  IconTrophy,
+  IconFileText,
+  IconSettings,
+  IconX,
+  type TablerIcon,
+} from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "./logo";
 import { DayCountdown } from "./day-countdown";
@@ -26,34 +27,33 @@ import { useEffect, useMemo } from "react";
 type NavItem = {
   href: string;
   label: string;
-  icon: typeof LayoutDashboard;
+  icon: TablerIcon;
   badge?: boolean;
-  accent: string;
 };
 
 const navGroups: { label: string; items: NavItem[] }[] = [
   {
     label: "Learn",
     items: [
-      { href: "/", label: "Dashboard", icon: LayoutDashboard, accent: "from-violet-500 to-indigo-500" },
-      { href: "/tracks", label: "Tracks", icon: BookOpen, accent: "from-blue-500 to-cyan-500" },
-      { href: "/milestones", label: "Milestones", icon: Flag, accent: "from-fuchsia-500 to-pink-500" },
-      { href: "/status", label: "Status", icon: Activity, badge: true, accent: "from-emerald-500 to-teal-500" },
+      { href: "/", label: "Dashboard", icon: IconLayoutDashboard },
+      { href: "/tracks", label: "Tracks", icon: IconBooks },
+      { href: "/milestones", label: "Milestones", icon: IconFlag },
+      { href: "/status", label: "Status", icon: IconActivity, badge: true },
     ],
   },
   {
     label: "Insights",
     items: [
-      { href: "/analytics", label: "Analytics", icon: BarChart3, accent: "from-amber-500 to-orange-500" },
-      { href: "/journal", label: "Journal", icon: NotebookPen, accent: "from-sky-500 to-blue-500" },
-      { href: "/achievements", label: "Achievements", icon: Trophy, accent: "from-yellow-500 to-amber-500" },
-      { href: "/review", label: "Annual Review", icon: FileText, accent: "from-rose-500 to-red-500" },
+      { href: "/analytics", label: "Analytics", icon: IconChartBar },
+      { href: "/journal", label: "Journal", icon: IconNotebook },
+      { href: "/achievements", label: "Achievements", icon: IconTrophy },
+      { href: "/review", label: "Annual Review", icon: IconFileText },
     ],
   },
   {
     label: "System",
     items: [
-      { href: "/settings", label: "Settings", icon: Settings, accent: "from-zinc-400 to-zinc-600" },
+      { href: "/settings", label: "Settings", icon: IconSettings },
     ],
   },
 ];
@@ -110,11 +110,11 @@ export function Sidebar() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 shrink-0 rounded-lg lg:hidden hover:bg-white/5"
+              className="h-8 w-8 shrink-0 rounded-[10px] lg:hidden hover:bg-white/5"
               onClick={() => setSidebarOpen(false)}
               aria-label="Close menu"
             >
-              <X className="h-4 w-4" />
+              <IconX className="h-4 w-4" stroke={1.5} />
             </Button>
           </div>
         </div>
@@ -135,44 +135,22 @@ export function Sidebar() {
                     <Link key={item.href} href={item.href} onClick={() => setSidebarOpen(false)}>
                       <div
                         className={cn(
-                          "group/item relative flex items-center gap-3 overflow-hidden rounded-xl px-2.5 py-2 text-sm font-medium transition-colors duration-200",
+                          "group/item flex items-center gap-3 rounded-[10px] px-3 py-2 text-sm font-medium transition-colors duration-200",
                           isActive
-                            ? "text-foreground"
-                            : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"
+                            ? "border-l-2 border-[#7c5cfc] bg-white/[0.04] pl-[calc(0.75rem-2px)] text-foreground"
+                            : "border-l-2 border-transparent text-muted-foreground hover:bg-white/[0.03] hover:text-foreground"
                         )}
                       >
-                        {isActive && (
-                          <div className="absolute inset-0 rounded-xl border border-white/[0.08] bg-gradient-to-r from-white/[0.07] to-white/[0.02] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]" />
-                        )}
-                        {isActive && (
-                          <div
-                            className={cn(
-                              "absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-gradient-to-b",
-                              item.accent
-                            )}
-                          />
-                        )}
-
-                        <div
+                        <item.icon
                           className={cn(
-                            "relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200",
-                            isActive
-                              ? cn("bg-gradient-to-br shadow-lg", item.accent, "shadow-black/30")
-                              : "bg-white/[0.04] group-hover/item:bg-white/[0.07]"
+                            "h-[18px] w-[18px] shrink-0 transition-colors",
+                            isActive ? "text-[#7c5cfc]" : "text-muted-foreground group-hover/item:text-foreground"
                           )}
-                        >
-                          <item.icon
-                            className={cn(
-                              "h-4 w-4 transition-colors",
-                              isActive ? "text-white" : "text-muted-foreground group-hover/item:text-foreground"
-                            )}
-                          />
-                        </div>
-
-                        <span className="relative z-10 flex-1">{item.label}</span>
-
+                          stroke={1.5}
+                        />
+                        <span className="flex-1">{item.label}</span>
                         {item.badge && urgentCount > 0 && (
-                          <span className="relative z-10 flex h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-br from-red-500 to-rose-600 px-1.5 text-[10px] font-bold text-white shadow-lg shadow-red-500/30">
+                          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500/90 px-1.5 text-[10px] font-medium text-white">
                             {urgentCount}
                           </span>
                         )}
@@ -186,8 +164,7 @@ export function Sidebar() {
         </nav>
 
         <div className="relative border-t border-white/[0.06] p-3">
-          <div className="gradient-border relative overflow-hidden rounded-xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-violet-600/15 via-fuchsia-600/5 to-blue-600/10" />
+          <div className="gradient-border relative overflow-hidden">
             <div className="relative px-3 py-2.5">
               <DayCountdown />
             </div>
