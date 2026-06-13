@@ -28,7 +28,7 @@ export function GoalMilestoneCard({ stats, index, topics, subtopics, modules, on
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.06 }}
-      className="group relative overflow-hidden rounded-2xl border border-border/50 glass-card"
+      className="group relative overflow-hidden rounded-2xl border-[0.5px] border-border/50 glass-card"
     >
       <div
         className="absolute inset-0 opacity-20 pointer-events-none"

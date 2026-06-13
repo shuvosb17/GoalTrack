@@ -5,13 +5,14 @@ export type MomentumLevel = "poor" | "average" | "good" | "excellent" | "elite";
 import type {
   TieredGoal,
   LeetCodeStats,
+  LeetCodeSolveEntry,
   TrackSettings,
   TopicCompletionMeta,
   PinnedNextItem,
   SessionQualityRating,
 } from "./types/metrics";
 
-export type { TieredGoal, LeetCodeStats, TrackSettings, TopicCompletionMeta, PinnedNextItem, SessionQualityRating };
+export type { TieredGoal, LeetCodeStats, LeetCodeSolveEntry, TrackSettings, TopicCompletionMeta, PinnedNextItem, SessionQualityRating };
 
 export interface Track {
   id: string;
@@ -246,6 +247,7 @@ export interface AppSettings {
   theme: "dark" | "light";
   tieredGoal?: TieredGoal;
   leetCodeStats?: LeetCodeStats;
+  leetCodeLog?: LeetCodeSolveEntry[];
   trackSettings?: Record<string, TrackSettings>;
 }
 

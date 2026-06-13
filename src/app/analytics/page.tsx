@@ -4,16 +4,17 @@ import { useMemo } from "react";
 import { BarChart3 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, Area, AreaChart,
+  PieChart, Pie, Cell, LineChart, Line, Area, AreaChart, ComposedChart, Legend,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
-  useTracks, useAllSubtopics, useAllTopics, useSessions,
+  useTracks, useAllSubtopics, useAllTopics, useSessions, useSettings,
 } from "@/hooks/use-data";
 import {
   getHoursByPeriod, getHoursByWeek, withPercentages, getHoursByTrack, getFocusHeatmap,
   getTopTopics, getLearningVelocity, getEfficiencyScores, getCompletionTrends,
+  getQualityByWeek, getProblemsByWeek,
 } from "@/lib/analytics";
 import { formatHours } from "@/lib/utils";
 
@@ -24,10 +25,18 @@ export default function AnalyticsPage() {
   const subtopics = useAllSubtopics();
   const topics = useAllTopics();
   const sessions = useSessions();
+  const settings = useSettings();
 
   const distribution = useMemo(() => withPercentages(getHoursByTrack(sessions, tracks)), [sessions, tracks]);
   const dailyHours = useMemo(() => getHoursByPeriod(sessions, 30), [sessions]);
   const weeklyHours = useMemo(() => getHoursByWeek(sessions, 12), [sessions]);
+  const weeklyData = useMemo(() => {
+    const quality = getQualityByWeek(sessions, 12);
+    return weeklyHours.map((d, i) => ({ ...d, quality: quality[i]?.quality ?? null }));
+  }, [sessions, weeklyHours]);
+  const leetCodeLog = useMemo(() => settings?.leetCodeLog ?? [], [settings]);
+  const hasLeetCodeData = leetCodeLog.length > 0;
+  const problemsByWeek = useMemo(() => getProblemsByWeek(leetCodeLog, 12), [leetCodeLog]);
   const heatmap = useMemo(() => getFocusHeatmap(sessions), [sessions]);
   const topTopics = useMemo(() => getTopTopics(sessions, topics), [sessions, topics]);
   const velocity = useMemo(() => getLearningVelocity(subtopics, sessions), [subtopics, sessions]);
@@ -53,12 +62,16 @@ export default function AnalyticsPage() {
 
       {/* Time Investment */}
       <Card>
-        <CardHeader><CardTitle>Time Investment</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>Time Investment</CardTitle>
+          <p className="text-xs text-muted-foreground">Weekly view overlays average session quality (1–3) so you can spot high-volume / low-focus weeks.</p>
+        </CardHeader>
         <CardContent>
-          <Tabs defaultValue="daily">
+          <Tabs defaultValue="weekly">
             <TabsList>
               <TabsTrigger value="daily">Daily (30d)</TabsTrigger>
               <TabsTrigger value="weekly">Weekly</TabsTrigger>
+              {hasLeetCodeData && <TabsTrigger value="problems">Problems</TabsTrigger>}
             </TabsList>
             <TabsContent value="daily">
               <ResponsiveContainer width="100%" height={250}>
@@ -79,15 +92,34 @@ export default function AnalyticsPage() {
             </TabsContent>
             <TabsContent value="weekly">
               <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={weeklyHours}>
+                <ComposedChart data={weeklyData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
                   <XAxis dataKey="label" tick={{ fill: "#a1a1aa", fontSize: 10 }} />
-                  <YAxis tick={{ fill: "#a1a1aa", fontSize: 10 }} />
+                  <YAxis yAxisId="left" tick={{ fill: "#a1a1aa", fontSize: 10 }} />
+                  <YAxis yAxisId="right" orientation="right" domain={[1, 3]} ticks={[1, 2, 3]} tick={{ fill: "#fbbf24", fontSize: 10 }} />
                   <Tooltip contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: 8 }} />
-                  <Bar dataKey="hours" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                </BarChart>
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar yAxisId="left" dataKey="hours" name="Hours" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                  <Line yAxisId="right" type="monotone" dataKey="quality" name="Avg quality" stroke="#fbbf24" strokeWidth={2} connectNulls dot={{ r: 3, fill: "#fbbf24" }} />
+                </ComposedChart>
               </ResponsiveContainer>
             </TabsContent>
+            {hasLeetCodeData && (
+              <TabsContent value="problems">
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={problemsByWeek}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                    <XAxis dataKey="label" tick={{ fill: "#a1a1aa", fontSize: 10 }} />
+                    <YAxis allowDecimals={false} tick={{ fill: "#a1a1aa", fontSize: 10 }} />
+                    <Tooltip contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: 8 }} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Bar dataKey="easy" stackId="p" name="Easy" fill="#97C459" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="medium" stackId="p" name="Medium" fill="#FAC775" />
+                    <Bar dataKey="hard" stackId="p" name="Hard" fill="#f87171" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </TabsContent>
+            )}
           </Tabs>
         </CardContent>
       </Card>

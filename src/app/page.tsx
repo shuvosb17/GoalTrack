@@ -18,6 +18,7 @@ import { ActivityHeatmap } from "@/components/shared/activity-heatmap";
 import { TrackCard } from "@/components/dashboard/track-card";
 import { InsightsPanel } from "@/components/dashboard/insights-panel";
 import { MomentumBreakdownPanel } from "@/components/dashboard/momentum-breakdown";
+import { NextActionCard } from "@/components/dashboard/next-action-card";
 import { TieredGoalPanel } from "@/components/dashboard/tiered-goal-panel";
 import { GrowthRadarChart } from "@/components/charts/radar-chart";
 import { ForecastChart } from "@/components/charts/forecast-chart";
@@ -129,12 +130,31 @@ export default function DashboardPage() {
   const consistencyDelta = weeklyConsistency.daysOnTarget - weeklyConsistency.lastWeekDays;
   const consistencyDeltaLabel = consistencyDelta >= 0 ? `↑${consistencyDelta}` : `↓${Math.abs(consistencyDelta)}`;
 
+  // Recommend acting on the most-neglected track that still has a "next up" item.
+  const recommendedAction = useMemo(() => {
+    const candidates = trackStats
+      .filter((ts) => ts.nextUp && ts.nextUpHref)
+      .sort((a, b) => (b.health?.daysSinceStudied ?? 0) - (a.health?.daysSinceStudied ?? 0));
+    const pick = candidates[0];
+    return pick?.nextUp && pick.nextUpHref
+      ? { trackName: pick.track.name, label: pick.nextUp.label, href: pick.nextUpHref }
+      : undefined;
+  }, [trackStats]);
+
   return (
     <div className="space-y-8">
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl font-medium tracking-tight sm:text-3xl">Dashboard</h1>
         <p className="mt-1 text-muted-foreground">Welcome to GoalTrack — your personal learning command center</p>
       </motion.div>
+
+      {/* Row 0 — What to do right now */}
+      <NextActionCard
+        hoursLeftToday={pace.hoursLeftToday}
+        onPace={pace.onPace}
+        momentum={momentum}
+        action={recommendedAction}
+      />
 
       {/* Row 1 — Stat cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">

@@ -30,8 +30,14 @@ export function getDailyPaceTarget(
   const hoursLoggedTotal = getHoursLoggedThisYear(sessions, yearStart, yearEnd);
   const target = getTargetGoal(settings);
   const hoursRemaining = Math.max(0, target - hoursLoggedTotal);
-  const hoursPerWeekNeeded = hoursRemaining / weeksRemaining;
-  const hoursNeededToday = Math.round((hoursPerWeekNeeded / 7) * 10) / 10;
+  // Days-based catch-up: as days run out (and remaining stays high), the daily
+  // ask rises automatically, rolling any shortfall forward instead of hiding it
+  // behind a flat weekly average.
+  const daysRemaining = Math.max(
+    1,
+    differenceInDays(parseLocalDate(yearEnd), parseLocalDate(todayISO()))
+  );
+  const hoursNeededToday = Math.round((hoursRemaining / daysRemaining) * 10) / 10;
   const hoursLoggedToday = getTodayHours(sessions) / 3600000;
   const hoursLeftToday = Math.max(0, Math.round((hoursNeededToday - hoursLoggedToday) * 10) / 10);
 
@@ -79,7 +85,11 @@ export function getMomentumBreakdown(
   yearEnd: string
 ): MomentumBreakdown {
   const now = new Date();
-  const recentSessions = sessions.filter((s) => parseISO(s.date) >= subDays(now, 14));
+  // Use local-date cutoffs for date-only fields (s.date) to avoid timezone off-by-one.
+  const today = parseLocalDate(todayISO());
+  const cutoff14 = subDays(today, 13); // 14-day window inclusive of today
+  const cutoff7 = subDays(today, 6); // 7-day window inclusive of today
+  const recentSessions = sessions.filter((s) => parseLocalDate(s.date) >= cutoff14);
   const recentDays = new Set(recentSessions.map((s) => s.date)).size;
   const consistency = Math.min(25, Math.round((recentDays / 14) * 25));
 
@@ -87,7 +97,7 @@ export function getMomentumBreakdown(
   const weeksRemaining = getWeeksUntilYearEnd(yearEnd);
   const hoursThisWeek =
     sessions
-      .filter((s) => parseISO(s.date) >= subDays(now, 7))
+      .filter((s) => parseLocalDate(s.date) >= cutoff7)
       .reduce((sum, s) => sum + s.duration, 0) / 3600000;
   const weeklyTarget = weeksRemaining > 0 ? (Math.max(0, target - getHoursLoggedThisYear(sessions, yearStart, yearEnd)) / weeksRemaining) : 0;
   const volume = weeklyTarget > 0 ? Math.min(25, Math.round((hoursThisWeek / weeklyTarget) * 25)) : 0;
@@ -254,11 +264,19 @@ export function getSkipInsightMessage(reason: SkipReason): string {
   return messages[reason];
 }
 
-export function getSuggestedDailyFromTarget(settings: AppSettings | null | undefined): number {
+/** Weekday hours/day needed to reach the Target tier, accounting for hours already logged. */
+export function getSuggestedDailyFromTarget(
+  settings: AppSettings | null | undefined,
+  sessions: LearningSession[] = [],
+  yearStart?: string,
+  yearEnd?: string
+): number {
   const target = getTargetGoal(settings);
-  const yearEnd = settings?.yearEnd ?? "2026-12-31";
-  const weeks = getWeeksUntilYearEnd(yearEnd);
-  const logged = 0;
+  const end = yearEnd ?? settings?.yearEnd ?? "2026-12-31";
+  const start = yearStart ?? settings?.yearStart ?? "2026-06-01";
+  const weeks = getWeeksUntilYearEnd(end);
+  const logged = getHoursLoggedThisYear(sessions, start, end);
   const remaining = Math.max(0, target - logged);
+  // ~5 weekdays per week
   return Math.round((remaining / weeks / 5) * 10) / 10;
 }

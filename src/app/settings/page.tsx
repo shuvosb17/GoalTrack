@@ -14,6 +14,7 @@ import { db } from "@/lib/db";
 import { exportAllData, importAllData } from "@/lib/seed";
 import { saveAutoBackup, getLastBackupTime, downloadBackup } from "@/lib/auto-backup";
 import { nowISO, todayISO, formatDuration } from "@/lib/utils";
+import { getSuggestedDailyFromTarget } from "@/lib/metrics";
 import { MdImportPanel } from "@/components/settings/md-import-panel";
 import { GitHubBackupPanel } from "@/components/settings/github-backup-panel";
 import { format, parseISO } from "date-fns";
@@ -195,7 +196,8 @@ export default function SettingsPage() {
             />
             {settings?.tieredGoal && (
               <p className="mt-2 text-xs text-muted-foreground">
-                To hit your Target ({settings.tieredGoal.target}h), you need ~{((settings.tieredGoal.target / 29) / 5).toFixed(1)}h/day on weekdays.
+                To hit your Target ({settings.tieredGoal.target}h), you need ~{getSuggestedDailyFromTarget(settings, sessions, settings.yearStart, settings.yearEnd).toFixed(1)}h/day on weekdays
+                for the {Math.max(1, Math.round((new Date(settings.yearEnd).getTime() - Date.now()) / 6048e5))} weeks left.
                 Your current daily goal is {settings.dailyHourGoal}h.
               </p>
             )}

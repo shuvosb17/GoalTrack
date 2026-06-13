@@ -26,7 +26,9 @@ import type { ProgressStatus } from "@/lib/types";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { updateTopicStatus } from "@/lib/crud";
+import { updateTopicStatus, markTopicReviewed } from "@/lib/crud";
+import { getTopicsDueForReview } from "@/lib/metrics";
+import { BookmarkCheck } from "lucide-react";
 
 const STATUS_ICONS: Record<ProgressStatus, typeof Circle> = {
   not_started: Circle,
@@ -35,7 +37,7 @@ const STATUS_ICONS: Record<ProgressStatus, typeof Circle> = {
   mastered: Sparkles,
 };
 
-type Filter = ProgressStatus | "all";
+type Filter = ProgressStatus | "all" | "review";
 
 export default function StatusPage() {
   const tracks = useTracks();
@@ -53,7 +55,7 @@ export default function StatusPage() {
   );
 
   const timeline = useMemo(() => {
-    let days = getStatusTimeline(topics, subtopics, modules, tracks, statusFilter);
+    let days = getStatusTimeline(topics, subtopics, modules, tracks, statusFilter === "review" ? "all" : statusFilter);
     if (trackFilter !== "all") {
       days = days
         .map((day) => ({
@@ -74,6 +76,19 @@ export default function StatusPage() {
     () => getTodaySnapshot(getStatusTimeline(topics, subtopics, modules, tracks, "all")),
     [topics, subtopics, modules, tracks]
   );
+
+  const reviewItems = useMemo(() => {
+    return getTopicsDueForReview(topics)
+      .filter((t) => trackFilter === "all" || t.trackId === trackFilter)
+      .map((t) => ({
+        topic: t,
+        moduleName: modules.find((m) => m.id === t.moduleId)?.name ?? "Unknown",
+        track: tracks.find((tr) => tr.id === t.trackId),
+      }))
+      .sort((a, b) => (a.topic.completionMeta?.nextReviewDue ?? "").localeCompare(b.topic.completionMeta?.nextReviewDue ?? ""));
+  }, [topics, modules, tracks, trackFilter]);
+
+  const reviewCount = useMemo(() => getTopicsDueForReview(topics).length, [topics]);
 
   return (
     <div className="space-y-6">
@@ -181,6 +196,15 @@ export default function StatusPage() {
             {ALL_STATUSES.filter((s) => s !== "not_started").map((s) => (
               <TabsTrigger key={s} value={s}>{STATUS_LABELS[s]}</TabsTrigger>
             ))}
+            <TabsTrigger value="review" className="gap-1.5">
+              <BookmarkCheck className="h-3.5 w-3.5" />
+              Due for Review
+              {reviewCount > 0 && (
+                <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-violet-500/80 px-1 text-[9px] font-medium text-white">
+                  {reviewCount}
+                </span>
+              )}
+            </TabsTrigger>
           </TabsList>
         </Tabs>
         <Select value={trackFilter} onValueChange={setTrackFilter}>
@@ -192,8 +216,50 @@ export default function StatusPage() {
         </Select>
       </div>
 
-      {/* Date timeline */}
-      {timeline.length === 0 ? (
+      {/* Due for Review */}
+      {statusFilter === "review" ? (
+        reviewItems.length === 0 ? (
+          <Card>
+            <CardContent className="py-16 text-center">
+              <BookmarkCheck className="h-14 w-14 text-muted-foreground/20 mx-auto mb-4" />
+              <h3 className="font-semibold text-lg">Nothing due for review</h3>
+              <p className="text-sm text-muted-foreground mt-2">
+                Topics you complete with low confidence reappear here when it&apos;s time to refresh them.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {reviewItems.map(({ topic, moduleName, track }, i) => (
+              <motion.div
+                key={topic.id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.04 }}
+                className="glass-card flex items-center gap-4 rounded-xl p-4"
+                style={{ borderLeftWidth: 3, borderLeftColor: track?.color ?? "#a78bfa" }}
+              >
+                <span className="text-xl shrink-0">{track?.icon ?? "📚"}</span>
+                <div className="min-w-0 flex-1">
+                  <h4 className="font-semibold truncate">{topic.name}</h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {track?.name} → {moduleName} · confidence {topic.completionMeta?.confidenceRating}/5
+                    {topic.completionMeta?.nextReviewDue && ` · due ${topic.completionMeta.nextReviewDue}`}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <Link href={`/tracks?track=${topic.trackId}&topic=${topic.id}`}>
+                    <Button variant="outline" size="sm" className="h-8 text-xs">Open</Button>
+                  </Link>
+                  <Button size="sm" className="h-8 gap-1 text-xs" onClick={() => markTopicReviewed(topic.id)}>
+                    <BookmarkCheck className="h-3.5 w-3.5" /> Reviewed
+                  </Button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )
+      ) : timeline.length === 0 ? (
         <Card>
           <CardContent className="py-16 text-center">
             <Activity className="h-14 w-14 text-muted-foreground/20 mx-auto mb-4" />

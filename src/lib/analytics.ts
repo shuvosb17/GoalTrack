@@ -282,6 +282,49 @@ export function getHoursByWeek(sessions: LearningSession[], weekCount = 12) {
   return result;
 }
 
+/** Average session quality (1–3) per rolling 7-day week, aligned with getHoursByWeek. */
+export function getQualityByWeek(sessions: LearningSession[], weekCount = 12) {
+  const result: { label: string; quality: number | null }[] = [];
+  const today = new Date();
+  for (let w = weekCount - 1; w >= 0; w--) {
+    const weekEnd = subDays(today, w * 7);
+    const weekStart = subDays(weekEnd, 6);
+    const startKey = format(weekStart, "yyyy-MM-dd");
+    const endKey = format(weekEnd, "yyyy-MM-dd");
+    const rated = sessions.filter(
+      (s) => s.date >= startKey && s.date <= endKey && s.qualityRating
+    );
+    const quality = rated.length
+      ? Math.round((rated.reduce((sum, s) => sum + (s.qualityRating ?? 0), 0) / rated.length) * 100) / 100
+      : null;
+    result.push({ label: w === 0 ? "This week" : format(weekStart, "MMM d"), quality });
+  }
+  return result;
+}
+
+/** LeetCode problems solved per rolling 7-day week, split by difficulty. */
+export function getProblemsByWeek(
+  log: { date: string; difficulty: "easy" | "medium" | "hard" }[],
+  weekCount = 12
+) {
+  const result: { label: string; easy: number; medium: number; hard: number }[] = [];
+  const today = new Date();
+  for (let w = weekCount - 1; w >= 0; w--) {
+    const weekEnd = subDays(today, w * 7);
+    const weekStart = subDays(weekEnd, 6);
+    const startKey = format(weekStart, "yyyy-MM-dd");
+    const endKey = format(weekEnd, "yyyy-MM-dd");
+    const inWeek = log.filter((e) => e.date >= startKey && e.date <= endKey);
+    result.push({
+      label: w === 0 ? "This week" : format(weekStart, "MMM d"),
+      easy: inWeek.filter((e) => e.difficulty === "easy").length,
+      medium: inWeek.filter((e) => e.difficulty === "medium").length,
+      hard: inWeek.filter((e) => e.difficulty === "hard").length,
+    });
+  }
+  return result;
+}
+
 export function getFocusHeatmap(sessions: LearningSession[]) {
   const grid: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0));
   sessions.forEach((s) => {

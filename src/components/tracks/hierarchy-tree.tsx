@@ -31,6 +31,7 @@ import {
   updateTopicDifficulty, updateSubtopicDifficulty,
   renameModule, renameTopic, deleteModule, deleteTopic,
   archiveSubtopic, deleteSubtopic, duplicateSubtopic, reorderItems,
+  setTopicCompletionConfidence,
 } from "@/lib/crud";
 import type { Track, Module, Topic, Subtopic, ProgressStatus, Difficulty } from "@/lib/types";
 import { getModuleProgress, getTopicProgress, getTrackProgress } from "@/lib/analytics";
@@ -69,6 +70,7 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
   const [statusDialog, setStatusDialog] = useState<{ id: string; type: "topic" | "subtopic"; dueDate: string } | null>(null);
   const [editDialog, setEditDialog] = useState<{ type: "module" | "topic"; id: string; name: string; difficulty?: Difficulty } | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<{ type: "module" | "topic"; id: string; name: string } | null>(null);
+  const [confidenceDialog, setConfidenceDialog] = useState<{ id: string; name: string } | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -234,11 +236,15 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                   value={topic.status ?? "not_started"}
                                                   onValueChange={(v) => {
                                                     const status = v as ProgressStatus;
+                                                    const wasComplete = topic.status === "completed" || topic.status === "mastered";
                                                     if (status === "in_progress") {
                                                       updateTopicStatus(topic.id, status, topic.dueDate ?? todayISO());
                                                       setStatusDialog({ id: topic.id, type: "topic", dueDate: topic.dueDate ?? todayISO() });
                                                     } else {
                                                       updateTopicStatus(topic.id, status);
+                                                      if ((status === "completed" || status === "mastered") && !wasComplete) {
+                                                        setConfidenceDialog({ id: topic.id, name: topic.name });
+                                                      }
                                                     }
                                                   }}
                                                 >
@@ -477,6 +483,42 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
           >
             Save Deadline
           </Button>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!confidenceDialog} onOpenChange={() => setConfidenceDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>How well do you know it?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Completed <span className="font-medium text-foreground">{confidenceDialog?.name}</span>. Rate your retention — lower confidence schedules a sooner review.
+          </p>
+          <div className="grid grid-cols-5 gap-1.5">
+            {([1, 2, 3, 4, 5] as const).map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={async () => {
+                  if (confidenceDialog) await setTopicCompletionConfidence(confidenceDialog.id, n);
+                  setConfidenceDialog(null);
+                }}
+                className="flex flex-col items-center gap-1 rounded-lg border-[0.5px] border-white/[0.08] bg-white/[0.03] py-3 text-xs text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground"
+              >
+                <span className="text-base font-medium text-foreground">{n}</span>
+                {n === 1 && "Shaky"}
+                {n === 3 && "OK"}
+                {n === 5 && "Solid"}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setConfidenceDialog(null)}
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
+            Skip
+          </button>
         </DialogContent>
       </Dialog>
     </div>

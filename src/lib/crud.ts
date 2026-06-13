@@ -188,6 +188,67 @@ export async function updateTopicStatus(id: string, status: ProgressStatus, dueD
   }
 }
 
+/**
+ * Records a retention-confidence rating (1–5) on a completed topic and schedules
+ * the next review for `confidence * 3` days out. Lower confidence ⇒ sooner review.
+ */
+export async function setTopicCompletionConfidence(id: string, confidence: 1 | 2 | 3 | 4 | 5) {
+  const topic = await db.topics.get(id);
+  if (!topic) return;
+  const completedAt = topic.completionMeta?.completedAt ?? nowISO();
+  const due = new Date();
+  due.setDate(due.getDate() + confidence * 3);
+  const nextReviewDue = `${due.getFullYear()}-${String(due.getMonth() + 1).padStart(2, "0")}-${String(due.getDate()).padStart(2, "0")}`;
+  await db.topics.update(id, {
+    completionMeta: {
+      completedAt,
+      confidenceRating: confidence,
+      nextReviewDue,
+      reviewedAt: topic.completionMeta?.reviewedAt,
+    },
+    updatedAt: nowISO(),
+  });
+}
+
+/** Logs a solved LeetCode problem: bumps the aggregate counter and appends a dated entry. */
+export async function addLeetCodeProblem(difficulty: "easy" | "medium" | "hard") {
+  const settings = await db.settings.get("default");
+  if (!settings) return;
+  const stats = settings.leetCodeStats ?? { easy: 0, medium: 0, hard: 0 };
+  const log = settings.leetCodeLog ?? [];
+  await db.settings.put({
+    ...settings,
+    leetCodeStats: { ...stats, [difficulty]: (stats[difficulty] ?? 0) + 1, lastSolvedDate: todayISO() },
+    leetCodeLog: [...log, { date: todayISO(), difficulty }],
+  });
+}
+
+/** Reverses the most recent solve of the given difficulty (for accidental taps). */
+export async function removeLeetCodeProblem(difficulty: "easy" | "medium" | "hard") {
+  const settings = await db.settings.get("default");
+  if (!settings) return;
+  const stats = settings.leetCodeStats ?? { easy: 0, medium: 0, hard: 0 };
+  if ((stats[difficulty] ?? 0) <= 0) return;
+  const log = [...(settings.leetCodeLog ?? [])];
+  const lastIdx = log.map((e) => e.difficulty).lastIndexOf(difficulty);
+  if (lastIdx >= 0) log.splice(lastIdx, 1);
+  await db.settings.put({
+    ...settings,
+    leetCodeStats: { ...stats, [difficulty]: Math.max(0, (stats[difficulty] ?? 0) - 1) },
+    leetCodeLog: log,
+  });
+}
+
+/** Marks a due-for-review topic as reviewed today (clears it from the review queue). */
+export async function markTopicReviewed(id: string) {
+  const topic = await db.topics.get(id);
+  if (!topic?.completionMeta) return;
+  await db.topics.update(id, {
+    completionMeta: { ...topic.completionMeta, reviewedAt: nowISO(), confidenceRating: 5 },
+    updatedAt: nowISO(),
+  });
+}
+
 export async function updateSubtopicDueDate(id: string, dueDate: string) {
   const sub = await db.subtopics.get(id);
   if (!sub) return;

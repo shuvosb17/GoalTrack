@@ -54,6 +54,14 @@ export interface LeetCodeStats {
   lastSolvedDate?: string;
 }
 
+export type LeetCodeDifficulty = "easy" | "medium" | "hard";
+
+/** A single dated problem-solve event, used for the per-week problems chart. */
+export interface LeetCodeSolveEntry {
+  date: string; // yyyy-MM-dd
+  difficulty: LeetCodeDifficulty;
+}
+
 export interface TopicCompletionMeta {
   completedAt: string;
   confidenceRating: 1 | 2 | 3 | 4 | 5;
