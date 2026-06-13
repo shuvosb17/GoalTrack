@@ -18,6 +18,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { StatCard } from "@/components/shared/stat-card";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { ConsistencyCalendar } from "@/components/analytics/consistency-calendar";
+import { LearningVelocityPanel } from "@/components/analytics/learning-velocity-panel";
 import {
   useTracks, useAllSubtopics, useAllTopics, useSessions, useSettings, useSkipLogs,
 } from "@/hooks/use-data";
@@ -30,7 +31,8 @@ import {
   getTopTopicsWithTrack, getActiveDistribution, getAnalyticsDiagnostics,
   CHART_TOOLTIP_STYLE, DEFAULT_YEAR_START, DEFAULT_YEAR_END,
 } from "@/lib/analytics";
-import { getDailyPaceTarget } from "@/lib/metrics";
+import { getDailyPaceTarget, getWeeklyConsistency } from "@/lib/metrics";
+import { resolveTieredGoal, getWeeksUntilYearEnd, getHoursLoggedThisYear } from "@/lib/goals";
 import { formatHours } from "@/lib/utils";
 import { differenceInDays, parseISO } from "date-fns";
 
@@ -143,6 +145,17 @@ export default function AnalyticsPage() {
     () => getLearningVelocityWithDelta(subtopics, sessions),
     [subtopics, sessions]
   );
+  const weeklyConsistency = useMemo(
+    () => getWeeklyConsistency(sessions, dailyGoal),
+    [sessions, dailyGoal]
+  );
+  const tiered = useMemo(() => resolveTieredGoal(settings), [settings]);
+  const hoursPerWeekNeeded = useMemo(() => {
+    const logged = getHoursLoggedThisYear(sessions, yearStart, yearEnd);
+    const weeks = getWeeksUntilYearEnd(yearEnd);
+    const remaining = Math.max(0, tiered.stretch - logged);
+    return Math.round(remaining / weeks);
+  }, [sessions, yearStart, yearEnd, tiered.stretch]);
   const efficiency = useMemo(
     () => getEfficiencyScores(tracks, topics, subtopics, sessions).filter((e) => e.hours > 0),
     [tracks, topics, subtopics, sessions]
@@ -450,27 +463,13 @@ export default function AnalyticsPage() {
 
       {/* Velocity + Top Topics */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-[0.5px] border-white/[0.08]">
-          <CardContent className="pt-6">
-            <SectionHeading>Learning Velocity</SectionHeading>
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { label: "Topics / wk", value: velocity.topicsPerWeek, prior: velocity.topicsPriorWeek },
-                { label: "Modules / mo", value: velocity.modulesPerMonth, prior: velocity.modulesPriorMonth },
-                { label: "Hours / wk", value: velocity.hoursPerWeek, prior: velocity.hoursPriorWeek, suffix: "h" },
-              ].map((m) => (
-                <div key={m.label} className="rounded-lg border-[0.5px] border-white/[0.06] bg-white/[0.02] p-3 text-center">
-                  <p className="metric-value text-2xl tabular-nums">{m.value}{m.suffix ?? ""}</p>
-                  <p className="mt-0.5 text-[10px] text-muted-foreground">{m.label}</p>
-                  <p className="mt-1 text-[10px]">
-                    <DeltaBadge delta={typeof m.value === "number" && typeof m.prior === "number" ? Math.round((m.value - m.prior) * 10) / 10 : 0} suffix={m.suffix} />
-                  </p>
-                </div>
-              ))}
-            </div>
-            <InsightLine text={diagnostics.velocity} />
-          </CardContent>
-        </Card>
+        <LearningVelocityPanel
+          velocity={velocity}
+          consistency={weeklyConsistency}
+          hoursPerWeekNeeded={hoursPerWeekNeeded}
+          stretchGoalHours={tiered.stretch}
+          footnote={diagnostics.velocity}
+        />
 
         <Card className="border-[0.5px] border-white/[0.08]">
           <CardContent className="pt-6">

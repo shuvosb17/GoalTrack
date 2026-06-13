@@ -4,7 +4,6 @@ import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { BookOpen } from "lucide-react";
 import { HierarchyTree } from "@/components/tracks/hierarchy-tree";
-import { TrackEstimationPanel } from "@/components/tracks/track-estimation-panel";
 import { LeetCodePanel } from "@/components/tracks/leetcode-panel";
 import { useTracks, useAllModules, useAllTopics, useAllSubtopics } from "@/hooks/use-data";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -50,8 +49,6 @@ function TracksContent() {
         subtopics={subtopics}
         selectedTrackId={selectedTrack}
       />
-
-      <TrackEstimationPanel filterTrackId={selectedTrack} />
     </div>
   );
 }
