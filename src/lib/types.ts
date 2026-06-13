@@ -2,6 +2,17 @@ export type ProgressStatus = "not_started" | "in_progress" | "completed" | "mast
 export type Difficulty = "easy" | "medium" | "hard" | "expert";
 export type MomentumLevel = "poor" | "average" | "good" | "excellent" | "elite";
 
+import type {
+  TieredGoal,
+  LeetCodeStats,
+  TrackSettings,
+  TopicCompletionMeta,
+  PinnedNextItem,
+  SessionQualityRating,
+} from "./types/metrics";
+
+export type { TieredGoal, LeetCodeStats, TrackSettings, TopicCompletionMeta, PinnedNextItem, SessionQualityRating };
+
 export interface Track {
   id: string;
   name: string;
@@ -12,6 +23,7 @@ export interface Track {
   archived: boolean;
   createdAt: string;
   updatedAt: string;
+  pinnedNextItem?: PinnedNextItem;
 }
 
 export interface Module {
@@ -40,6 +52,7 @@ export interface Topic {
   statusChangedAt?: string;
   createdAt: string;
   updatedAt: string;
+  completionMeta?: TopicCompletionMeta;
 }
 
 export interface Subtopic {
@@ -133,6 +146,7 @@ export interface LearningSession {
   date: string;
   manual: boolean;
   createdAt: string;
+  qualityRating?: SessionQualityRating;
 }
 
 export interface JournalEntry {
@@ -230,6 +244,9 @@ export interface AppSettings {
   yearlyHourGoal: number;
   dailyHourGoal: number;
   theme: "dark" | "light";
+  tieredGoal?: TieredGoal;
+  leetCodeStats?: LeetCodeStats;
+  trackSettings?: Record<string, TrackSettings>;
 }
 
 /** Per-track completion deadline for estimation charts */

@@ -12,6 +12,7 @@ import type {
   TrackEstimate,
   AppSettings,
 } from "./types";
+import type { SkipLog } from "./types/metrics";
 
 export class GrowthOSDatabase extends Dexie {
   tracks!: Table<Track>;
@@ -25,6 +26,7 @@ export class GrowthOSDatabase extends Dexie {
   goalMilestones!: Table<GoalMilestone>;
   trackEstimates!: Table<TrackEstimate>;
   settings!: Table<AppSettings>;
+  skipLogs!: Table<SkipLog>;
 
   constructor() {
     super("GrowthOS");
@@ -81,6 +83,27 @@ export class GrowthOSDatabase extends Dexie {
       const settings = await tx.table("settings").get("default");
       if (settings?.yearEnd === "2027-04-30") {
         await tx.table("settings").update("default", { yearEnd: "2026-12-31" });
+      }
+    });
+    this.version(11).stores({
+      skipLogs: "id, date",
+    }).upgrade(async (tx) => {
+      const settings = await tx.table("settings").get("default");
+      if (!settings) return;
+      const updates: Partial<AppSettings> = {};
+      if (!settings.tieredGoal) {
+        updates.tieredGoal = {
+          minimum: 300,
+          target: 700,
+          stretch: settings.yearlyHourGoal >= 2000 ? settings.yearlyHourGoal : 2000,
+          year: 2026,
+        };
+      }
+      if (settings.yearlyHourGoal < 2000) {
+        updates.yearlyHourGoal = 2000;
+      }
+      if (Object.keys(updates).length > 0) {
+        await tx.table("settings").update("default", updates);
       }
     });
     this.version(7).stores({}).upgrade(async (tx) => {

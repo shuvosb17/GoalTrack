@@ -12,6 +12,7 @@ import { buildAllGoalStats, deleteGoalMilestone } from "@/lib/goal-milestones";
 import { GoalTimelineChart } from "@/components/milestones/goal-timeline-chart";
 import { GoalMilestoneCard } from "@/components/milestones/goal-milestone-card";
 import { GoalMilestoneDialog } from "@/components/milestones/goal-milestone-dialog";
+import { SuggestedMilestones } from "@/components/milestones/suggested-milestones";
 import type { GoalMilestone } from "@/lib/types";
 
 export default function MilestonesPage() {
@@ -110,7 +111,9 @@ export default function MilestonesPage() {
           <Target className="h-5 w-5 text-primary" /> Active Goals
         </h2>
         {activeGoals.length === 0 ? (
-          <Card className="border-dashed">
+          <div className="space-y-4">
+            <SuggestedMilestones tracks={tracks} />
+            <Card className="border-dashed">
             <CardContent className="py-12 text-center">
               <Flag className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-50" />
               <p className="text-muted-foreground mb-4">No active goals yet. Create one to start your next learning sprint.</p>
@@ -119,6 +122,7 @@ export default function MilestonesPage() {
               </Button>
             </CardContent>
           </Card>
+          </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {activeGoals.map((s, i) => (

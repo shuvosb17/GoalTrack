@@ -17,7 +17,9 @@ import type {
   Insight,
   RadarDimension,
   MomentumLevel,
+  AppSettings,
 } from "./types";
+import type { SkipLog } from "./types/metrics";
 import {
   calculateSubtopicProgress,
   getMomentumLevel,
@@ -106,6 +108,8 @@ export function buildForecastChartData(
   });
 }
 import { isTopicComplete, calculateTopicsProgress, getTopicProgressPercent } from "./in-progress";
+import { getGoalReframeMessage } from "./goals";
+import { getTopicsDueForReview, getDominantSkipReason, getSkipInsightMessage, getAverageSessionQuality } from "./metrics";
 
 export function getSubtopicProgress(subtopics: Subtopic[]) {
   const active = subtopics.filter((s) => !s.archived);
@@ -340,8 +344,10 @@ export function getEfficiencyScores(
   return tracks.map((track) => {
     const trackTopics = topics.filter((t) => t.trackId === track.id && !t.archived);
     const progress = calculateTopicsProgress(trackTopics, subtopics);
-    const hours = sessions.filter((s) => s.trackId === track.id).reduce((sum, s) => sum + s.duration, 0) / 3600000;
-    const efficiency = hours > 0 ? progress / hours : 0;
+    const trackSessions = sessions.filter((s) => s.trackId === track.id);
+    const hours = trackSessions.reduce((sum, s) => sum + s.duration, 0) / 3600000;
+    const qualityWeight = getAverageSessionQuality(trackSessions);
+    const efficiency = hours > 0 ? (progress * qualityWeight) / hours : 0;
     return { name: track.name, progress, hours, efficiency, color: track.color };
   }).sort((a, b) => b.efficiency - a.efficiency);
 }
@@ -480,7 +486,9 @@ export function generateInsights(
   streak: number,
   yearlyGoalHours: number,
   yearStart: string = DEFAULT_YEAR_START,
-  yearEnd: string = DEFAULT_YEAR_END
+  yearEnd: string = DEFAULT_YEAR_END,
+  settings?: AppSettings | null,
+  skipLogs: SkipLog[] = []
 ): Insight[] {
   const insights: Insight[] = [];
   const distribution = withPercentages(getHoursByTrack(sessions, tracks));
@@ -499,7 +507,8 @@ export function generateInsights(
     if (trackSessions.length === 0) return;
     const lastSession = trackSessions.sort((a, b) => b.date.localeCompare(a.date))[0];
     const daysSince = differenceInDays(new Date(), parseISO(lastSession.date));
-    if (daysSince >= 7) {
+    const threshold = settings?.trackSettings?.[track.id]?.neglectThresholdDays ?? 14;
+    if (daysSince >= threshold) {
       insights.push({
         id: `neglect-${track.id}`,
         type: "warning",
@@ -540,6 +549,7 @@ export function generateInsights(
   }
 
   const forecast = getGoalForecast(sessions, topics, subtopics, yearlyGoalHours, yearStart, yearEnd);
+  const reframe = getGoalReframeMessage(sessions, settings ?? null, yearStart, yearEnd, forecast.projectedHours);
   if (forecast.onTrack) {
     const excess = forecast.projectedHours - yearlyGoalHours;
     if (excess > 0) {
@@ -554,8 +564,28 @@ export function generateInsights(
     insights.push({
       id: "yearly-behind",
       type: "warning",
-      message: `At your current pace, you may fall short of your ${yearlyGoalHours}h yearly goal. Consider increasing daily study time.`,
+      message: reframe,
       priority: 5,
+    });
+  }
+
+  const dueForReview = getTopicsDueForReview(topics);
+  if (dueForReview.length >= 3) {
+    insights.push({
+      id: "review-due",
+      type: "tip",
+      message: `${dueForReview.length} topics are due for review. Refresh them to lock in retention.`,
+      priority: 6,
+    });
+  }
+
+  const dominantSkip = getDominantSkipReason(skipLogs);
+  if (dominantSkip) {
+    insights.push({
+      id: "skip-pattern",
+      type: "tip",
+      message: getSkipInsightMessage(dominantSkip),
+      priority: 7,
     });
   }
 

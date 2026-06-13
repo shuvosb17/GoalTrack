@@ -8,9 +8,10 @@ import { useSessions } from "@/hooks/use-data";
 import { formatDuration } from "@/lib/utils";
 import { getTodayHours } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
+import { SessionQualityPrompt } from "./session-quality-prompt";
 
 export function FocusWidget() {
-  const { isRunning, isPaused, activityLabel, pause, resume, stop, getElapsedMs } = useTimerStore();
+  const { isRunning, isPaused, activityLabel, pause, resume, stop, getElapsedMs, pendingQualitySessionId, clearQualityPrompt } = useTimerStore();
   const sessions = useSessions();
 
   useEffect(() => {
@@ -24,6 +25,22 @@ export function FocusWidget() {
   const elapsed = getElapsedMs();
   const todayMs = getTodayHours(sessions) + (isRunning && !isPaused ? elapsed : 0);
 
+  if (pendingQualitySessionId) {
+    return (
+      <AnimatePresence>
+        <motion.div
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 100, opacity: 0 }}
+          className="fixed bottom-4 left-4 right-4 z-50 glass-card rounded-xl border-[0.5px] border-primary/20 p-4 shadow-2xl sm:bottom-6 sm:left-auto sm:right-6 sm:max-w-[320px]"
+        >
+          <p className="text-sm font-medium">Session complete</p>
+          <SessionQualityPrompt sessionId={pendingQualitySessionId} onDone={clearQualityPrompt} />
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
+
   if (!isRunning && !isPaused) return null;
 
   return (
@@ -32,17 +49,17 @@ export function FocusWidget() {
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 100, opacity: 0 }}
-        className="fixed bottom-4 left-4 right-4 z-50 glass-card rounded-2xl border border-primary/20 p-4 shadow-2xl sm:bottom-6 sm:left-auto sm:right-6 sm:max-w-[320px]"
+        className="fixed bottom-4 left-4 right-4 z-50 glass-card rounded-xl border-[0.5px] border-primary/20 p-4 shadow-2xl sm:bottom-6 sm:left-auto sm:right-6 sm:max-w-[320px]"
       >
         <div className="flex items-center gap-3 mb-3">
-          <div className="p-2 rounded-xl bg-primary/20">
+          <div className="p-2 rounded-[10px] bg-primary/20">
             <Timer className="h-5 w-5 text-primary animate-pulse" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs text-muted-foreground">Focus Session</p>
             <p className="text-sm font-medium truncate">{activityLabel || "Learning"}</p>
           </div>
-          <span className="text-2xl font-mono font-bold text-primary tabular-nums">
+          <span className="text-2xl font-mono font-medium text-primary tabular-nums">
             {formatDuration(elapsed)}
           </span>
         </div>

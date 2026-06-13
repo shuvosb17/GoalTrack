@@ -4,13 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   IconLayoutDashboard,
-  IconBooks,
+  IconRoad,
   IconFlag,
   IconActivity,
   IconChartBar,
   IconNotebook,
   IconTrophy,
-  IconFileText,
+  IconCalendarStats,
   IconSettings,
   IconX,
   type TablerIcon,
@@ -36,7 +36,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     label: "Learn",
     items: [
       { href: "/", label: "Dashboard", icon: IconLayoutDashboard },
-      { href: "/tracks", label: "Tracks", icon: IconBooks },
+      { href: "/tracks", label: "Tracks", icon: IconRoad },
       { href: "/milestones", label: "Milestones", icon: IconFlag },
       { href: "/status", label: "Status", icon: IconActivity, badge: true },
     ],
@@ -47,7 +47,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
       { href: "/analytics", label: "Analytics", icon: IconChartBar },
       { href: "/journal", label: "Journal", icon: IconNotebook },
       { href: "/achievements", label: "Achievements", icon: IconTrophy },
-      { href: "/review", label: "Annual Review", icon: IconFileText },
+      { href: "/review", label: "Annual Review", icon: IconCalendarStats },
     ],
   },
   {
@@ -110,7 +110,7 @@ export function Sidebar() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 shrink-0 rounded-[10px] lg:hidden hover:bg-white/5"
+              className="h-8 w-8 shrink-0 rounded-lg lg:hidden hover:bg-white/5"
               onClick={() => setSidebarOpen(false)}
               aria-label="Close menu"
             >
@@ -135,16 +135,16 @@ export function Sidebar() {
                     <Link key={item.href} href={item.href} onClick={() => setSidebarOpen(false)}>
                       <div
                         className={cn(
-                          "group/item flex items-center gap-3 rounded-[10px] px-3 py-2 text-sm font-medium transition-colors duration-200",
+                          "group/item flex items-center gap-3 py-2 pr-3 text-sm transition-colors duration-200",
                           isActive
-                            ? "border-l-2 border-[#7c5cfc] bg-white/[0.04] pl-[calc(0.75rem-2px)] text-foreground"
-                            : "border-l-2 border-transparent text-muted-foreground hover:bg-white/[0.03] hover:text-foreground"
+                            ? "rounded-r-md border-l-2 border-[#7c5cfc] bg-[rgba(99,60,200,0.12)] pl-[6px] font-medium text-[#c4b5fd]"
+                            : "rounded-lg border-l-2 border-transparent pl-3 font-medium text-muted-foreground hover:bg-white/[0.03] hover:text-foreground"
                         )}
                       >
                         <item.icon
                           className={cn(
-                            "h-[18px] w-[18px] shrink-0 transition-colors",
-                            isActive ? "text-[#7c5cfc]" : "text-muted-foreground group-hover/item:text-foreground"
+                            "h-[18px] w-[18px] shrink-0",
+                            isActive ? "text-[#c4b5fd]" : "text-muted-foreground group-hover/item:text-foreground"
                           )}
                           stroke={1.5}
                         />

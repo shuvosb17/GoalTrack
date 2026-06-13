@@ -77,3 +77,7 @@ export function useTrackEstimates() {
 export function useSettings() {
   return useLiveQuery(() => db.settings.get("default"), []) ?? null;
 }
+
+export function useSkipLogs() {
+  return useLiveQuery(() => db.skipLogs.toArray(), []) ?? [];
+}

@@ -13,10 +13,13 @@ import {
 
 interface ForecastChartProps {
   data: { label: string; actual?: number; projected: number }[];
-  goal: number;
+  goal?: number;
+  tierGoals?: { value: number; label: string; color: string }[];
 }
 
-export function ForecastChart({ data, goal }: ForecastChartProps) {
+export function ForecastChart({ data, goal, tierGoals }: ForecastChartProps) {
+  const lines = tierGoals ?? (goal ? [{ value: goal, label: "Goal", color: "#f59e0b" }] : []);
+
   return (
     <ResponsiveContainer width="100%" height={200}>
       <AreaChart data={data}>
@@ -34,10 +37,18 @@ export function ForecastChart({ data, goal }: ForecastChartProps) {
         <XAxis dataKey="label" tick={{ fill: "#a1a1aa", fontSize: 10 }} />
         <YAxis tick={{ fill: "#a1a1aa", fontSize: 10 }} />
         <Tooltip
-          contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: 8 }}
+          contentStyle={{ background: "#18181b", border: "0.5px solid #27272a", borderRadius: 8 }}
           labelStyle={{ color: "#fafafa" }}
         />
-        <ReferenceLine y={goal} stroke="#f59e0b" strokeDasharray="5 5" label={{ value: "Goal", fill: "#f59e0b", fontSize: 10 }} />
+        {lines.map((line) => (
+          <ReferenceLine
+            key={line.label}
+            y={line.value}
+            stroke={line.color}
+            strokeDasharray="5 5"
+            label={{ value: line.label, fill: line.color, fontSize: 10 }}
+          />
+        ))}
         <Area type="monotone" dataKey="actual" stroke="#8b5cf6" fill="url(#colorActual)" strokeWidth={2} connectNulls={false} />
         <Area type="monotone" dataKey="projected" stroke="#3b82f6" fill="url(#colorProjected)" strokeWidth={2} strokeDasharray="5 5" />
       </AreaChart>

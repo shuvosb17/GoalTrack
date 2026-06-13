@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { Sidebar } from "./sidebar";
 import { MobileHeader } from "./mobile-header";
 import { FocusWidget } from "@/components/timer/focus-widget";
+import { SkipReasonPrompt } from "@/components/dashboard/skip-reason-prompt";
 import { AchievementChecker } from "@/components/providers/achievement-checker";
 import { AutoBackupProvider } from "@/components/providers/auto-backup";
 import { seedDatabase } from "@/lib/seed";
@@ -39,6 +40,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </main>
       <FocusWidget />
+      <SkipReasonPrompt />
       <AchievementChecker />
       <AutoBackupProvider />
     </div>

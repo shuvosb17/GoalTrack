@@ -12,6 +12,7 @@ interface StatCardProps {
   gradient?: string;
   className?: string;
   valueClassName?: string;
+  valueColor?: string;
   delay?: number;
 }
 
@@ -23,6 +24,7 @@ export function StatCard({
   gradient,
   className,
   valueClassName,
+  valueColor,
   delay = 0,
 }: StatCardProps) {
   return (
@@ -45,7 +47,12 @@ export function StatCard({
             {title}
           </span>
         </div>
-        <div className={cn("metric-value text-3xl tabular-nums", valueClassName)}>{value}</div>
+        <div
+          className={cn("metric-value text-3xl tabular-nums", valueClassName)}
+          style={valueColor ? { color: valueColor } : undefined}
+        >
+          {value}
+        </div>
         {subtitle && <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>}
       </div>
     </motion.div>

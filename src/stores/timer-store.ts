@@ -7,19 +7,22 @@ import { nowISO, todayISO } from "@/lib/utils";
 
 interface TimerStore extends TimerState {
   tick: number;
+  pendingQualitySessionId: string | null;
   start: (path: HierarchyPath, label: string) => void;
   pause: () => void;
   resume: () => void;
   stop: () => Promise<string | null>;
+  clearQualityPrompt: () => void;
   reset: () => void;
   getElapsedMs: () => number;
 }
 
-const initialState: TimerState & { tick: number } = {
+const initialState: TimerState & { tick: number; pendingQualitySessionId: string | null } = {
   isRunning: false,
   isPaused: false,
   accumulatedMs: 0,
   tick: 0,
+  pendingQualitySessionId: null,
 };
 
 export const useTimerStore = create<TimerStore>()(
@@ -76,9 +79,11 @@ export const useTimerStore = create<TimerStore>()(
         };
 
         await db.sessions.add(session);
-        set({ ...initialState });
+        set({ ...initialState, pendingQualitySessionId: session.id });
         return session.id;
       },
+
+      clearQualityPrompt: () => set({ pendingQualitySessionId: null }),
 
       reset: () => set({ ...initialState }),
 

@@ -11,7 +11,7 @@ export function SectionHeading({ children, icon: Icon, className }: SectionHeadi
   return (
     <h2
       className={cn(
-        "section-heading mb-4 flex items-center gap-2 border-b border-white/[0.06] pb-3 text-[15px] font-medium text-muted-foreground",
+        "section-heading mb-4 flex items-center gap-2 border-b border-white/[0.06] pb-2 text-sm font-medium text-muted-foreground",
         className
       )}
     >

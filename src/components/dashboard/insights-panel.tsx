@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import {
   IconBulb,
   IconAlertTriangle,
-  IconCircleCheck,
+  IconTrendingUp,
   IconInfoCircle,
 } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
@@ -15,22 +15,15 @@ import type { TablerIcon } from "@tabler/icons-react";
 const iconMap: Record<Insight["type"], TablerIcon> = {
   info: IconInfoCircle,
   warning: IconAlertTriangle,
-  success: IconCircleCheck,
+  success: IconTrendingUp,
   tip: IconBulb,
 };
 
-const styleMap: Record<Insight["type"], string> = {
-  info: "border-l-blue-400 bg-blue-500/[0.04] text-blue-300/90",
-  warning: "border-l-amber-400 bg-amber-500/[0.04] text-amber-300/90",
-  success: "border-l-emerald-400 bg-emerald-500/[0.04] text-emerald-300/90",
-  tip: "border-l-violet-400 bg-violet-500/[0.04] text-violet-300/90",
-};
-
-const iconColorMap: Record<Insight["type"], string> = {
-  info: "text-blue-400",
-  warning: "text-amber-400",
-  success: "text-emerald-400",
-  tip: "text-violet-400",
+const styleMap: Record<Insight["type"], { border: string; bg: string; text: string; icon: string }> = {
+  info: { border: "#38bdf8", bg: "rgba(56,189,248,0.07)", text: "#7dd3fc", icon: "text-sky-400" },
+  tip: { border: "#a78bfa", bg: "rgba(167,139,250,0.07)", text: "#c4b5fd", icon: "text-violet-400" },
+  success: { border: "#34d399", bg: "rgba(52,211,153,0.07)", text: "#86efac", icon: "text-emerald-400" },
+  warning: { border: "#fb923c", bg: "rgba(251,146,60,0.07)", text: "#fdba74", icon: "text-amber-400" },
 };
 
 export function InsightsPanel({ insights }: { insights: Insight[] }) {
@@ -44,18 +37,22 @@ export function InsightsPanel({ insights }: { insights: Insight[] }) {
       ) : (
         insights.slice(0, 5).map((insight, i) => {
           const Icon = iconMap[insight.type];
+          const style = styleMap[insight.type];
           return (
             <motion.div
               key={insight.id}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.1 }}
-              className={cn(
-                "flex items-start gap-3 rounded-[10px] border-[0.5px] border-white/[0.06] border-l-2 p-3 text-sm",
-                styleMap[insight.type]
-              )}
+              className="flex items-start gap-3 rounded-lg border-[0.5px] border-white/[0.06] p-3 text-sm"
+              style={{
+                borderLeftWidth: 2,
+                borderLeftColor: style.border,
+                background: style.bg,
+                color: style.text,
+              }}
             >
-              <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", iconColorMap[insight.type])} stroke={1.5} />
+              <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", style.icon)} stroke={1.5} />
               <p className="leading-relaxed">{renderInsightMessage(insight.message)}</p>
             </motion.div>
           );

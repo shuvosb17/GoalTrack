@@ -139,14 +139,51 @@ export default function SettingsPage() {
       <Card>
         <CardHeader><CardTitle className="text-xl">Goals</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <label className="text-sm text-muted-foreground">Yearly Hour Goal</label>
-            <Input
-              type="number"
-              className="h-11 mt-1"
-              value={settings?.yearlyHourGoal ?? 1000}
-              onChange={(e) => settings && db.settings.put({ ...settings, yearlyHourGoal: Number(e.target.value) })}
-            />
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div>
+              <label className="text-sm text-muted-foreground">Minimum goal (h)</label>
+              <p className="text-[10px] text-muted-foreground/70 mb-1">Floor I&apos;ll definitely hit</p>
+              <Input
+                type="number"
+                className="h-11 mt-1"
+                value={settings?.tieredGoal?.minimum ?? 300}
+                onChange={(e) => settings && db.settings.put({
+                  ...settings,
+                  tieredGoal: { ...(settings.tieredGoal ?? { minimum: 300, target: 700, stretch: 2000, year: 2026 }), minimum: Number(e.target.value) },
+                })}
+              />
+            </div>
+            <div>
+              <label className="text-sm text-muted-foreground">Target goal (h)</label>
+              <p className="text-[10px] text-muted-foreground/70 mb-1">What I&apos;m actually aiming for</p>
+              <Input
+                type="number"
+                className="h-11 mt-1"
+                value={settings?.tieredGoal?.target ?? 700}
+                onChange={(e) => settings && db.settings.put({
+                  ...settings,
+                  tieredGoal: { ...(settings.tieredGoal ?? { minimum: 300, target: 700, stretch: 2000, year: 2026 }), target: Number(e.target.value) },
+                })}
+              />
+            </div>
+            <div>
+              <label className="text-sm text-muted-foreground">Stretch goal (h)</label>
+              <p className="text-[10px] text-muted-foreground/70 mb-1">Best case / dream target</p>
+              <Input
+                type="number"
+                className="h-11 mt-1"
+                value={settings?.tieredGoal?.stretch ?? settings?.yearlyHourGoal ?? 2000}
+                onChange={(e) => {
+                  if (!settings) return;
+                  const stretch = Number(e.target.value);
+                  db.settings.put({
+                    ...settings,
+                    yearlyHourGoal: stretch,
+                    tieredGoal: { ...(settings.tieredGoal ?? { minimum: 300, target: 700, stretch: 2000, year: 2026 }), stretch },
+                  });
+                }}
+              />
+            </div>
           </div>
           <div>
             <label className="text-sm text-muted-foreground">Daily Hour Goal</label>
@@ -156,6 +193,12 @@ export default function SettingsPage() {
               value={settings?.dailyHourGoal ?? 3}
               onChange={(e) => settings && db.settings.put({ ...settings, dailyHourGoal: Number(e.target.value) })}
             />
+            {settings?.tieredGoal && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                To hit your Target ({settings.tieredGoal.target}h), you need ~{((settings.tieredGoal.target / 29) / 5).toFixed(1)}h/day on weekdays.
+                Your current daily goal is {settings.dailyHourGoal}h.
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>

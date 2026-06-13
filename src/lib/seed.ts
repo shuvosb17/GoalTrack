@@ -1,6 +1,7 @@
 import { v4 as uuid } from "uuid";
 import { db } from "./db";
 import type { Track, Module, Topic, Subtopic, Achievement, AppSettings } from "./types";
+import { DEFAULT_TIERED_GOAL } from "./types/metrics";
 import { nowISO } from "./utils";
 
 const ACHIEVEMENTS: Omit<Achievement, "id">[] = [
@@ -98,9 +99,11 @@ export async function seedDatabase(): Promise<void> {
     id: "default",
     yearStart: "2026-06-01",
     yearEnd: "2026-12-31",
-    yearlyHourGoal: 1000,
+    yearlyHourGoal: 2000,
     dailyHourGoal: 3,
     theme: "dark",
+    tieredGoal: DEFAULT_TIERED_GOAL,
+    leetCodeStats: { easy: 0, medium: 0, hard: 0 },
   };
 
   await db.transaction("rw", [db.tracks, db.modules, db.topics, db.subtopics, db.achievements, db.settings], async () => {
@@ -114,20 +117,20 @@ export async function seedDatabase(): Promise<void> {
 }
 
 export async function exportAllData() {
-  const [tracks, modules, topics, subtopics, sessions, journal, achievements, milestones, goalMilestones, trackEstimates, settings] = await Promise.all([
+  const [tracks, modules, topics, subtopics, sessions, journal, achievements, milestones, goalMilestones, trackEstimates, settings, skipLogs] = await Promise.all([
     db.tracks.toArray(), db.modules.toArray(), db.topics.toArray(), db.subtopics.toArray(),
     db.sessions.toArray(), db.journal.toArray(), db.achievements.toArray(), db.milestones.toArray(),
-    db.goalMilestones.toArray(), db.trackEstimates.toArray(), db.settings.toArray(),
+    db.goalMilestones.toArray(), db.trackEstimates.toArray(), db.settings.toArray(), db.skipLogs.toArray(),
   ]);
-  return { version: 1, exportedAt: nowISO(), tracks, modules, topics, subtopics, sessions, journal, achievements, milestones, goalMilestones, trackEstimates, settings };
+  return { version: 1, exportedAt: nowISO(), tracks, modules, topics, subtopics, sessions, journal, achievements, milestones, goalMilestones, trackEstimates, settings, skipLogs };
 }
 
 export async function importAllData(data: Awaited<ReturnType<typeof exportAllData>>) {
-  await db.transaction("rw", [db.tracks, db.modules, db.topics, db.subtopics, db.sessions, db.journal, db.achievements, db.milestones, db.goalMilestones, db.trackEstimates, db.settings], async () => {
+  await db.transaction("rw", [db.tracks, db.modules, db.topics, db.subtopics, db.sessions, db.journal, db.achievements, db.milestones, db.goalMilestones, db.trackEstimates, db.settings, db.skipLogs], async () => {
     await Promise.all([
       db.tracks.clear(), db.modules.clear(), db.topics.clear(), db.subtopics.clear(),
       db.sessions.clear(), db.journal.clear(), db.achievements.clear(), db.milestones.clear(),
-      db.goalMilestones.clear(), db.trackEstimates.clear(), db.settings.clear(),
+      db.goalMilestones.clear(), db.trackEstimates.clear(), db.settings.clear(), db.skipLogs.clear(),
     ]);
     if (data.tracks?.length) await db.tracks.bulkAdd(data.tracks);
     if (data.modules?.length) await db.modules.bulkAdd(data.modules);
@@ -140,5 +143,6 @@ export async function importAllData(data: Awaited<ReturnType<typeof exportAllDat
     if (data.goalMilestones?.length) await db.goalMilestones.bulkAdd(data.goalMilestones);
     if (data.trackEstimates?.length) await db.trackEstimates.bulkAdd(data.trackEstimates);
     if (data.settings?.length) await db.settings.bulkAdd(data.settings);
+    if (data.skipLogs?.length) await db.skipLogs.bulkAdd(data.skipLogs);
   });
 }
