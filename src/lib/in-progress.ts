@@ -1,6 +1,6 @@
 import { differenceInCalendarDays, format } from "date-fns";
 import type { Track, Module, Topic, Subtopic, InProgressTask, InProgressTopicGroup, ProgressStatus } from "./types";
-import { isSubtopicDone, statusWeight, parseLocalDate, todayISO } from "./utils";
+import { isSubtopicDone, statusWeight, parseLocalDate, todayISO, calculateSubtopicProgress } from "./utils";
 
 export function isTopicComplete(topic: Topic, subtopics: Subtopic[]): boolean {
   if (topic.status === "completed" || topic.status === "mastered") return true;
@@ -16,16 +16,9 @@ export function isTopicActive(topic: Topic, subtopics: Subtopic[]): boolean {
   return subs.some((s) => s.status === "in_progress");
 }
 
-/** Subtopic progress with partial credit for in-progress items (50%). */
-export function calculateSubtopicProgressWithActivity(subtopics: Subtopic[]): number {
-  const active = subtopics.filter((s) => !s.archived);
-  if (active.length === 0) return 0;
-  const total = active.reduce((sum, s) => {
-    if (s.status === "mastered" || s.status === "completed") return sum + 1;
-    if (s.status === "in_progress") return sum + 0.5;
-    return sum;
-  }, 0);
-  return Math.round((total / active.length) * 100);
+/** Topic completion = share of subtopics that are completed or mastered (binary, no partial credit). */
+export function calculateTopicSubtopicProgress(subtopics: Subtopic[]): number {
+  return calculateSubtopicProgress(subtopics);
 }
 
 /** Resolve topic status from both the topic record and its subtopics. */
@@ -54,18 +47,22 @@ export function getTopicProgressPercent(topic: Topic, subtopics: Subtopic[]): nu
   const effective = getEffectiveTopicStatus(topic, subtopics);
   if (effective === "completed" || effective === "mastered") return 100;
   const subs = subtopics.filter((s) => s.topicId === topic.id && !s.archived);
-  if (subs.length > 0) return calculateSubtopicProgressWithActivity(subs);
+  if (subs.length > 0) return calculateTopicSubtopicProgress(subs);
+  if (topic.status === "in_progress") return 0;
   return Math.round(statusWeight(topic.status ?? "not_started") * 100);
 }
 
 /**
- * 1st-order progress for a single subtopic (the atomic unit).
- * completed/mastered = 100, in_progress = 50 (partial credit), not_started = 0.
+ * 1st-order subtopic completion — binary: done = 100%, everything else = 0%.
+ * "In progress" means actively working, not half complete.
  */
 export function getSubtopicProgressPercent(sub: Subtopic): number {
-  if (sub.status === "completed" || sub.status === "mastered") return 100;
-  if (sub.status === "in_progress") return 50;
-  return 0;
+  return isSubtopicDone(sub.status) ? 100 : 0;
+}
+
+/** Whether a subtopic is actively being worked on (not done, not idle). */
+export function isSubtopicActive(sub: Subtopic): boolean {
+  return sub.status === "in_progress";
 }
 
 /** Roll up progress across topics by weighting every subtopic (not averaging topic %) */

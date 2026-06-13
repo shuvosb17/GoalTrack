@@ -109,7 +109,7 @@ function buildStatusEntries(
         displayName: sub.name,
         focalSubtopic: sub,
         subtopicProgress,
-        progress: subtopicProgress,
+        progress: topicProgress,
         dueDate: subDue,
         daysRemaining: subDays,
         isOverdue: subDays !== null && subDays < 0,

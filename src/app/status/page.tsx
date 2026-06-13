@@ -47,6 +47,18 @@ const ALERT_STYLES = {
   info: { bar: "#3b82f6", bg: "bg-blue-500/[0.06]", border: "border-blue-500/20", text: "text-blue-400" },
 } as const;
 
+/** Pulsing bar for items actively in progress — not a completion percentage. */
+function ActiveProgressBar({ color = "#f59e0b" }: { color?: string }) {
+  return (
+    <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
+      <div
+        className="absolute inset-y-0 left-0 w-2/5 rounded-full opacity-80 animate-pulse"
+        style={{ background: color }}
+      />
+    </div>
+  );
+}
+
 type Filter = ProgressStatus | "all" | "review";
 
 function StatusChip({
@@ -452,13 +464,21 @@ export default function StatusPage() {
                               <div>
                                 <div className="mb-1 flex items-center justify-between text-[10px] font-medium uppercase tracking-wider text-muted-foreground/80">
                                   <span>Subtopic</span>
-                                  <span className="tabular-nums text-foreground">{entry.subtopicProgress}%</span>
+                                  {entry.focalSubtopic.status === "in_progress" ? (
+                                    <span style={{ color: STATUS_COLORS.in_progress }}>Working on it</span>
+                                  ) : (
+                                    <span className="tabular-nums text-foreground">{entry.subtopicProgress}%</span>
+                                  )}
                                 </div>
-                                <Progress
-                                  value={entry.subtopicProgress}
-                                  className="h-1.5"
-                                  indicatorClassName="bg-primary"
-                                />
+                                {entry.focalSubtopic.status === "in_progress" ? (
+                                  <ActiveProgressBar color={STATUS_COLORS.in_progress} />
+                                ) : (
+                                  <Progress
+                                    value={entry.subtopicProgress}
+                                    className="h-1.5"
+                                    indicatorClassName="bg-primary"
+                                  />
+                                )}
                               </div>
                             )}
                             <div>
@@ -467,7 +487,7 @@ export default function StatusPage() {
                                   {entry.focalSubtopic ? `Topic · ${entry.topic.name}` : "Topic"}
                                   {entry.subtopicsTotal > 0 && (
                                     <span className="ml-1 normal-case tracking-normal text-muted-foreground/60">
-                                      ({entry.subtopicsDone}/{entry.subtopicsTotal} subtopics)
+                                      ({entry.subtopicsDone}/{entry.subtopicsTotal} done)
                                     </span>
                                   )}
                                 </span>
@@ -538,12 +558,27 @@ export default function StatusPage() {
                           href={`/tracks?track=${entry.trackId}&topic=${entry.topic.id}`}
                           className="shrink-0 text-right transition-opacity hover:opacity-80"
                         >
-                          <p className="metric-value text-xl tabular-nums" style={{ color: entry.trackColor }}>
-                            {entry.progress}%
-                          </p>
-                          <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60">
-                            {entry.focalSubtopic ? "Subtopic" : "Topic"}
-                          </p>
+                          {entry.focalSubtopic?.status === "in_progress" ? (
+                            <>
+                              <p className="text-sm font-medium" style={{ color: STATUS_COLORS.in_progress }}>
+                                Active
+                              </p>
+                              <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60">
+                                {entry.subtopicsTotal > 0
+                                  ? `${entry.subtopicsDone}/${entry.subtopicsTotal} topic`
+                                  : "In progress"}
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="metric-value text-xl tabular-nums" style={{ color: entry.trackColor }}>
+                                {entry.progress}%
+                              </p>
+                              <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60">
+                                {entry.focalSubtopic ? "Subtopic" : "Topic"}
+                              </p>
+                            </>
+                          )}
                           <ChevronRight className="ml-auto mt-1 h-4 w-4 text-muted-foreground" />
                         </Link>
                       </div>
