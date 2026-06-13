@@ -269,8 +269,12 @@ export default function StatusPage() {
                           <div className="w-0.5 self-stretch rounded-full shrink-0" style={{ background: style.bar }} />
                           <AlertTriangle className={cn("h-4 w-4 shrink-0", style.text)} />
                           <div className="min-w-0 flex-1">
-                            <p className="truncate font-medium">{alert.topicName}</p>
-                            <p className="text-xs text-muted-foreground">{alert.trackName} · {alert.message}</p>
+                            <p className="truncate font-medium">{alert.subtopicName ?? alert.topicName}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {alert.subtopicName
+                                ? `${alert.trackName} → ${alert.topicName} · ${alert.message}`
+                                : `${alert.trackName} · ${alert.message}`}
+                            </p>
                           </div>
                           <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
                         </Link>

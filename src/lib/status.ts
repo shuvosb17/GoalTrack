@@ -28,7 +28,6 @@ export {
 import {
   getDaysUntilDue,
   getEffectiveDueDate,
-  getInProgressTopics,
   formatDueDate,
 } from "./in-progress";
 
@@ -211,6 +210,72 @@ export function getGlobalStatusCounts(
   return counts;
 }
 
+function pushDueAlert(
+  alerts: UrgencyAlert[],
+  ctx: {
+    id: string;
+    topicId: string;
+    topicName: string;
+    trackName: string;
+    dueDate?: string;
+    daysRemaining: number | null;
+    subtopicId?: string;
+    subtopicName?: string;
+    noDeadline?: boolean;
+  }
+) {
+  const base = {
+    topicId: ctx.topicId,
+    topicName: ctx.topicName,
+    trackName: ctx.trackName,
+    dueDate: ctx.dueDate,
+    subtopicId: ctx.subtopicId,
+    subtopicName: ctx.subtopicName,
+  };
+
+  if (ctx.noDeadline) {
+    alerts.push({
+      ...base,
+      id: ctx.id,
+      level: "info",
+      message: "No deadline set — add one to stay on track",
+    });
+    return;
+  }
+
+  if (ctx.daysRemaining === null) return;
+
+  if (ctx.daysRemaining < 0) {
+    alerts.push({
+      ...base,
+      id: ctx.id,
+      level: "critical",
+      message: `Overdue — was due ${ctx.dueDate ? formatDueDate(ctx.dueDate) : "earlier"}`,
+    });
+  } else if (ctx.daysRemaining === 0) {
+    alerts.push({
+      ...base,
+      id: ctx.id,
+      level: "critical",
+      message: "Due today — finish before end of day",
+    });
+  } else if (ctx.daysRemaining === 1) {
+    alerts.push({
+      ...base,
+      id: ctx.id,
+      level: "warning",
+      message: "Due tomorrow — prioritize this",
+    });
+  } else if (ctx.daysRemaining <= 3) {
+    alerts.push({
+      ...base,
+      id: ctx.id,
+      level: "warning",
+      message: `${ctx.daysRemaining} days left to complete`,
+    });
+  }
+}
+
 export function getUrgencyAlerts(
   topics: Topic[],
   subtopics: Subtopic[],
@@ -218,59 +283,45 @@ export function getUrgencyAlerts(
   tracks: Track[]
 ): UrgencyAlert[] {
   const alerts: UrgencyAlert[] = [];
-  const inProgressGroups = getInProgressTopics(topics, subtopics, modules, tracks);
 
-  inProgressGroups.forEach((group) => {
-    if (group.isOverdue) {
-      alerts.push({
-        id: `overdue-${group.topic.id}`,
-        level: "critical",
-        message: `Overdue — was due ${group.dueDate ? formatDueDate(group.dueDate) : "earlier"}`,
-        topicName: group.topic.name,
-        trackName: group.trackName,
-        dueDate: group.dueDate,
-        topicId: group.topic.id,
+  topics.filter((t) => !t.archived).forEach((topic) => {
+    const topicSubs = subtopics.filter((s) => s.topicId === topic.id && !s.archived);
+    const track = tracks.find((t) => t.id === topic.trackId);
+    const trackName = track?.name ?? "Unknown";
+    const inProgressSubs = topicSubs.filter((s) => s.status === "in_progress");
+
+    if (topicSubs.length > 0) {
+      // Subtopic-level urgency: only in-progress subtopics can be due
+      inProgressSubs.forEach((sub) => {
+        const dueDate = getSubtopicDueDate(sub, topic);
+        const daysRemaining = getDaysUntilDue(dueDate);
+        pushDueAlert(alerts, {
+          id: `sub-${sub.id}`,
+          topicId: topic.id,
+          topicName: topic.name,
+          trackName,
+          dueDate,
+          daysRemaining,
+          subtopicId: sub.id,
+          subtopicName: sub.name,
+          noDeadline: !dueDate,
+        });
       });
-    } else if (group.daysRemaining === 0) {
-      alerts.push({
-        id: `today-${group.topic.id}`,
-        level: "critical",
-        message: "Due today — finish before end of day",
-        topicName: group.topic.name,
-        trackName: group.trackName,
-        dueDate: group.dueDate,
-        topicId: group.topic.id,
-      });
-    } else if (group.daysRemaining === 1) {
-      alerts.push({
-        id: `tomorrow-${group.topic.id}`,
-        level: "warning",
-        message: "Due tomorrow — prioritize this topic",
-        topicName: group.topic.name,
-        trackName: group.trackName,
-        dueDate: group.dueDate,
-        topicId: group.topic.id,
-      });
-    } else if (group.daysRemaining !== null && group.daysRemaining <= 3) {
-      alerts.push({
-        id: `soon-${group.topic.id}`,
-        level: "warning",
-        message: `${group.daysRemaining} days left to complete`,
-        topicName: group.topic.name,
-        trackName: group.trackName,
-        dueDate: group.dueDate,
-        topicId: group.topic.id,
-      });
-    } else if (!group.dueDate && group.topic.status === "in_progress") {
-      alerts.push({
-        id: `no-deadline-${group.topic.id}`,
-        level: "info",
-        message: "No deadline set — add one to stay on track",
-        topicName: group.topic.name,
-        trackName: group.trackName,
-        topicId: group.topic.id,
-      });
+      return;
     }
+
+    // Leaf topic (no subtopics) — topic-level urgency
+    if (topic.status !== "in_progress") return;
+    const daysRemaining = getDaysUntilDue(topic.dueDate);
+    pushDueAlert(alerts, {
+      id: `topic-${topic.id}`,
+      topicId: topic.id,
+      topicName: topic.name,
+      trackName,
+      dueDate: topic.dueDate,
+      daysRemaining,
+      noDeadline: !topic.dueDate,
+    });
   });
 
   const order = { critical: 0, warning: 1, info: 2 };

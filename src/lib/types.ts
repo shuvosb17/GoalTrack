@@ -149,6 +149,9 @@ export interface UrgencyAlert {
   trackName: string;
   dueDate?: string;
   topicId: string;
+  /** When the alert is for a specific in-progress subtopic */
+  subtopicId?: string;
+  subtopicName?: string;
 }
 
 export interface LearningSession {

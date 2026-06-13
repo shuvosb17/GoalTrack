@@ -130,13 +130,17 @@ export function getInProgressTopics(
     if (topic.archived) return;
     const topicSubs = subtopics.filter((s) => s.topicId === topic.id && !s.archived);
     const activeSubtopics = topicSubs.filter((s) => s.status === "in_progress");
-    const topicIsActive = topic.status === "in_progress" || activeSubtopics.length > 0;
+    const effectiveStatus = getEffectiveTopicStatus(topic, subtopics);
 
-    if (!topicIsActive) return;
+    if (effectiveStatus !== "in_progress") return;
+    // Topic has subtopics but none actively in progress — nothing urgent at topic level
+    if (topicSubs.length > 0 && activeSubtopics.length === 0) return;
 
     const mod = modules.find((m) => m.id === topic.moduleId);
     const track = tracks.find((t) => t.id === topic.trackId);
-    const dueDate = getEffectiveDueDate(topic, activeSubtopics);
+    const dueDate = topicSubs.length > 0
+      ? getEffectiveDueDate(topic, activeSubtopics)
+      : topic.dueDate;
     const daysRemaining = getDaysUntilDue(dueDate);
 
     groups.push({
@@ -170,7 +174,9 @@ export function getInProgressTasks(
     const topic = topics.find((t) => t.id === sub.topicId);
     const mod = modules.find((m) => m.id === sub.moduleId);
     const track = tracks.find((t) => t.id === sub.trackId);
-    const daysRemaining = getDaysUntilDue(sub.dueDate);
+    const daysRemaining = getDaysUntilDue(
+      topic ? getSubtopicDueDate(sub, topic) : sub.dueDate
+    );
 
     return {
       subtopic: sub,
