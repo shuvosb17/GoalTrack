@@ -4,14 +4,16 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Activity, AlertTriangle, Clock, CalendarDays, CheckCircle2,
-  Loader2, Sparkles, Circle, Bell, ChevronRight, Flag,
+  AlertTriangle, Clock, CheckCircle2, Loader2, Sparkles, Circle,
+  ChevronRight, Flag, BookmarkCheck,
 } from "lucide-react";
+import { IconActivity, IconAlertTriangle, IconCalendarEvent } from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SectionHeading } from "@/components/shared/section-heading";
 import { TimerControls } from "@/components/timer/timer-controls";
 import {
   useTracks, useAllModules, useAllTopics, useAllSubtopics, useGoalMilestones,
@@ -21,14 +23,13 @@ import {
   getStatusTimeline, getGlobalStatusCounts, getUrgencyAlerts,
   getTodaySnapshot, ALL_STATUSES, formatDeadline,
 } from "@/lib/status";
-import { cn, STATUS_LABELS, STATUS_COLORS, STATUS_BG } from "@/lib/utils";
+import { cn, STATUS_LABELS, STATUS_COLORS } from "@/lib/utils";
 import type { ProgressStatus } from "@/lib/types";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { updateTopicStatus, markTopicReviewed } from "@/lib/crud";
 import { getTopicsDueForReview } from "@/lib/metrics";
-import { BookmarkCheck } from "lucide-react";
 
 const STATUS_ICONS: Record<ProgressStatus, typeof Circle> = {
   not_started: Circle,
@@ -37,7 +38,37 @@ const STATUS_ICONS: Record<ProgressStatus, typeof Circle> = {
   mastered: Sparkles,
 };
 
+const PULSE_STATUSES: ProgressStatus[] = ["in_progress", "completed", "mastered"];
+
+const ALERT_STYLES = {
+  critical: { bar: "#ef4444", bg: "bg-red-500/[0.06]", border: "border-red-500/20", text: "text-red-400" },
+  warning: { bar: "#f59e0b", bg: "bg-amber-500/[0.06]", border: "border-amber-500/20", text: "text-amber-400" },
+  info: { bar: "#3b82f6", bg: "bg-blue-500/[0.06]", border: "border-blue-500/20", text: "text-blue-400" },
+} as const;
+
 type Filter = ProgressStatus | "all" | "review";
+
+function StatusChip({
+  status,
+  count,
+  compact,
+}: {
+  status: ProgressStatus;
+  count: number;
+  compact?: boolean;
+}) {
+  const Icon = STATUS_ICONS[status];
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full border-[0.5px] border-white/[0.08] bg-white/[0.03] px-2 py-0.5 text-[10px] font-medium"
+      style={{ color: STATUS_COLORS[status] }}
+    >
+      <Icon className={cn("shrink-0", compact ? "h-2.5 w-2.5" : "h-3 w-3")} />
+      {count}
+      {!compact && <span className="opacity-70">{STATUS_LABELS[status]}</span>}
+    </span>
+  );
+}
 
 export default function StatusPage() {
   const tracks = useTracks();
@@ -52,6 +83,11 @@ export default function StatusPage() {
   const alerts = useMemo(
     () => getUrgencyAlerts(topics, subtopics, modules, tracks),
     [topics, subtopics, modules, tracks]
+  );
+
+  const pulseTotal = useMemo(
+    () => PULSE_STATUSES.reduce((sum, s) => sum + globalCounts[s], 0),
+    [globalCounts]
   );
 
   const timeline = useMemo(() => {
@@ -89,116 +125,162 @@ export default function StatusPage() {
   }, [topics, modules, tracks, trackFilter]);
 
   const reviewCount = useMemo(() => getTopicsDueForReview(topics).length, [topics]);
+  const criticalCount = alerts.filter((a) => a.level === "critical").length;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight sm:gap-3 sm:text-3xl">
-            <Activity className="h-8 w-8 text-primary" /> Status
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Your learning status organized by date — track every milestone
-          </p>
+    <div className="space-y-8">
+      {/* Header + Status Pulse */}
+      <div className="space-y-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="flex items-center gap-2 text-2xl font-medium tracking-tight sm:text-3xl">
+              <IconActivity className="h-7 w-7 text-primary" stroke={1.5} /> Status
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Your learning status organized by date — track every milestone
+            </p>
+          </div>
+          <Link href="/tracks">
+            <Button variant="outline" className="border-[0.5px] border-white/[0.08]">Update in Tracks</Button>
+          </Link>
         </div>
-        <Link href="/tracks"><Button variant="outline">Update in Tracks</Button></Link>
-      </div>
 
-      {/* Urgency Alerts */}
-      <AnimatePresence>
-        {alerts.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
-            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <Bell className="h-4 w-4 text-amber-400" /> Urgency Alerts
-              <Badge variant="destructive" className="text-[10px]">{alerts.filter((a) => a.level === "critical").length} critical</Badge>
+        <Card className="border-[0.5px] border-white/[0.08] overflow-hidden">
+          <CardContent className="pt-6 pb-5">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Status pulse</p>
+              {todaySnap && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <IconCalendarEvent className="h-3.5 w-3.5 text-violet-400/80" stroke={1.5} />
+                  <span className="text-[11px] text-muted-foreground">Today:</span>
+                  {ALL_STATUSES.filter((s) => todaySnap.counts[s] > 0).map((s) => (
+                    <StatusChip key={s} status={s} count={todaySnap.counts[s]} compact />
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="grid md:grid-cols-2 gap-2">
-              {alerts.slice(0, 6).map((alert, i) => (
-                <motion.div
-                  key={alert.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className={cn(
-                    "flex items-center gap-3 p-3 rounded-xl border text-sm",
-                    alert.level === "critical" && "bg-red-500/10 border-red-500/30 text-red-300",
-                    alert.level === "warning" && "bg-amber-500/10 border-amber-500/30 text-amber-300",
-                    alert.level === "info" && "bg-blue-500/10 border-blue-500/30 text-blue-300"
-                  )}
-                >
-                  <AlertTriangle className={cn(
-                    "h-4 w-4 shrink-0",
-                    alert.level === "critical" && "text-red-400",
-                    alert.level === "warning" && "text-amber-400",
-                    alert.level === "info" && "text-blue-400"
-                  )} />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{alert.topicName}</p>
-                    <p className="text-xs opacity-80">{alert.trackName} · {alert.message}</p>
-                  </div>
-                </motion.div>
+            <div className="flex h-3 overflow-hidden rounded-full bg-white/[0.04]">
+              {PULSE_STATUSES.map((status) => {
+                const count = globalCounts[status];
+                const pct = pulseTotal > 0 ? (count / pulseTotal) * 100 : 0;
+                if (pct === 0) return null;
+                return (
+                  <div
+                    key={status}
+                    className="h-full transition-all duration-500 first:rounded-l-full last:rounded-r-full"
+                    style={{ width: `${pct}%`, background: STATUS_COLORS[status] }}
+                    title={`${STATUS_LABELS[status]}: ${count}`}
+                  />
+                );
+              })}
+              {pulseTotal === 0 && (
+                <div className="h-full w-full rounded-full bg-zinc-700/40" />
+              )}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5">
+              {PULSE_STATUSES.map((status) => (
+                <span key={status} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span className="h-2 w-2 rounded-full" style={{ background: STATUS_COLORS[status] }} />
+                  {STATUS_LABELS[status]}
+                  <span className="metric-value tabular-nums text-foreground">{globalCounts[status]}</span>
+                </span>
               ))}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </CardContent>
+        </Card>
+      </div>
 
-      {/* Global status overview */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {/* Status overview tiles */}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {ALL_STATUSES.map((status) => {
           const Icon = STATUS_ICONS[status];
           const count = globalCounts[status];
+          const active = statusFilter === status;
           return (
             <button
               key={status}
-              onClick={() => setStatusFilter(statusFilter === status ? "all" : status)}
+              type="button"
+              onClick={() => setStatusFilter(active ? "all" : status)}
               className={cn(
-                "glass-card rounded-xl p-4 text-left transition-all hover:scale-[1.02] border",
-                statusFilter === status ? "ring-2 ring-primary/50" : "border-transparent",
-                STATUS_BG[status]
+                "relative overflow-hidden rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.02] p-4 text-left transition-all hover:bg-white/[0.04]",
+                active && "ring-1 ring-primary/40 bg-white/[0.04]"
               )}
             >
-              <div className="flex items-center justify-between mb-2">
-                <Icon className="h-5 w-5" style={{ color: STATUS_COLORS[status] }} />
-                <span className="text-2xl font-bold">{count}</span>
+              <div
+                className="absolute inset-x-0 top-0 h-0.5"
+                style={{ background: STATUS_COLORS[status] }}
+              />
+              <div className="flex items-center justify-between">
+                <Icon className="h-4 w-4" style={{ color: STATUS_COLORS[status] }} />
+                <span className="metric-value text-2xl tabular-nums sm:text-3xl">{count}</span>
               </div>
-              <p className="text-xs font-medium">{STATUS_LABELS[status]}</p>
+              <p className="mt-2 text-[11px] font-medium text-muted-foreground">{STATUS_LABELS[status]}</p>
             </button>
           );
         })}
       </div>
 
-      {/* Today highlight */}
-      {todaySnap && (
-        <Card className="gradient-border border-primary/20">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 mb-3">
-              <CalendarDays className="h-5 w-5 text-primary" />
-              <h2 className="font-semibold">Today&apos;s Activity</h2>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {ALL_STATUSES.filter((s) => todaySnap.counts[s] > 0).map((status) => (
-                <Badge key={status} className={cn("border", STATUS_BG[status])}>
-                  {todaySnap.counts[status]} {STATUS_LABELS[status]}
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Needs attention */}
+      <AnimatePresence>
+        {alerts.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
+            <Card className="border-[0.5px] border-white/[0.08]">
+              <CardContent className="pt-6">
+                <div className="mb-4 flex flex-wrap items-center gap-2">
+                  <SectionHeading icon={IconAlertTriangle} className="mb-0 flex-1 border-0 pb-0">
+                    Needs attention
+                  </SectionHeading>
+                  {criticalCount > 0 && (
+                    <Badge variant="destructive" className="text-[10px]">{criticalCount} critical</Badge>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  {alerts.slice(0, 6).map((alert, i) => {
+                    const style = ALERT_STYLES[alert.level];
+                    return (
+                      <motion.div
+                        key={alert.id}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.04 }}
+                      >
+                        <Link
+                          href={`/tracks?track=${topics.find((t) => t.id === alert.topicId)?.trackId ?? ""}&topic=${alert.topicId}`}
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg border-[0.5px] p-3 text-sm transition-colors hover:bg-white/[0.04]",
+                            style.bg,
+                            style.border
+                          )}
+                        >
+                          <div className="w-0.5 self-stretch rounded-full shrink-0" style={{ background: style.bar }} />
+                          <AlertTriangle className={cn("h-4 w-4 shrink-0", style.text)} />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-medium">{alert.topicName}</p>
+                            <p className="text-xs text-muted-foreground">{alert.trackName} · {alert.message}</p>
+                          </div>
+                          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
+                        </Link>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 items-center">
+      <div className="flex flex-wrap items-center gap-3">
         <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as Filter)}>
-          <TabsList>
-            <TabsTrigger value="all">All Statuses</TabsTrigger>
+          <TabsList className="h-9 border-[0.5px] border-white/[0.08] bg-white/[0.02]">
+            <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
             {ALL_STATUSES.filter((s) => s !== "not_started").map((s) => (
-              <TabsTrigger key={s} value={s}>{STATUS_LABELS[s]}</TabsTrigger>
+              <TabsTrigger key={s} value={s} className="text-xs">{STATUS_LABELS[s]}</TabsTrigger>
             ))}
-            <TabsTrigger value="review" className="gap-1.5">
+            <TabsTrigger value="review" className="gap-1.5 text-xs">
               <BookmarkCheck className="h-3.5 w-3.5" />
-              Due for Review
+              Review
               {reviewCount > 0 && (
                 <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-violet-500/80 px-1 text-[9px] font-medium text-white">
                   {reviewCount}
@@ -208,10 +290,14 @@ export default function StatusPage() {
           </TabsList>
         </Tabs>
         <Select value={trackFilter} onValueChange={setTrackFilter}>
-          <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="All Tracks" /></SelectTrigger>
+          <SelectTrigger className="h-9 w-[180px] border-[0.5px] border-white/[0.08] bg-white/[0.02]">
+            <SelectValue placeholder="All Tracks" />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Tracks</SelectItem>
-            {tracks.map((t) => <SelectItem key={t.id} value={t.id}>{t.icon} {t.name}</SelectItem>)}
+            {tracks.map((t) => (
+              <SelectItem key={t.id} value={t.id}>{t.icon} {t.name}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -219,30 +305,30 @@ export default function StatusPage() {
       {/* Due for Review */}
       {statusFilter === "review" ? (
         reviewItems.length === 0 ? (
-          <Card>
+          <Card className="border-[0.5px] border-dashed border-white/[0.08]">
             <CardContent className="py-16 text-center">
-              <BookmarkCheck className="h-14 w-14 text-muted-foreground/20 mx-auto mb-4" />
-              <h3 className="font-semibold text-lg">Nothing due for review</h3>
-              <p className="text-sm text-muted-foreground mt-2">
+              <BookmarkCheck className="mx-auto mb-4 h-12 w-12 text-muted-foreground/25" />
+              <h3 className="text-lg font-medium">Nothing due for review</h3>
+              <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
                 Topics you complete with low confidence reappear here when it&apos;s time to refresh them.
               </p>
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {reviewItems.map(({ topic, moduleName, track }, i) => (
               <motion.div
                 key={topic.id}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.04 }}
-                className="glass-card flex items-center gap-4 rounded-xl p-4"
+                className="flex items-center gap-4 rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.02] p-4"
                 style={{ borderLeftWidth: 3, borderLeftColor: track?.color ?? "#a78bfa" }}
               >
-                <span className="text-xl shrink-0">{track?.icon ?? "📚"}</span>
+                <span className="shrink-0 text-xl">{track?.icon ?? "📚"}</span>
                 <div className="min-w-0 flex-1">
-                  <h4 className="font-semibold truncate">{topic.name}</h4>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <h4 className="truncate font-semibold">{topic.name}</h4>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
                     {track?.name} → {moduleName} · confidence {topic.completionMeta?.confidenceRating}/5
                     {topic.completionMeta?.nextReviewDue && ` · due ${topic.completionMeta.nextReviewDue}`}
                   </p>
@@ -260,55 +346,51 @@ export default function StatusPage() {
           </div>
         )
       ) : timeline.length === 0 ? (
-        <Card>
+        <Card className="border-[0.5px] border-dashed border-white/[0.08]">
           <CardContent className="py-16 text-center">
-            <Activity className="h-14 w-14 text-muted-foreground/20 mx-auto mb-4" />
-            <h3 className="font-semibold text-lg">No status activity yet</h3>
-            <p className="text-sm text-muted-foreground mt-2">Update topic statuses in Tracks to build your timeline.</p>
+            <IconActivity className="mx-auto mb-4 h-12 w-12 text-muted-foreground/25" stroke={1.25} />
+            <h3 className="text-lg font-medium">No status activity yet</h3>
+            <p className="mt-2 text-sm text-muted-foreground">Update topic statuses in Tracks to build your timeline.</p>
             <Link href="/tracks"><Button className="mt-6">Go to Tracks</Button></Link>
           </CardContent>
         </Card>
       ) : (
-        <div className="relative ml-3 space-y-8 border-l border-primary/30 pl-8">
+        <div className="relative ml-3 space-y-8 pl-8">
+          <div className="pointer-events-none absolute -left-px top-0 bottom-0 w-px bg-gradient-to-b from-violet-500/60 via-violet-500/20 to-transparent" />
 
           {timeline.map((day, di) => (
             <motion.div
               key={day.date}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: di * 0.06 }}
+              transition={{ delay: di * 0.05 }}
               className="relative"
             >
-              {/* Date node */}
-              <div className="absolute -left-[calc(2rem+0.375rem)] top-6 h-3 w-3 rounded-full border-2 border-background bg-primary shadow-lg shadow-primary/30" />
+              <div className="absolute -left-[calc(2rem+0.3125rem)] top-7 h-2.5 w-2.5 rounded-full border-2 border-background bg-violet-500 shadow-md shadow-violet-500/40" />
 
-              <div className="glass-card rounded-2xl overflow-hidden">
-                {/* Date header */}
-                <div className="p-5 border-b border-border/50 bg-secondary/20">
-                  <div className="flex items-center justify-between flex-wrap gap-3">
-                    <div>
-                      <h3 className="font-bold text-lg">{day.label}</h3>
-                      <p className="text-xs text-muted-foreground">{day.date}</p>
+              <div className="overflow-hidden rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.02]">
+                <div className="border-b border-white/[0.06] px-5 py-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <h3 className="font-semibold">{day.label}</h3>
+                        <p className="text-[11px] text-muted-foreground">{day.date}</p>
+                      </div>
+                      <span className="rounded-full border-[0.5px] border-white/[0.08] bg-white/[0.03] px-2 py-0.5 text-[10px] text-muted-foreground">
+                        {day.relativeLabel}
+                      </span>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                       {ALL_STATUSES.map((status) =>
                         day.counts[status] > 0 ? (
-                          <div
-                            key={status}
-                            className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium", STATUS_BG[status])}
-                          >
-                            {(() => { const I = STATUS_ICONS[status]; return <I className="h-3 w-3" />; })()}
-                            <span>{day.counts[status]}</span>
-                            <span className="opacity-70">{STATUS_LABELS[status]}</span>
-                          </div>
+                          <StatusChip key={status} status={status} count={day.counts[status]} />
                         ) : null
                       )}
                     </div>
                   </div>
                 </div>
 
-                {/* Topic cards */}
-                <div className="p-4 space-y-3">
+                <div className="space-y-2.5 p-4">
                   {day.topics.map((entry) => {
                     const status = entry.topic.status;
                     const StatusIcon = STATUS_ICONS[status];
@@ -316,22 +398,25 @@ export default function StatusPage() {
                       <div
                         key={entry.topic.id}
                         className={cn(
-                          "rounded-xl border p-4 flex gap-4 items-start",
-                          STATUS_BG[status],
-                          entry.isOverdue && "ring-1 ring-red-500/40"
+                          "flex items-start gap-4 rounded-xl border-[0.5px] border-white/[0.06] bg-white/[0.02] p-4",
+                          entry.isOverdue && "ring-1 ring-red-500/30"
                         )}
                         style={{ borderLeftWidth: 3, borderLeftColor: STATUS_COLORS[status] }}
                       >
-                        <span className="text-xl shrink-0">{entry.trackIcon}</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
+                        <span className="shrink-0 text-xl">{entry.trackIcon}</span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
                             <h4 className="font-semibold">{entry.topic.name}</h4>
-                            <Badge className={cn("border gap-1 text-[10px]", STATUS_BG[status])}>
+                            <Badge
+                              variant="outline"
+                              className="gap-1 border-[0.5px] text-[10px]"
+                              style={{ borderColor: `${STATUS_COLORS[status]}44`, color: STATUS_COLORS[status] }}
+                            >
                               <StatusIcon className="h-3 w-3" />
                               {STATUS_LABELS[status]}
                             </Badge>
                             {entry.isOverdue && (
-                              <Badge variant="destructive" className="text-[10px] gap-1">
+                              <Badge variant="destructive" className="gap-1 text-[10px]">
                                 <AlertTriangle className="h-3 w-3" /> Overdue
                               </Badge>
                             )}
@@ -340,20 +425,20 @@ export default function StatusPage() {
                             )}
                             {getActiveGoalsForTopic(entry.topic, goalMilestones).map((goal) => (
                               <Link key={goal.id} href="/milestones">
-                                <Badge variant="outline" className="text-[10px] gap-1 hover:bg-secondary/50">
+                                <Badge variant="outline" className="gap-1 text-[10px] hover:bg-secondary/50">
                                   <Flag className="h-3 w-3" /> {goal.title}
                                 </Badge>
                               </Link>
                             ))}
                           </div>
-                          <p className="text-xs text-muted-foreground mt-0.5">
+                          <p className="mt-0.5 text-xs text-muted-foreground">
                             {entry.trackName} → {entry.moduleName}
                           </p>
-                          <Progress value={entry.progress} className="h-1 mt-2 mb-2" />
-                          <div className="flex items-center gap-3 flex-wrap">
+                          <Progress value={entry.progress} className="mb-2 mt-2 h-1" />
+                          <div className="flex flex-wrap items-center gap-3">
                             {status === "in_progress" && (
                               <span className={cn(
-                                "text-xs flex items-center gap-1",
+                                "flex items-center gap-1 text-xs",
                                 entry.isOverdue ? "text-red-400" : "text-muted-foreground"
                               )}>
                                 <Clock className="h-3 w-3" />
@@ -378,10 +463,15 @@ export default function StatusPage() {
                             </Select>
                           </div>
                         </div>
-                        <div className="text-right shrink-0">
-                          <p className="text-xl font-bold" style={{ color: entry.trackColor }}>{entry.progress}%</p>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto mt-1" />
-                        </div>
+                        <Link
+                          href={`/tracks?track=${entry.trackId}&topic=${entry.topic.id}`}
+                          className="shrink-0 text-right transition-opacity hover:opacity-80"
+                        >
+                          <p className="metric-value text-xl tabular-nums" style={{ color: entry.trackColor }}>
+                            {entry.progress}%
+                          </p>
+                          <ChevronRight className="ml-auto mt-1 h-4 w-4 text-muted-foreground" />
+                        </Link>
                       </div>
                     );
                   })}
