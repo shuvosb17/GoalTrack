@@ -4,7 +4,11 @@ import type {
   Track, Module, Topic, Subtopic, ProgressStatus,
   StatusTopicEntry, DailyStatusSnapshot, UrgencyAlert,
 } from "./types";
-import { getTopicProgressPercent } from "./in-progress";
+import {
+  getTopicProgressPercent,
+  getEffectiveTopicStatus,
+  getSubtopicDueDate,
+} from "./in-progress";
 
 export {
   isTopicComplete,
@@ -16,6 +20,7 @@ export {
   getInProgressTopics,
   sortInProgressTopicsByUrgency,
   defaultDueDate,
+  getEffectiveTopicStatus,
 } from "./in-progress";
 
 import {
@@ -58,20 +63,20 @@ function getTopicStatusDate(topic: Topic, subtopics: Subtopic[]): string {
   return timestamps.map(toLocalDateKey).sort()[0];
 }
 
-function buildStatusEntry(
+function buildStatusEntries(
   topic: Topic,
   subtopics: Subtopic[],
   modules: Module[],
   tracks: Track[]
-): StatusTopicEntry {
+): StatusTopicEntry[] {
   const mod = modules.find((m) => m.id === topic.moduleId);
   const track = tracks.find((t) => t.id === topic.trackId);
   const topicSubs = subtopics.filter((s) => s.topicId === topic.id && !s.archived);
   const activeSubs = topicSubs.filter((s) => s.status === "in_progress");
-  const dueDate = getEffectiveDueDate(topic, activeSubs);
-  const daysRemaining = getDaysUntilDue(dueDate);
+  const effectiveStatus = getEffectiveTopicStatus(topic, subtopics);
+  const topicProgress = getTopicProgressPercent(topic, subtopics);
 
-  return {
+  const shared = {
     topic,
     moduleName: mod?.name ?? "Unknown",
     trackName: track?.name ?? "Unknown",
@@ -79,13 +84,56 @@ function buildStatusEntry(
     trackIcon: track?.icon ?? "📚",
     trackId: topic.trackId,
     moduleId: topic.moduleId,
-    progress: getTopicProgressPercent(topic, subtopics),
-    daysRemaining,
-    isOverdue: daysRemaining !== null && daysRemaining < 0,
-    isDueSoon: daysRemaining !== null && daysRemaining >= 0 && daysRemaining <= 3,
-    dueDate,
-    statusDate: getTopicStatusDate(topic, subtopics),
+    displayStatus: effectiveStatus,
+    activeSubtopics: activeSubs,
+    progress: topicProgress,
   };
+
+  const finalize = (
+    entry: Omit<StatusTopicEntry, "daysRemaining" | "isOverdue" | "isDueSoon"> &
+      Partial<Pick<StatusTopicEntry, "daysRemaining" | "isOverdue" | "isDueSoon" | "dueDate">>
+  ): StatusTopicEntry => {
+    const dueDate = entry.dueDate ?? getEffectiveDueDate(topic, activeSubs);
+    const daysRemaining = entry.daysRemaining ?? getDaysUntilDue(dueDate);
+    return {
+      ...entry,
+      dueDate,
+      daysRemaining,
+      isOverdue: entry.isOverdue ?? (daysRemaining !== null && daysRemaining < 0),
+      isDueSoon: entry.isDueSoon ?? (daysRemaining !== null && daysRemaining >= 0 && daysRemaining <= 3),
+    };
+  };
+
+  if (effectiveStatus === "in_progress" && activeSubs.length > 0) {
+    return activeSubs.map((sub) => {
+      const subDue = getSubtopicDueDate(sub, topic);
+      const subDays = getDaysUntilDue(subDue);
+      return finalize({
+        ...shared,
+        displayName: sub.name,
+        focalSubtopic: sub,
+        dueDate: subDue,
+        daysRemaining: subDays,
+        isOverdue: subDays !== null && subDays < 0,
+        isDueSoon: subDays !== null && subDays >= 0 && subDays <= 3,
+        statusDate: sub.statusChangedAt ? toLocalDateKey(sub.statusChangedAt) : getTopicStatusDate(topic, subtopics),
+      });
+    });
+  }
+
+  const dueDate = getEffectiveDueDate(topic, activeSubs);
+  const daysRemaining = getDaysUntilDue(dueDate);
+  return [
+    finalize({
+      ...shared,
+      displayName: topic.name,
+      statusDate: getTopicStatusDate(topic, subtopics),
+      dueDate,
+      daysRemaining,
+      isOverdue: daysRemaining !== null && daysRemaining < 0,
+      isDueSoon: daysRemaining !== null && daysRemaining >= 0 && daysRemaining <= 3,
+    }),
+  ];
 }
 
 export function getStatusTimeline(
@@ -96,24 +144,23 @@ export function getStatusTimeline(
   statusFilter: ProgressStatus | "all" = "all"
 ): DailyStatusSnapshot[] {
   const active = topics.filter((t) => !t.archived);
-  const filtered = statusFilter && statusFilter !== "all"
-    ? active.filter((t) => t.status === statusFilter)
-    : active.filter((t) => t.status !== "not_started");
-
   const byDate = new Map<string, StatusTopicEntry[]>();
 
-  filtered.forEach((topic) => {
-    const entry = buildStatusEntry(topic, subtopics, modules, tracks);
-    const existing = byDate.get(entry.statusDate) ?? [];
-    existing.push(entry);
-    byDate.set(entry.statusDate, existing);
+  active.forEach((topic) => {
+    buildStatusEntries(topic, subtopics, modules, tracks).forEach((entry) => {
+      if (statusFilter !== "all" && entry.displayStatus !== statusFilter) return;
+      if (statusFilter === "all" && entry.displayStatus === "not_started") return;
+      const existing = byDate.get(entry.statusDate) ?? [];
+      existing.push(entry);
+      byDate.set(entry.statusDate, existing);
+    });
   });
 
   return [...byDate.entries()]
     .sort(([a], [b]) => b.localeCompare(a))
     .map(([date, entries]) => {
       const counts = emptyCounts();
-      entries.forEach((e) => { counts[e.topic.status]++; });
+      entries.forEach((e) => { counts[e.displayStatus]++; });
       return {
         date,
         label: formatDateLabel(date),
@@ -127,9 +174,14 @@ export function getStatusTimeline(
     });
 }
 
-export function getGlobalStatusCounts(topics: Topic[]): Record<ProgressStatus, number> {
+export function getGlobalStatusCounts(
+  topics: Topic[],
+  subtopics: Subtopic[] = []
+): Record<ProgressStatus, number> {
   const counts = emptyCounts();
-  topics.filter((t) => !t.archived).forEach((t) => { counts[t.status ?? "not_started"]++; });
+  topics
+    .filter((t) => !t.archived)
+    .forEach((t) => { counts[getEffectiveTopicStatus(t, subtopics)]++; });
   return counts;
 }
 

@@ -23,7 +23,7 @@ export function StatusPanel({ topics, subtopics, modules, tracks }: StatusPanelP
   const timeline = getStatusTimeline(topics, subtopics, modules, tracks);
   const today = getTodaySnapshot(timeline);
   const alerts = getUrgencyAlerts(topics, subtopics, modules, tracks);
-  const counts = getGlobalStatusCounts(topics);
+  const counts = getGlobalStatusCounts(topics, subtopics);
   const criticalAlerts = alerts.filter((a) => a.level === "critical").length;
 
   return (

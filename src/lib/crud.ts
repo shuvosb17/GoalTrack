@@ -150,18 +150,26 @@ export async function updateTopicStatus(id: string, status: ProgressStatus, dueD
   const topic = await db.topics.get(id);
   if (!topic) return;
 
-  const updates: Partial<Topic> = { status, updatedAt: nowISO() };
-  if (topic.status !== status) {
+  let resolvedStatus = status;
+  if (status === "in_progress") {
+    const subs = await db.subtopics.where("topicId").equals(id).filter((s) => !s.archived).toArray();
+    if (subs.length > 0 && subs.every((s) => s.status === "completed" || s.status === "mastered")) {
+      resolvedStatus = subs.every((s) => s.status === "mastered") ? "mastered" : "completed";
+    }
+  }
+
+  const updates: Partial<Topic> = { status: resolvedStatus, updatedAt: nowISO() };
+  if (topic.status !== resolvedStatus) {
     updates.statusChangedAt = nowISO();
   }
 
-  if (status === "in_progress") {
+  if (resolvedStatus === "in_progress") {
     updates.startedAt = topic.startedAt ?? nowISO();
     updates.dueDate = dueDate ?? topic.dueDate ?? todayISO();
-  } else if (status === "not_started") {
+  } else if (resolvedStatus === "not_started") {
     updates.startedAt = undefined;
     updates.dueDate = undefined;
-  } else if (status === "completed" || status === "mastered") {
+  } else if (resolvedStatus === "completed" || resolvedStatus === "mastered") {
     updates.dueDate = undefined;
     if (!topic.completionMeta) {
       updates.completionMeta = {
@@ -174,25 +182,27 @@ export async function updateTopicStatus(id: string, status: ProgressStatus, dueD
 
   await db.topics.update(id, updates);
 
-  if (status === "in_progress" && updates.dueDate) {
+  if (resolvedStatus === "in_progress" && updates.dueDate) {
     await propagateDueDate(id, updates.dueDate);
   }
 
-  if (status === "completed" || status === "mastered") {
+  if (resolvedStatus === "completed" || resolvedStatus === "mastered") {
     const changedAt = updates.statusChangedAt ?? nowISO();
     const subs = await db.subtopics.where("topicId").equals(id).filter((s) => !s.archived).toArray();
     await Promise.all(
       subs
-        .filter((sub) => sub.status !== status)
+        .filter((sub) => sub.status !== resolvedStatus)
         .map((sub) =>
           db.subtopics.update(sub.id, {
-            status,
+            status: resolvedStatus,
             dueDate: undefined,
             updatedAt: nowISO(),
             statusChangedAt: changedAt,
           })
         )
     );
+  } else {
+    await syncTopicStatusFromSubtopics(id);
   }
 }
 

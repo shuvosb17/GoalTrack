@@ -28,7 +28,7 @@ import type { ProgressStatus } from "@/lib/types";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { updateTopicStatus } from "@/lib/crud";
+import { updateTopicStatus, updateSubtopicStatus } from "@/lib/crud";
 import { getTopicsDueForReview, isTopicDueForReview } from "@/lib/metrics";
 import { TopicConfidenceDialog } from "@/components/tracks/topic-confidence-dialog";
 
@@ -81,7 +81,7 @@ export default function StatusPage() {
   const [trackFilter, setTrackFilter] = useState("all");
   const [reviewDialog, setReviewDialog] = useState<{ id: string; name: string } | null>(null);
 
-  const globalCounts = useMemo(() => getGlobalStatusCounts(topics), [topics]);
+  const globalCounts = useMemo(() => getGlobalStatusCounts(topics, subtopics), [topics, subtopics]);
   const alerts = useMemo(
     () => getUrgencyAlerts(topics, subtopics, modules, tracks),
     [topics, subtopics, modules, tracks]
@@ -101,7 +101,7 @@ export default function StatusPage() {
           topics: day.topics.filter((t) => t.trackId === trackFilter),
           counts: (() => {
             const c = { not_started: 0, in_progress: 0, completed: 0, mastered: 0 };
-            day.topics.filter((t) => t.trackId === trackFilter).forEach((e) => c[e.topic.status]++);
+            day.topics.filter((t) => t.trackId === trackFilter).forEach((e) => c[e.displayStatus]++);
             return c;
           })(),
         }))
@@ -398,11 +398,14 @@ export default function StatusPage() {
 
                 <div className="space-y-2.5 p-4">
                   {day.topics.map((entry) => {
-                    const status = entry.topic.status;
+                    const status = entry.displayStatus;
                     const StatusIcon = STATUS_ICONS[status];
+                    const breadcrumb = entry.focalSubtopic
+                      ? `${entry.trackName} → ${entry.moduleName} → ${entry.topic.name}`
+                      : `${entry.trackName} → ${entry.moduleName}`;
                     return (
                       <div
-                        key={entry.topic.id}
+                        key={`${entry.topic.id}-${entry.focalSubtopic?.id ?? "topic"}`}
                         className={cn(
                           "flex items-start gap-4 rounded-xl border-[0.5px] border-white/[0.06] bg-white/[0.02] p-4",
                           entry.isOverdue && "ring-1 ring-red-500/30"
@@ -412,7 +415,7 @@ export default function StatusPage() {
                         <span className="shrink-0 text-xl">{entry.trackIcon}</span>
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h4 className="font-semibold">{entry.topic.name}</h4>
+                            <h4 className="font-semibold">{entry.displayName}</h4>
                             <Badge
                               variant="outline"
                               className="gap-1 border-[0.5px] text-[10px]"
@@ -442,9 +445,7 @@ export default function StatusPage() {
                               </Badge>
                             )}
                           </div>
-                          <p className="mt-0.5 text-xs text-muted-foreground">
-                            {entry.trackName} → {entry.moduleName}
-                          </p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">{breadcrumb}</p>
                           <Progress value={entry.progress} className="mb-2 mt-2 h-1" />
                           <div className="flex flex-wrap items-center gap-3">
                             {status === "in_progress" && (
@@ -457,13 +458,29 @@ export default function StatusPage() {
                               </span>
                             )}
                             <TimerControls
-                              path={{ trackId: entry.trackId, moduleId: entry.moduleId, topicId: entry.topic.id }}
-                              label={`${entry.moduleName} → ${entry.topic.name}`}
+                              path={{
+                                trackId: entry.trackId,
+                                moduleId: entry.moduleId,
+                                topicId: entry.topic.id,
+                                subtopicId: entry.focalSubtopic?.id,
+                              }}
+                              label={
+                                entry.focalSubtopic
+                                  ? `${entry.topic.name} → ${entry.focalSubtopic.name}`
+                                  : `${entry.moduleName} → ${entry.topic.name}`
+                              }
                               compact
                             />
                             <Select
-                              value={status}
-                              onValueChange={(v) => updateTopicStatus(entry.topic.id, v as ProgressStatus)}
+                              value={entry.focalSubtopic?.status ?? status}
+                              onValueChange={(v) => {
+                                const next = v as ProgressStatus;
+                                if (entry.focalSubtopic) {
+                                  updateSubtopicStatus(entry.focalSubtopic.id, next, entry.focalSubtopic.dueDate);
+                                } else {
+                                  updateTopicStatus(entry.topic.id, next);
+                                }
+                              }}
                             >
                               <SelectTrigger className="h-7 w-[130px] text-xs"><SelectValue /></SelectTrigger>
                               <SelectContent>

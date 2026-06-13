@@ -108,6 +108,13 @@ export interface StatusTopicEntry {
   trackIcon: string;
   trackId: string;
   moduleId: string;
+  /** Primary label — subtopic name when a subtopic is in progress, else topic name */
+  displayName: string;
+  /** Resolved status from topic + subtopic states */
+  displayStatus: ProgressStatus;
+  /** When the row represents one in-progress subtopic */
+  focalSubtopic?: Subtopic;
+  activeSubtopics: Subtopic[];
   progress: number;
   daysRemaining: number | null;
   isOverdue: boolean;
