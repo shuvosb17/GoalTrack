@@ -115,6 +115,14 @@ export interface StatusTopicEntry {
   /** When the row represents one in-progress subtopic */
   focalSubtopic?: Subtopic;
   activeSubtopics: Subtopic[];
+  /** 2nd-order: parent topic completion across all its subtopics */
+  topicProgress: number;
+  /** 1st-order: focal subtopic completion (only present on subtopic rows) */
+  subtopicProgress?: number;
+  /** Counts of subtopics done / total for the parent topic */
+  subtopicsDone: number;
+  subtopicsTotal: number;
+  /** Headline % shown for the card (focal item: subtopic on subtopic rows, else topic) */
   progress: number;
   daysRemaining: number | null;
   isOverdue: boolean;

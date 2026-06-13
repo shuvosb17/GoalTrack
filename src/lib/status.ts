@@ -6,9 +6,11 @@ import type {
 } from "./types";
 import {
   getTopicProgressPercent,
+  getSubtopicProgressPercent,
   getEffectiveTopicStatus,
   getSubtopicDueDate,
 } from "./in-progress";
+import { isSubtopicDone } from "./utils";
 
 export {
   isTopicComplete,
@@ -74,9 +76,13 @@ function buildStatusEntries(
   const topicSubs = subtopics.filter((s) => s.topicId === topic.id && !s.archived);
   const activeSubs = topicSubs.filter((s) => s.status === "in_progress");
   const effectiveStatus = getEffectiveTopicStatus(topic, subtopics);
-  const topicProgress = getTopicProgressPercent(topic, subtopics);
 
-  const shared = {
+  // 2nd-order: parent topic completion across all its subtopics.
+  const topicProgress = getTopicProgressPercent(topic, subtopics);
+  const subtopicsTotal = topicSubs.length;
+  const subtopicsDone = topicSubs.filter((s) => isSubtopicDone(s.status)).length;
+
+  const base = {
     topic,
     moduleName: mod?.name ?? "Unknown",
     trackName: track?.name ?? "Unknown",
@@ -86,53 +92,48 @@ function buildStatusEntries(
     moduleId: topic.moduleId,
     displayStatus: effectiveStatus,
     activeSubtopics: activeSubs,
-    progress: topicProgress,
+    topicProgress,
+    subtopicsDone,
+    subtopicsTotal,
   };
 
-  const finalize = (
-    entry: Omit<StatusTopicEntry, "daysRemaining" | "isOverdue" | "isDueSoon"> &
-      Partial<Pick<StatusTopicEntry, "daysRemaining" | "isOverdue" | "isDueSoon" | "dueDate">>
-  ): StatusTopicEntry => {
-    const dueDate = entry.dueDate ?? getEffectiveDueDate(topic, activeSubs);
-    const daysRemaining = entry.daysRemaining ?? getDaysUntilDue(dueDate);
-    return {
-      ...entry,
-      dueDate,
-      daysRemaining,
-      isOverdue: entry.isOverdue ?? (daysRemaining !== null && daysRemaining < 0),
-      isDueSoon: entry.isDueSoon ?? (daysRemaining !== null && daysRemaining >= 0 && daysRemaining <= 3),
-    };
-  };
-
+  // A subtopic in progress gets its own row leading with the subtopic (1st order),
+  // while still carrying the parent topic progress (2nd order) for context.
   if (effectiveStatus === "in_progress" && activeSubs.length > 0) {
     return activeSubs.map((sub) => {
       const subDue = getSubtopicDueDate(sub, topic);
       const subDays = getDaysUntilDue(subDue);
-      return finalize({
-        ...shared,
+      const subtopicProgress = getSubtopicProgressPercent(sub);
+      return {
+        ...base,
         displayName: sub.name,
         focalSubtopic: sub,
+        subtopicProgress,
+        progress: subtopicProgress,
         dueDate: subDue,
         daysRemaining: subDays,
         isOverdue: subDays !== null && subDays < 0,
         isDueSoon: subDays !== null && subDays >= 0 && subDays <= 3,
         statusDate: sub.statusChangedAt ? toLocalDateKey(sub.statusChangedAt) : getTopicStatusDate(topic, subtopics),
-      });
+      };
     });
   }
 
+  // Topic-level row (no active subtopics): the headline is the topic itself (2nd order).
   const dueDate = getEffectiveDueDate(topic, activeSubs);
   const daysRemaining = getDaysUntilDue(dueDate);
   return [
-    finalize({
-      ...shared,
+    {
+      ...base,
       displayName: topic.name,
-      statusDate: getTopicStatusDate(topic, subtopics),
+      subtopicProgress: undefined,
+      progress: topicProgress,
       dueDate,
       daysRemaining,
       isOverdue: daysRemaining !== null && daysRemaining < 0,
       isDueSoon: daysRemaining !== null && daysRemaining >= 0 && daysRemaining <= 3,
-    }),
+      statusDate: getTopicStatusDate(topic, subtopics),
+    },
   ];
 }
 

@@ -446,7 +446,40 @@ export default function StatusPage() {
                             )}
                           </div>
                           <p className="mt-0.5 text-xs text-muted-foreground">{breadcrumb}</p>
-                          <Progress value={entry.progress} className="mb-2 mt-2 h-1" />
+
+                          <div className="mb-2 mt-3 space-y-2">
+                            {entry.focalSubtopic && (
+                              <div>
+                                <div className="mb-1 flex items-center justify-between text-[10px] font-medium uppercase tracking-wider text-muted-foreground/80">
+                                  <span>Subtopic</span>
+                                  <span className="tabular-nums text-foreground">{entry.subtopicProgress}%</span>
+                                </div>
+                                <Progress
+                                  value={entry.subtopicProgress}
+                                  className="h-1.5"
+                                  indicatorClassName="bg-primary"
+                                />
+                              </div>
+                            )}
+                            <div>
+                              <div className="mb-1 flex items-center justify-between text-[10px] font-medium uppercase tracking-wider text-muted-foreground/80">
+                                <span>
+                                  {entry.focalSubtopic ? `Topic · ${entry.topic.name}` : "Topic"}
+                                  {entry.subtopicsTotal > 0 && (
+                                    <span className="ml-1 normal-case tracking-normal text-muted-foreground/60">
+                                      ({entry.subtopicsDone}/{entry.subtopicsTotal} subtopics)
+                                    </span>
+                                  )}
+                                </span>
+                                <span className="tabular-nums text-foreground">{entry.topicProgress}%</span>
+                              </div>
+                              <Progress
+                                value={entry.topicProgress}
+                                className="h-1.5"
+                                indicatorClassName={entry.focalSubtopic ? "bg-white/30" : "bg-primary"}
+                              />
+                            </div>
+                          </div>
                           <div className="flex flex-wrap items-center gap-3">
                             {status === "in_progress" && (
                               <span className={cn(
@@ -507,6 +540,9 @@ export default function StatusPage() {
                         >
                           <p className="metric-value text-xl tabular-nums" style={{ color: entry.trackColor }}>
                             {entry.progress}%
+                          </p>
+                          <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60">
+                            {entry.focalSubtopic ? "Subtopic" : "Topic"}
                           </p>
                           <ChevronRight className="ml-auto mt-1 h-4 w-4 text-muted-foreground" />
                         </Link>

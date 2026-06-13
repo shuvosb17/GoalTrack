@@ -58,6 +58,16 @@ export function getTopicProgressPercent(topic: Topic, subtopics: Subtopic[]): nu
   return Math.round(statusWeight(topic.status ?? "not_started") * 100);
 }
 
+/**
+ * 1st-order progress for a single subtopic (the atomic unit).
+ * completed/mastered = 100, in_progress = 50 (partial credit), not_started = 0.
+ */
+export function getSubtopicProgressPercent(sub: Subtopic): number {
+  if (sub.status === "completed" || sub.status === "mastered") return 100;
+  if (sub.status === "in_progress") return 50;
+  return 0;
+}
+
 /** Roll up progress across topics by weighting every subtopic (not averaging topic %) */
 export function calculateTopicsProgress(topics: Topic[], subtopics: Subtopic[]): number {
   const active = topics.filter((t) => !t.archived);
