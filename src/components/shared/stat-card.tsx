@@ -7,7 +7,7 @@ import type { TablerIcon } from "@tabler/icons-react";
 interface StatCardProps {
   title: string;
   value: string | number;
-  subtitle?: string;
+  subtitle?: React.ReactNode;
   icon?: TablerIcon;
   gradient?: string;
   className?: string;

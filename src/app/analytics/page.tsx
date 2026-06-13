@@ -1,24 +1,71 @@
 "use client";
 
-import { useMemo } from "react";
-import { BarChart3 } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  IconChartBar,
+  IconClock,
+  IconTarget,
+  IconFlame,
+  IconBulb,
+  IconCode,
+} from "@tabler/icons-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, Area, AreaChart, ComposedChart, Legend,
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { StatCard } from "@/components/shared/stat-card";
+import { SectionHeading } from "@/components/shared/section-heading";
+import { ConsistencyCalendar } from "@/components/analytics/consistency-calendar";
 import {
-  useTracks, useAllSubtopics, useAllTopics, useSessions, useSettings,
+  useTracks, useAllSubtopics, useAllTopics, useSessions, useSettings, useSkipLogs,
 } from "@/hooks/use-data";
 import {
-  getHoursByPeriod, getHoursByWeek, withPercentages, getHoursByTrack, getFocusHeatmap,
-  getTopTopics, getLearningVelocity, getEfficiencyScores, getCompletionTrends,
+  getHoursByPeriod, getHoursByWeek, getFocusHeatmap,
+  getEfficiencyScores, getCompletionTrends,
   getQualityByWeek, getProblemsByWeek,
+  trimLeadingEmptyWeeks, trimLeadingEmptyProblemWeeks,
+  getConsistencyCalendar, getAnalyticsKpis, getLearningVelocityWithDelta,
+  getTopTopicsWithTrack, getActiveDistribution, getAnalyticsDiagnostics,
+  CHART_TOOLTIP_STYLE, DEFAULT_YEAR_START, DEFAULT_YEAR_END,
 } from "@/lib/analytics";
+import { getDailyPaceTarget } from "@/lib/metrics";
 import { formatHours } from "@/lib/utils";
+import { differenceInDays, parseISO } from "date-fns";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+type WeekRange = "4" | "12" | "all";
+
+function weekCountForRange(range: WeekRange, sessions: { date: string }[]): number {
+  if (range === "4") return 4;
+  if (range === "12") return 12;
+  if (sessions.length === 0) return 12;
+  const first = sessions.map((s) => s.date).sort()[0];
+  const days = differenceInDays(new Date(), parseISO(first)) + 1;
+  return Math.min(52, Math.max(4, Math.ceil(days / 7)));
+}
+
+function DeltaBadge({ delta, suffix = "" }: { delta: number; suffix?: string }) {
+  if (delta === 0) return <span className="text-muted-foreground">same as prior</span>;
+  const up = delta > 0;
+  return (
+    <span className={up ? "text-emerald-400" : "text-amber-400"}>
+      {up ? "↑" : "↓"}
+      {Math.abs(delta)}
+      {suffix}
+    </span>
+  );
+}
+
+function InsightLine({ text }: { text: string }) {
+  return (
+    <p className="mt-3 flex items-start gap-2 border-t border-white/[0.06] pt-3 text-xs leading-relaxed text-muted-foreground">
+      <IconBulb className="mt-0.5 h-3.5 w-3.5 shrink-0 text-violet-400/80" stroke={1.5} />
+      {text}
+    </p>
+  );
+}
 
 export default function AnalyticsPage() {
   const tracks = useTracks();
@@ -26,236 +73,453 @@ export default function AnalyticsPage() {
   const topics = useAllTopics();
   const sessions = useSessions();
   const settings = useSettings();
+  const skipLogs = useSkipLogs();
+  const [weekRange, setWeekRange] = useState<WeekRange>("4");
 
-  const distribution = useMemo(() => withPercentages(getHoursByTrack(sessions, tracks)), [sessions, tracks]);
-  const dailyHours = useMemo(() => getHoursByPeriod(sessions, 30), [sessions]);
-  const weeklyHours = useMemo(() => getHoursByWeek(sessions, 12), [sessions]);
-  const weeklyData = useMemo(() => {
-    const quality = getQualityByWeek(sessions, 12);
-    return weeklyHours.map((d, i) => ({ ...d, quality: quality[i]?.quality ?? null }));
-  }, [sessions, weeklyHours]);
-  const leetCodeLog = useMemo(() => settings?.leetCodeLog ?? [], [settings]);
+  const yearStart = settings?.yearStart ?? DEFAULT_YEAR_START;
+  const yearEnd = settings?.yearEnd ?? DEFAULT_YEAR_END;
+  const dailyGoal = settings?.dailyHourGoal ?? 3;
+  const leetCodeLog = useMemo(() => settings?.leetCodeLog ?? [], [settings?.leetCodeLog]);
   const hasLeetCodeData = leetCodeLog.length > 0;
-  const problemsByWeek = useMemo(() => getProblemsByWeek(leetCodeLog, 12), [leetCodeLog]);
-  const heatmap = useMemo(() => getFocusHeatmap(sessions), [sessions]);
-  const topTopics = useMemo(() => getTopTopics(sessions, topics), [sessions, topics]);
-  const velocity = useMemo(() => getLearningVelocity(subtopics, sessions), [subtopics, sessions]);
-  const efficiency = useMemo(() => getEfficiencyScores(tracks, topics, subtopics, sessions), [tracks, topics, subtopics, sessions]);
-  const trends = useMemo(() => getCompletionTrends(sessions, subtopics, 12), [sessions, subtopics]);
 
+  const weekCount = useMemo(
+    () => weekCountForRange(weekRange, sessions),
+    [weekRange, sessions]
+  );
+
+  const pace = useMemo(
+    () => getDailyPaceTarget(settings, sessions, yearStart, yearEnd),
+    [settings, sessions, yearStart, yearEnd]
+  );
+
+  const consistencyDays = useMemo(
+    () => getConsistencyCalendar(sessions, topics, skipLogs, dailyGoal, 84),
+    [sessions, topics, skipLogs, dailyGoal]
+  );
+
+  const kpis = useMemo(
+    () => getAnalyticsKpis(sessions, settings, leetCodeLog, pace),
+    [sessions, settings, leetCodeLog, pace]
+  );
+
+  const dailyHours = useMemo(() => {
+    const days = weekRange === "4" ? 28 : weekRange === "12" ? 90 : 180;
+    return trimLeadingEmptyWeeks(getHoursByPeriod(sessions, days), (d) => d.hours > 0);
+  }, [sessions, weekRange]);
+
+  const weeklyData = useMemo(() => {
+    const hours = trimLeadingEmptyWeeks(getHoursByWeek(sessions, weekCount), (d) => d.hours > 0);
+    const quality = getQualityByWeek(sessions, weekCount);
+    const offset = quality.length - hours.length;
+    return hours.map((d, i) => ({
+      ...d,
+      quality: quality[offset + i]?.quality ?? null,
+    }));
+  }, [sessions, weekCount]);
+
+  const problemsByWeek = useMemo(
+    () => trimLeadingEmptyProblemWeeks(getProblemsByWeek(leetCodeLog, weekCount)),
+    [leetCodeLog, weekCount]
+  );
+
+  const activeDistribution = useMemo(
+    () => getActiveDistribution(sessions, tracks),
+    [sessions, tracks]
+  );
+  const totalDistHours = useMemo(
+    () => activeDistribution.reduce((s, d) => s + d.value, 0),
+    [activeDistribution]
+  );
+
+  const heatmap = useMemo(() => getFocusHeatmap(sessions), [sessions]);
   const maxHeat = Math.max(...heatmap.flat(), 1);
-  const peakInsight = useMemo(() => {
-    let maxVal = 0, maxDay = 0, maxHour = 0;
-    heatmap.forEach((row, d) => row.forEach((v, h) => { if (v > maxVal) { maxVal = v; maxDay = d; maxHour = h; } }));
-    if (maxVal === 0) return "No focus data yet. Start tracking to discover your peak hours.";
-    return `Peak focus: ${DAYS[maxDay]}s at ${maxHour}:00–${maxHour + 1}:00`;
-  }, [heatmap]);
+  const peakInsight = kpis.peakFocusLabel;
+
+  const topTopics = useMemo(
+    () => getTopTopicsWithTrack(sessions, topics, tracks),
+    [sessions, topics, tracks]
+  );
+  const velocity = useMemo(
+    () => getLearningVelocityWithDelta(subtopics, sessions),
+    [subtopics, sessions]
+  );
+  const efficiency = useMemo(
+    () => getEfficiencyScores(tracks, topics, subtopics, sessions).filter((e) => e.hours > 0),
+    [tracks, topics, subtopics, sessions]
+  );
+  const maxEfficiency = Math.max(...efficiency.map((e) => e.efficiency), 1);
+
+  const trends = useMemo(
+    () =>
+      trimLeadingEmptyWeeks(
+        getCompletionTrends(sessions, subtopics, weekCount),
+        (d) => d.hours > 0 || d.completed > 0
+      ),
+    [sessions, subtopics, weekCount]
+  );
+
+  const diagnostics = useMemo(
+    () =>
+      getAnalyticsDiagnostics(
+        sessions,
+        tracks,
+        topics,
+        subtopics,
+        skipLogs,
+        dailyGoal,
+        kpis,
+        velocity,
+        efficiency,
+        consistencyDays
+      ),
+    [sessions, tracks, topics, subtopics, skipLogs, dailyGoal, kpis, velocity, efficiency, consistencyDays]
+  );
+
+  const hasQualityData = weeklyData.some((d) => d.quality !== null);
+  const hasWeeklyHours = weeklyData.some((d) => d.hours > 0);
 
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight sm:gap-3 sm:text-3xl">
-          <BarChart3 className="h-8 w-8 text-primary" /> Analytics
+        <h1 className="flex items-center gap-2 text-2xl font-medium tracking-tight sm:text-3xl">
+          <IconChartBar className="h-7 w-7 text-primary" stroke={1.5} /> Analytics
         </h1>
-        <p className="text-muted-foreground mt-1">Deep insights into your learning patterns</p>
+        <p className="mt-1 text-muted-foreground">Diagnostic view — what happened, and what to adjust</p>
       </div>
 
+      {/* KPI strip */}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+        <StatCard
+          title="This week"
+          value={`${kpis.hoursThisWeek}h`}
+          subtitle={<DeltaBadge delta={kpis.hoursWeekDelta} suffix="h vs last" />}
+          icon={IconClock}
+          delay={0}
+        />
+        <StatCard
+          title="Avg quality"
+          value={kpis.avgQualityThisWeek !== null ? kpis.avgQualityThisWeek.toFixed(1) : "—"}
+          subtitle={
+            kpis.ratedSessionsThisWeek > 0
+              ? `${kpis.ratedSessionsThisWeek} rated sessions`
+              : "Rate sessions to unlock"
+          }
+          icon={IconTarget}
+          delay={0.05}
+        />
+        <StatCard
+          title="Problems"
+          value={kpis.problemsThisWeek}
+          subtitle="Solved this week"
+          icon={IconCode}
+          delay={0.1}
+        />
+        <StatCard
+          title="Peak focus"
+          value={peakInsight.includes(":") ? peakInsight.split(" ").slice(-1)[0] : "—"}
+          subtitle={peakInsight.includes(":") ? peakInsight.replace(/s \d.*/, "s") : peakInsight}
+          icon={IconFlame}
+          valueClassName="text-xl sm:text-2xl"
+          delay={0.15}
+        />
+        <StatCard
+          title="Today pace"
+          value={pace.onPace ? "On pace" : `${pace.hoursLeftToday}h left`}
+          subtitle={pace.onPace ? `${pace.hoursLoggedToday}h logged` : `Need ${pace.hoursNeededToday}h today`}
+          icon={IconTarget}
+          valueColor={pace.onPace ? "#86efac" : pace.hoursLoggedToday >= pace.hoursNeededToday * 0.5 ? "#fbbf24" : "#f87171"}
+          delay={0.2}
+        />
+      </div>
+
+      {/* Consistency calendar */}
+      <Card className="border-[0.5px] border-white/[0.08]">
+        <CardContent className="pt-6">
+          <SectionHeading>Study Consistency</SectionHeading>
+          <ConsistencyCalendar days={consistencyDays} />
+          <InsightLine text={diagnostics.consistency} />
+        </CardContent>
+      </Card>
+
       {/* Time Investment */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Time Investment</CardTitle>
-          <p className="text-xs text-muted-foreground">Weekly view overlays average session quality (1–3) so you can spot high-volume / low-focus weeks.</p>
-        </CardHeader>
-        <CardContent>
+      <Card className="border-[0.5px] border-white/[0.08]">
+        <CardContent className="pt-6">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <SectionHeading className="mb-0 border-0 pb-0">Time Investment</SectionHeading>
+            <Tabs value={weekRange} onValueChange={(v) => setWeekRange(v as WeekRange)}>
+              <TabsList className="h-8">
+                <TabsTrigger value="4" className="h-6 px-2.5 text-xs">4w</TabsTrigger>
+                <TabsTrigger value="12" className="h-6 px-2.5 text-xs">12w</TabsTrigger>
+                <TabsTrigger value="all" className="h-6 px-2.5 text-xs">All</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+
           <Tabs defaultValue="weekly">
             <TabsList>
-              <TabsTrigger value="daily">Daily (30d)</TabsTrigger>
+              <TabsTrigger value="daily">Daily</TabsTrigger>
               <TabsTrigger value="weekly">Weekly</TabsTrigger>
               {hasLeetCodeData && <TabsTrigger value="problems">Problems</TabsTrigger>}
+              <TabsTrigger value="focus">Focus hours</TabsTrigger>
             </TabsList>
+
             <TabsContent value="daily">
-              <ResponsiveContainer width="100%" height={250}>
-                <AreaChart data={dailyHours}>
-                  <defs>
-                    <linearGradient id="hoursGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                  <XAxis dataKey="label" tick={{ fill: "#a1a1aa", fontSize: 10 }} />
-                  <YAxis tick={{ fill: "#a1a1aa", fontSize: 10 }} />
-                  <Tooltip contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: 8 }} />
-                  <Area type="monotone" dataKey="hours" stroke="#8b5cf6" fill="url(#hoursGrad)" strokeWidth={2} />
-                </AreaChart>
-              </ResponsiveContainer>
+              {dailyHours.every((d) => d.hours === 0) ? (
+                <p className="py-12 text-center text-sm text-muted-foreground">
+                  No daily data in this range. Log a session to see your rhythm.
+                </p>
+              ) : (
+                <ResponsiveContainer width="100%" height={220}>
+                  <AreaChart data={dailyHours}>
+                    <defs>
+                      <linearGradient id="hoursGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                    <XAxis dataKey="label" tick={{ fill: "#a1a1aa", fontSize: 10 }} />
+                    <YAxis tick={{ fill: "#a1a1aa", fontSize: 10 }} />
+                    <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
+                    <Area type="monotone" dataKey="hours" stroke="#8b5cf6" fill="url(#hoursGrad)" strokeWidth={2} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
             </TabsContent>
+
             <TabsContent value="weekly">
-              <ResponsiveContainer width="100%" height={250}>
-                <ComposedChart data={weeklyData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                  <XAxis dataKey="label" tick={{ fill: "#a1a1aa", fontSize: 10 }} />
-                  <YAxis yAxisId="left" tick={{ fill: "#a1a1aa", fontSize: 10 }} />
-                  <YAxis yAxisId="right" orientation="right" domain={[1, 3]} ticks={[1, 2, 3]} tick={{ fill: "#fbbf24", fontSize: 10 }} />
-                  <Tooltip contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: 8 }} />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar yAxisId="left" dataKey="hours" name="Hours" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                  <Line yAxisId="right" type="monotone" dataKey="quality" name="Avg quality" stroke="#fbbf24" strokeWidth={2} connectNulls dot={{ r: 3, fill: "#fbbf24" }} />
-                </ComposedChart>
-              </ResponsiveContainer>
+              {!hasWeeklyHours ? (
+                <p className="py-12 text-center text-sm text-muted-foreground">
+                  No weekly data yet. Your first bar appears after you log hours this week.
+                </p>
+              ) : (
+                <ResponsiveContainer width="100%" height={220}>
+                  <ComposedChart data={weeklyData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                    <XAxis dataKey="label" tick={{ fill: "#a1a1aa", fontSize: 10 }} />
+                    <YAxis yAxisId="left" tick={{ fill: "#a1a1aa", fontSize: 10 }} />
+                    {hasQualityData && (
+                      <YAxis yAxisId="right" orientation="right" domain={[1, 3]} ticks={[1, 2, 3]} tick={{ fill: "#fbbf24", fontSize: 10 }} />
+                    )}
+                    <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Bar yAxisId="left" dataKey="hours" name="Hours" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                    {hasQualityData && (
+                      <Line yAxisId="right" type="monotone" dataKey="quality" name="Avg quality" stroke="#fbbf24" strokeWidth={2} connectNulls dot={{ r: 3, fill: "#fbbf24" }} />
+                    )}
+                  </ComposedChart>
+                </ResponsiveContainer>
+              )}
+              {!hasQualityData && hasWeeklyHours && (
+                <p className="mt-2 text-center text-[11px] text-muted-foreground">
+                  Rate sessions after stopping to unlock the quality trend line.
+                </p>
+              )}
             </TabsContent>
+
             {hasLeetCodeData && (
               <TabsContent value="problems">
-                <ResponsiveContainer width="100%" height={250}>
+                <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={problemsByWeek}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
                     <XAxis dataKey="label" tick={{ fill: "#a1a1aa", fontSize: 10 }} />
                     <YAxis allowDecimals={false} tick={{ fill: "#a1a1aa", fontSize: 10 }} />
-                    <Tooltip contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: 8 }} />
+                    <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Bar dataKey="easy" stackId="p" name="Easy" fill="#97C459" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="easy" stackId="p" name="Easy" fill="#97C459" />
                     <Bar dataKey="medium" stackId="p" name="Medium" fill="#FAC775" />
                     <Bar dataKey="hard" stackId="p" name="Hard" fill="#f87171" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </TabsContent>
             )}
+
+            <TabsContent value="focus">
+              <p className="mb-3 text-xs text-muted-foreground">{peakInsight}</p>
+              <div className="overflow-x-auto">
+                <div className="inline-grid gap-0.5" style={{ gridTemplateColumns: `36px repeat(24, 1fr)` }}>
+                  <div />
+                  {Array.from({ length: 24 }, (_, h) => (
+                    <div key={h} className="text-center text-[8px] text-muted-foreground">{h}</div>
+                  ))}
+                  {DAYS.map((day, di) => (
+                    <div key={day} className="contents">
+                      <div className="pr-1 text-right text-[10px] text-muted-foreground">{day}</div>
+                      {heatmap[di].map((val, hi) => (
+                        <div
+                          key={`${di}-${hi}`}
+                          className="h-3.5 w-3.5 rounded-sm"
+                          style={{ background: val > 0 ? `rgba(139, 92, 246, ${0.15 + (val / maxHeat) * 0.85})` : "#27272a" }}
+                          title={`${day} ${hi}:00 — ${(val / 3600000).toFixed(1)}h`}
+                        />
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
           </Tabs>
+          <InsightLine text={diagnostics.timeInvestment} />
         </CardContent>
       </Card>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Distribution */}
-        <Card>
-          <CardHeader><CardTitle>Time Distribution</CardTitle></CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie data={distribution} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={2}>
-                  {distribution.map((entry, i) => (
-                    <Cell key={i} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: 8 }}
-                  formatter={(value: number) => formatHours(value)}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="grid grid-cols-2 gap-2 mt-4">
-              {distribution.map((d) => (
-                <div key={d.name} className="flex items-center gap-2 text-sm">
-                  <div className="w-3 h-3 rounded-full" style={{ background: d.color }} />
-                  <span className="flex-1 truncate">{d.name}</span>
-                  <span className="text-muted-foreground">{d.percentage}%</span>
+      {/* Distribution + Efficiency */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="border-[0.5px] border-white/[0.08]">
+          <CardContent className="pt-6">
+            <SectionHeading>Time Distribution</SectionHeading>
+            {activeDistribution.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">No track time logged yet.</p>
+            ) : (
+              <>
+                <div className="relative">
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie
+                        data={activeDistribution}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={55}
+                        outerRadius={80}
+                        paddingAngle={2}
+                      >
+                        {activeDistribution.map((entry, i) => (
+                          <Cell key={i} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(value: number) => formatHours(value)} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                    <p className="metric-value text-2xl tabular-nums">{(totalDistHours / 3600000).toFixed(0)}h</p>
+                    <p className="text-[10px] text-muted-foreground">total</p>
+                  </div>
                 </div>
-              ))}
-            </div>
+                <div className="mt-2 space-y-1.5">
+                  {activeDistribution.map((d) => (
+                    <div key={d.name} className="flex items-center gap-2 text-sm">
+                      <div className="h-2 w-2 shrink-0 rounded-full" style={{ background: d.color }} />
+                      <span className="min-w-0 flex-1 truncate">{d.name}</span>
+                      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-white/[0.06]">
+                        <div className="h-full rounded-full" style={{ width: `${d.percentage}%`, background: d.color }} />
+                      </div>
+                      <span className="w-8 text-right text-xs tabular-nums text-muted-foreground">{d.percentage}%</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+            <InsightLine text={diagnostics.distribution} />
           </CardContent>
         </Card>
 
-        {/* Focus Heatmap */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Focus Heatmap</CardTitle>
-            <p className="text-xs text-muted-foreground">{peakInsight}</p>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <div className="inline-grid gap-0.5" style={{ gridTemplateColumns: `40px repeat(24, 1fr)` }}>
-                <div />
-                {Array.from({ length: 24 }, (_, h) => (
-                  <div key={h} className="text-[8px] text-muted-foreground text-center">{h}</div>
-                ))}
-                {DAYS.map((day, di) => (
-                  <>
-                    <div key={`label-${di}`} className="text-[10px] text-muted-foreground pr-2 text-right">{day}</div>
-                    {heatmap[di].map((val, hi) => (
+        <Card className="border-[0.5px] border-white/[0.08]">
+          <CardContent className="pt-6">
+            <SectionHeading>Efficiency (ROI)</SectionHeading>
+            <p className="mb-3 text-[11px] text-muted-foreground">
+              (progress × avg quality) ÷ hours — higher = more completion per hour invested
+            </p>
+            {efficiency.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">Log hours on a track to see ROI.</p>
+            ) : (
+              <div className="space-y-3">
+                {efficiency.map((e) => (
+                  <div key={e.name} className="space-y-1">
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className="h-2 w-2 shrink-0 rounded-full" style={{ background: e.color }} />
+                      <span className="min-w-0 flex-1 truncate">{e.name}</span>
+                      <span className="text-[10px] text-muted-foreground">{e.progress}% · {e.hours.toFixed(0)}h</span>
+                      <span className="w-10 text-right font-mono text-xs tabular-nums">{e.efficiency.toFixed(1)}</span>
+                    </div>
+                    <div className="h-1 overflow-hidden rounded-full bg-white/[0.06]">
                       <div
-                        key={`${di}-${hi}`}
-                        className="w-4 h-4 rounded-sm"
-                        style={{ background: val > 0 ? `rgba(139, 92, 246, ${0.15 + (val / maxHeat) * 0.85})` : "#27272a" }}
-                        title={`${day} ${hi}:00 — ${(val / 3600000).toFixed(1)}h`}
+                        className="h-full rounded-full bg-violet-500/80 transition-all"
+                        style={{ width: `${(e.efficiency / maxEfficiency) * 100}%` }}
                       />
-                    ))}
-                  </>
+                    </div>
+                  </div>
                 ))}
               </div>
-            </div>
+            )}
+            <InsightLine text={diagnostics.efficiency} />
           </CardContent>
         </Card>
       </div>
 
-      {/* Top Topics + Velocity */}
-      <div className="grid lg:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader><CardTitle>Most Studied Topics</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            {topTopics.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No topic data yet.</p>
-            ) : topTopics.map((t, i) => (
-              <div key={t.name} className="flex items-center gap-3">
-                <span className="text-xs text-muted-foreground w-4">{i + 1}</span>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{t.name}</p>
-                  <div className="h-1.5 bg-secondary rounded-full mt-1">
-                    <div className="h-full bg-primary rounded-full" style={{ width: `${(t.hours / (topTopics[0]?.hours || 1)) * 100}%` }} />
-                  </div>
+      {/* Velocity + Top Topics */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="border-[0.5px] border-white/[0.08]">
+          <CardContent className="pt-6">
+            <SectionHeading>Learning Velocity</SectionHeading>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: "Topics / wk", value: velocity.topicsPerWeek, prior: velocity.topicsPriorWeek },
+                { label: "Modules / mo", value: velocity.modulesPerMonth, prior: velocity.modulesPriorMonth },
+                { label: "Hours / wk", value: velocity.hoursPerWeek, prior: velocity.hoursPriorWeek, suffix: "h" },
+              ].map((m) => (
+                <div key={m.label} className="rounded-lg border-[0.5px] border-white/[0.06] bg-white/[0.02] p-3 text-center">
+                  <p className="metric-value text-2xl tabular-nums">{m.value}{m.suffix ?? ""}</p>
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">{m.label}</p>
+                  <p className="mt-1 text-[10px]">
+                    <DeltaBadge delta={typeof m.value === "number" && typeof m.prior === "number" ? Math.round((m.value - m.prior) * 10) / 10 : 0} suffix={m.suffix} />
+                  </p>
                 </div>
-                <span className="text-sm font-mono">{t.hours.toFixed(0)}h</span>
-              </div>
-            ))}
+              ))}
+            </div>
+            <InsightLine text={diagnostics.velocity} />
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader><CardTitle>Learning Velocity</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-center p-4 glass rounded-lg">
-              <p className="text-3xl font-bold">{velocity.topicsPerWeek}</p>
-              <p className="text-xs text-muted-foreground">Topics / Week</p>
-            </div>
-            <div className="text-center p-4 glass rounded-lg">
-              <p className="text-3xl font-bold">{velocity.modulesPerMonth}</p>
-              <p className="text-xs text-muted-foreground">Modules / Month</p>
-            </div>
-            <div className="text-center p-4 glass rounded-lg">
-              <p className="text-3xl font-bold">{velocity.hoursPerWeek.toFixed(1)}h</p>
-              <p className="text-xs text-muted-foreground">Hours / Week</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader><CardTitle>Efficiency (ROI)</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            {efficiency.map((e) => (
-              <div key={e.name} className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full" style={{ background: e.color }} />
-                <span className="text-sm flex-1 truncate">{e.name}</span>
-                <span className="text-xs text-muted-foreground">{e.progress}% / {e.hours.toFixed(0)}h</span>
-                <span className="text-sm font-mono font-bold">{e.efficiency.toFixed(1)}</span>
+        <Card className="border-[0.5px] border-white/[0.08]">
+          <CardContent className="pt-6">
+            <SectionHeading>Most Studied Topics</SectionHeading>
+            {topTopics.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">No topic-level time logged yet.</p>
+            ) : (
+              <div className="space-y-2.5">
+                {topTopics.map((t, i) => (
+                  <div key={t.name} className="flex items-center gap-2">
+                    <span className="w-4 text-[10px] text-muted-foreground">{i + 1}</span>
+                    <div className="h-2 w-2 shrink-0 rounded-full" style={{ background: t.trackColor }} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm">{t.name}</p>
+                      <div className="mt-1 h-1 overflow-hidden rounded-full bg-white/[0.06]">
+                        <div className="h-full rounded-full" style={{ width: `${(t.hours / topTopics[0].hours) * 100}%`, background: t.trackColor }} />
+                      </div>
+                    </div>
+                    <span className="text-xs tabular-nums text-muted-foreground">{t.hours.toFixed(1)}h</span>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </CardContent>
         </Card>
       </div>
 
       {/* Completion Trends */}
-      <Card>
-        <CardHeader><CardTitle>Completion Trends</CardTitle></CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={trends}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-              <XAxis dataKey="week" tick={{ fill: "#a1a1aa", fontSize: 10 }} />
-              <YAxis yAxisId="left" tick={{ fill: "#a1a1aa", fontSize: 10 }} />
-              <YAxis yAxisId="right" orientation="right" tick={{ fill: "#a1a1aa", fontSize: 10 }} />
-              <Tooltip contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: 8 }} />
-              <Line yAxisId="left" type="monotone" dataKey="hours" stroke="#8b5cf6" strokeWidth={2} dot={false} name="Hours" />
-              <Line yAxisId="right" type="monotone" dataKey="completed" stroke="#10b981" strokeWidth={2} dot={false} name="Completed" />
-            </LineChart>
-          </ResponsiveContainer>
+      <Card className="border-[0.5px] border-white/[0.08]">
+        <CardContent className="pt-6">
+          <SectionHeading>Completion Trends</SectionHeading>
+          {trends.every((t) => t.hours === 0 && t.completed === 0) ? (
+            <p className="py-12 text-center text-sm text-muted-foreground">
+              Completion trends appear once you finish topics and log hours over multiple weeks.
+            </p>
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={trends}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                <XAxis dataKey="week" tick={{ fill: "#a1a1aa", fontSize: 10 }} />
+                <YAxis yAxisId="left" tick={{ fill: "#a1a1aa", fontSize: 10 }} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fill: "#a1a1aa", fontSize: 10 }} />
+                <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Line yAxisId="left" type="monotone" dataKey="hours" stroke="#8b5cf6" strokeWidth={2} dot={false} name="Hours" />
+                <Line yAxisId="right" type="monotone" dataKey="completed" stroke="#10b981" strokeWidth={2} dot={false} name="Completed" />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </CardContent>
       </Card>
     </div>

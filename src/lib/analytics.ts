@@ -4,6 +4,7 @@ import {
   format,
   subDays,
   addDays,
+  eachDayOfInterval,
   eachMonthOfInterval,
   startOfMonth,
   endOfMonth,
@@ -19,7 +20,7 @@ import type {
   MomentumLevel,
   AppSettings,
 } from "./types";
-import type { SkipLog } from "./types/metrics";
+import type { SkipLog, SkipReason } from "./types/metrics";
 import {
   calculateSubtopicProgress,
   getMomentumLevel,
@@ -695,3 +696,338 @@ export function countCompletedItems(subtopics: Subtopic[], modules: Module[], to
 
   return { completedSubtopics, completedTopics, completedModules };
 }
+
+// ─── Analytics page helpers ───────────────────────────────────────────────
+
+export type ConsistencyDayStatus = "on_pace" | "partial" | "missed" | "skipped" | "future";
+
+export interface ConsistencyCalendarDay {
+  date: string;
+  hours: number;
+  status: ConsistencyDayStatus;
+  skipReason?: SkipReason;
+  avgQuality: number | null;
+  topicLabels: string[];
+}
+
+export interface AnalyticsKpis {
+  hoursThisWeek: number;
+  hoursLastWeek: number;
+  hoursWeekDelta: number;
+  avgQualityThisWeek: number | null;
+  ratedSessionsThisWeek: number;
+  problemsThisWeek: number;
+  peakFocusLabel: string;
+  onPaceToday: boolean;
+  hoursLeftToday: number;
+  totalHours: number;
+}
+
+export interface LearningVelocityWithDelta {
+  topicsPerWeek: number;
+  topicsPriorWeek: number;
+  modulesPerMonth: number;
+  modulesPriorMonth: number;
+  hoursPerWeek: number;
+  hoursPriorWeek: number;
+}
+
+export interface AnalyticsDiagnostics {
+  timeInvestment: string;
+  distribution: string;
+  efficiency: string;
+  consistency: string;
+  velocity: string;
+}
+
+export const CHART_TOOLTIP_STYLE = {
+  background: "#18181b",
+  border: "0.5px solid rgba(255,255,255,0.08)",
+  borderRadius: 8,
+};
+
+const SKIP_LABELS: Record<SkipReason, string> = {
+  "too-tired": "Too tired",
+  "too-busy": "Too busy",
+  "unclear-what-to-do": "Unclear what to do",
+  forgot: "Forgot",
+  other: "Other",
+};
+
+/** Drop leading weeks with no activity (keep one empty week before first data point). */
+export function trimLeadingEmptyWeeks<T>(
+  data: T[],
+  hasData: (d: T) => boolean
+): T[] {
+  const idx = data.findIndex(hasData);
+  if (idx <= 0) return data;
+  return data.slice(Math.max(0, idx - 1));
+}
+
+export function trimLeadingEmptyProblemWeeks(
+  data: { easy: number; medium: number; hard: number }[]
+) {
+  return trimLeadingEmptyWeeks(data, (d) => d.easy + d.medium + d.hard > 0);
+}
+
+export function getPeakFocusLabel(sessions: LearningSession[]): string {
+  const heatmap = getFocusHeatmap(sessions);
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  let maxVal = 0;
+  let maxDay = 0;
+  let maxHour = 0;
+  heatmap.forEach((row, day) =>
+    row.forEach((val, hour) => {
+      if (val > maxVal) {
+        maxVal = val;
+        maxDay = day;
+        maxHour = hour;
+      }
+    })
+  );
+  if (maxVal === 0) return "Log sessions to find your peak focus window.";
+  return `${days[maxDay]}s ${maxHour}:00–${maxHour + 1}:00`;
+}
+
+export function getConsistencyCalendar(
+  sessions: LearningSession[],
+  topics: Topic[],
+  skipLogs: SkipLog[],
+  dailyGoal: number,
+  days = 84
+): ConsistencyCalendarDay[] {
+  const today = todayISO();
+  const threshold = dailyGoal * 0.8;
+  const skipMap = new Map(skipLogs.map((s) => [s.date, s.reason]));
+  const topicMap = new Map(topics.map((t) => [t.id, t.name]));
+  const end = parseLocalDate(today);
+  const start = subDays(end, days - 1);
+
+  return eachDayOfInterval({ start, end }).map((day) => {
+    const key = format(day, "yyyy-MM-dd");
+    const daySessions = sessions.filter((s) => s.date === key);
+    const hours = daySessions.reduce((sum, s) => sum + s.duration, 0) / 3600000;
+    const rated = daySessions.filter((s) => s.qualityRating);
+    const avgQuality = rated.length
+      ? Math.round((rated.reduce((sum, s) => sum + (s.qualityRating ?? 0), 0) / rated.length) * 10) / 10
+      : null;
+    const topicLabels = [
+      ...new Set(
+        daySessions
+          .map((s) => (s.topicId ? topicMap.get(s.topicId) : undefined))
+          .filter(Boolean)
+      ),
+    ] as string[];
+
+    let status: ConsistencyDayStatus;
+    if (key > today) status = "future";
+    else if (skipMap.has(key) && hours === 0) status = "skipped";
+    else if (hours >= threshold) status = "on_pace";
+    else if (hours > 0) status = "partial";
+    else if (key < today) status = "missed";
+    else status = "partial";
+
+    return {
+      date: key,
+      hours: Math.round(hours * 10) / 10,
+      status,
+      skipReason: skipMap.get(key),
+      avgQuality,
+      topicLabels: topicLabels.slice(0, 3),
+    };
+  });
+}
+
+export function getConsistencyInsight(days: ConsistencyCalendarDay[]): string {
+  const today = todayISO();
+  const past = days.filter((d) => d.date < today && d.status !== "future");
+  if (past.length === 0) return "Your consistency calendar fills in as you log study days.";
+  const missed = past.filter((d) => d.status === "missed");
+  if (missed.length === 0) return "No missed days in this window — strong consistency.";
+  const byDow = new Map<number, number>();
+  for (const d of missed) {
+    const dow = parseLocalDate(d.date).getDay();
+    byDow.set(dow, (byDow.get(dow) ?? 0) + 1);
+  }
+  const worst = [...byDow.entries()].sort((a, b) => b[1] - a[1])[0];
+  const dayNames = ["Sundays", "Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays"];
+  return `You miss most often on ${dayNames[worst[0]]} (${worst[1]}×). Pre-commit a fixed slot that day.`;
+}
+
+export function getAnalyticsKpis(
+  sessions: LearningSession[],
+  settings: AppSettings | null | undefined,
+  leetCodeLog: { date: string }[],
+  pace: { onPace: boolean; hoursLeftToday: number }
+): AnalyticsKpis {
+  const weekly = getHoursByWeek(sessions, 2);
+  const hoursThisWeek = weekly[1]?.hours ?? 0;
+  const hoursLastWeek = weekly[0]?.hours ?? 0;
+  const quality = getQualityByWeek(sessions, 2);
+  const today = new Date();
+  const weekStart = format(subDays(today, 6), "yyyy-MM-dd");
+  const weekEnd = format(today, "yyyy-MM-dd");
+  const ratedThisWeek = sessions.filter(
+    (s) => s.date >= weekStart && s.date <= weekEnd && s.qualityRating
+  );
+
+  const problemsThisWeek = leetCodeLog.filter(
+    (e) => e.date >= weekStart && e.date <= weekEnd
+  ).length;
+
+  return {
+    hoursThisWeek: Math.round(hoursThisWeek * 10) / 10,
+    hoursLastWeek: Math.round(hoursLastWeek * 10) / 10,
+    hoursWeekDelta: Math.round((hoursThisWeek - hoursLastWeek) * 10) / 10,
+    avgQualityThisWeek: quality[1]?.quality ?? null,
+    ratedSessionsThisWeek: ratedThisWeek.length,
+    problemsThisWeek,
+    peakFocusLabel: getPeakFocusLabel(sessions),
+    onPaceToday: pace.onPace,
+    hoursLeftToday: pace.hoursLeftToday,
+    totalHours: Math.round((getTotalHours(sessions) / 3600000) * 10) / 10,
+  };
+}
+
+export function getLearningVelocityWithDelta(
+  subtopics: Subtopic[],
+  sessions: LearningSession[]
+): LearningVelocityWithDelta {
+  const now = new Date();
+  const weekAgo = subDays(now, 7);
+  const twoWeeksAgo = subDays(now, 14);
+  const monthAgo = subDays(now, 30);
+  const twoMonthsAgo = subDays(now, 60);
+
+  const completedInRange = (start: Date, end: Date) =>
+    subtopics.filter(
+      (s) =>
+        !s.archived &&
+        (s.status === "completed" || s.status === "mastered") &&
+        parseISO(s.updatedAt) >= start &&
+        parseISO(s.updatedAt) <= end
+    ).length;
+
+  const modulesInRange = (start: Date, end: Date) =>
+    new Set(
+      subtopics
+        .filter(
+          (s) =>
+            !s.archived &&
+            (s.status === "completed" || s.status === "mastered") &&
+            parseISO(s.updatedAt) >= start &&
+            parseISO(s.updatedAt) <= end
+        )
+        .map((s) => s.moduleId)
+    ).size;
+
+  const hoursInRange = (startKey: string, endKey: string) =>
+    sessions
+      .filter((s) => s.date >= startKey && s.date <= endKey)
+      .reduce((sum, s) => sum + s.duration, 0) / 3600000;
+
+  const thisWeekStart = format(weekAgo, "yyyy-MM-dd");
+  const todayKey = format(now, "yyyy-MM-dd");
+  const priorWeekStart = format(twoWeeksAgo, "yyyy-MM-dd");
+  const priorWeekEnd = format(subDays(now, 8), "yyyy-MM-dd");
+
+  return {
+    topicsPerWeek: completedInRange(weekAgo, now),
+    topicsPriorWeek: completedInRange(twoWeeksAgo, subDays(now, 7)),
+    modulesPerMonth: modulesInRange(monthAgo, now),
+    modulesPriorMonth: modulesInRange(twoMonthsAgo, subDays(now, 30)),
+    hoursPerWeek: Math.round(hoursInRange(thisWeekStart, todayKey) * 10) / 10,
+    hoursPriorWeek: Math.round(hoursInRange(priorWeekStart, priorWeekEnd) * 10) / 10,
+  };
+}
+
+export function getTopTopicsWithTrack(
+  sessions: LearningSession[],
+  topics: Topic[],
+  tracks: Track[],
+  limit = 8
+) {
+  const map = new Map<string, number>();
+  sessions.forEach((s) => {
+    if (s.topicId) map.set(s.topicId, (map.get(s.topicId) || 0) + s.duration);
+  });
+  return [...map.entries()]
+    .filter(([, duration]) => duration > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([id, duration]) => {
+      const topic = topics.find((t) => t.id === id);
+      const track = tracks.find((t) => t.id === topic?.trackId);
+      return {
+        name: topic?.name || "Unknown",
+        hours: duration / 3600000,
+        trackColor: track?.color ?? "#8b5cf6",
+        trackName: track?.name ?? "",
+      };
+    });
+}
+
+export function getActiveDistribution(
+  sessions: LearningSession[],
+  tracks: Track[]
+) {
+  return withPercentages(getHoursByTrack(sessions, tracks)).filter((d) => d.value > 0);
+}
+
+export function getAnalyticsDiagnostics(
+  sessions: LearningSession[],
+  tracks: Track[],
+  topics: Topic[],
+  subtopics: Subtopic[],
+  skipLogs: SkipLog[],
+  dailyGoal: number,
+  kpis: AnalyticsKpis,
+  velocity: LearningVelocityWithDelta,
+  efficiency: ReturnType<typeof getEfficiencyScores>,
+  consistencyDays: ConsistencyCalendarDay[]
+): AnalyticsDiagnostics {
+  const activeDist = getActiveDistribution(sessions, tracks);
+  const top = activeDist[0];
+  const neglected = activeDist.filter((d) => d.percentage > 0 && d.percentage < 5);
+
+  let timeInvestment = "Log a few more days to see weekly patterns.";
+  if (kpis.hoursThisWeek > 0) {
+    const deltaLabel =
+      kpis.hoursWeekDelta >= 0 ? `↑${kpis.hoursWeekDelta}h` : `↓${Math.abs(kpis.hoursWeekDelta)}h`;
+    timeInvestment = `This week: ${kpis.hoursThisWeek}h (${deltaLabel} vs last week).`;
+    if (kpis.avgQualityThisWeek !== null && kpis.avgQualityThisWeek < 2) {
+      timeInvestment += " Volume is up but quality is low — protect deep-focus blocks.";
+    } else if (kpis.ratedSessionsThisWeek === 0) {
+      timeInvestment += " Rate sessions after stopping to unlock the quality trend.";
+    }
+  }
+
+  let distribution = "Spread time across tracks for balanced growth.";
+  if (top) {
+    distribution = `${top.percentage}% of your time goes to ${top.name}.`;
+    if (neglected.length > 0) {
+      distribution += ` ${neglected.map((d) => d.name).join(", ")} get almost none — consider a short session there.`;
+    }
+  }
+
+  let efficiencyMsg = "Efficiency = (progress × avg quality) ÷ hours. Higher means more progress per hour invested.";
+  const activeEff = efficiency.filter((e) => e.hours > 0);
+  if (activeEff.length >= 2) {
+    const best = activeEff[0];
+    const worst = activeEff[activeEff.length - 1];
+    efficiencyMsg = `${best.name} returns ${(best.efficiency / Math.max(worst.efficiency, 0.1)).toFixed(0)}× the ROI of ${worst.name} per hour.`;
+  }
+
+  return {
+    timeInvestment,
+    distribution,
+    efficiency: efficiencyMsg,
+    consistency: getConsistencyInsight(consistencyDays),
+    velocity:
+      velocity.hoursPerWeek >= velocity.hoursPriorWeek
+        ? `Hours/week is ${velocity.hoursPerWeek}h (↑ vs ${velocity.hoursPriorWeek}h prior week).`
+        : `Hours/week dipped to ${velocity.hoursPerWeek}h (was ${velocity.hoursPriorWeek}h). Reclaim one on-pace day.`,
+  };
+}
+
+export { SKIP_LABELS as SKIP_REASON_LABELS };
