@@ -1,9 +1,9 @@
 import { v4 as uuid } from "uuid";
-import { addMonths, differenceInCalendarDays, format, parseISO } from "date-fns";
+import { addMonths, addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
 import { db } from "./db";
 import type {
   GoalMilestone, GoalMilestoneStats, GoalPaceStatus, GoalScopeType,
-  Module, Topic, Track, Subtopic, ProgressStatus,
+  Module, Topic, Track, Subtopic, ProgressStatus, GoalRiskLevel, GoalProjectedFinish,
 } from "./types";
 import { getModuleProgress, getTopicProgress, getTrackProgress } from "./analytics";
 import { calculateTopicsProgress, isTopicComplete } from "./in-progress";
@@ -240,6 +240,7 @@ export async function createGoalMilestone(input: {
   months: number;
   targetProgress?: number;
   notes?: string;
+  checkpoints?: string[];
   topics: Topic[];
   subtopics: Subtopic[];
   modules: Module[];
@@ -264,6 +265,11 @@ export async function createGoalMilestone(input: {
     baselineProgress,
     targetProgress: input.targetProgress ?? 100,
     notes: input.notes?.trim() || undefined,
+    checkpoints: input.checkpoints?.filter(Boolean).map((label) => ({
+      id: uuid(),
+      label: label.trim(),
+      done: false,
+    })),
     order: count,
     createdAt: nowISO(),
     updatedAt: nowISO(),
@@ -274,7 +280,7 @@ export async function createGoalMilestone(input: {
 
 export async function updateGoalMilestone(
   id: string,
-  input: Partial<Pick<GoalMilestone, "title" | "trackId" | "moduleId" | "topicId" | "topicIds" | "startDate" | "months" | "targetProgress" | "notes">>,
+  input: Partial<Pick<GoalMilestone, "title" | "trackId" | "moduleId" | "topicId" | "topicIds" | "startDate" | "months" | "targetProgress" | "notes" | "checkpoints">>,
   topics?: Topic[],
   subtopics?: Subtopic[],
   modules?: Module[]
@@ -318,6 +324,122 @@ export async function updateGoalMilestone(
 export async function deleteGoalMilestone(id: string) {
   await db.goalMilestones.delete(id);
 }
+
+// ─── Pace quadrant, projection, checkpoints ─────────────────────────────
+
+export interface PaceQuadrantPoint {
+  id: string;
+  title: string;
+  trackIcon: string;
+  trackColor: string;
+  timeProgress: number;
+  progressNormalized: number;
+  paceStatus: GoalPaceStatus;
+  paceDelta: number;
+  risk: GoalRiskLevel;
+}
+
+export function normalizeGoalProgress(stats: GoalMilestoneStats): number {
+  const range = Math.max(1, stats.goal.targetProgress - stats.goal.baselineProgress);
+  return Math.min(100, Math.max(0, Math.round(((stats.currentProgress - stats.goal.baselineProgress) / range) * 100)));
+}
+
+export function projectGoalFinish(stats: GoalMilestoneStats): GoalProjectedFinish {
+  const { goal, currentProgress, daysElapsed, daysRemaining } = stats;
+  const remaining = goal.targetProgress - currentProgress;
+
+  if (currentProgress >= goal.targetProgress) {
+    return { projectedDate: todayISO(), daysToFinish: 0, onTimeProjection: true, daysEarlyOrLate: daysRemaining };
+  }
+  if (daysElapsed < 1 || stats.progressGained <= 0) {
+    return { projectedDate: null, daysToFinish: null, onTimeProjection: false, daysEarlyOrLate: null };
+  }
+
+  const ratePerDay = stats.progressGained / daysElapsed;
+  const daysToFinish = Math.ceil(remaining / ratePerDay);
+  const projected = addDays(parseLocalDate(todayISO()), daysToFinish);
+  const end = parseLocalDate(goal.endDate);
+  const daysEarlyOrLate = differenceInCalendarDays(end, projected);
+
+  return {
+    projectedDate: format(projected, "yyyy-MM-dd"),
+    daysToFinish,
+    onTimeProjection: daysEarlyOrLate >= 0,
+    daysEarlyOrLate,
+  };
+}
+
+export function getGoalRisk(stats: GoalMilestoneStats): GoalRiskLevel {
+  if (stats.paceStatus === "completed") return "on_track";
+  if (stats.paceStatus === "overdue" || stats.paceDelta <= -20) return "critical";
+  const projection = projectGoalFinish(stats);
+  if (!projection.onTimeProjection && projection.projectedDate) return "critical";
+  if (stats.paceStatus === "behind" || stats.paceDelta <= -8) return "at_risk";
+  if (projection.daysEarlyOrLate !== null && projection.daysEarlyOrLate < 7 && projection.daysEarlyOrLate >= 0) return "at_risk";
+  return "on_track";
+}
+
+export function buildPaceQuadrantData(stats: GoalMilestoneStats[]): PaceQuadrantPoint[] {
+  return stats
+    .filter((s) => s.paceStatus !== "completed" && s.paceStatus !== "overdue")
+    .map((s) => ({
+      id: s.goal.id,
+      title: s.goal.title,
+      trackIcon: s.trackIcon,
+      trackColor: s.trackColor,
+      timeProgress: s.timeProgress,
+      progressNormalized: normalizeGoalProgress(s),
+      paceStatus: s.paceStatus,
+      paceDelta: s.paceDelta,
+      risk: getGoalRisk(s),
+    }));
+}
+
+export async function toggleGoalCheckpoint(goalId: string, checkpointId: string) {
+  const goal = await db.goalMilestones.get(goalId);
+  if (!goal?.checkpoints) return;
+  const checkpoints = goal.checkpoints.map((c) =>
+    c.id === checkpointId
+      ? { ...c, done: !c.done, doneAt: !c.done ? nowISO() : undefined }
+      : c
+  );
+  await db.goalMilestones.update(goalId, { checkpoints, updatedAt: nowISO() });
+}
+
+export async function setGoalCheckpoints(goalId: string, labels: string[]) {
+  const goal = await db.goalMilestones.get(goalId);
+  if (!goal) return;
+  const existing = goal.checkpoints ?? [];
+  const checkpoints = labels.map((label) => {
+    const prev = existing.find((c) => c.label === label);
+    return prev ?? { id: uuid(), label: label.trim(), done: false };
+  });
+  await db.goalMilestones.update(goalId, { checkpoints, updatedAt: nowISO() });
+}
+
+export function formatProjectedFinish(projection: GoalProjectedFinish): string {
+  if (projection.daysToFinish === 0) return "Goal reached";
+  if (!projection.projectedDate) return "Not enough data to project finish";
+  const dateLabel = format(parseISO(projection.projectedDate), "MMM d, yyyy");
+  if (projection.daysEarlyOrLate === null) return `Est. finish ${dateLabel}`;
+  if (projection.daysEarlyOrLate > 0) {
+    return `Est. finish ${dateLabel} — ${projection.daysEarlyOrLate}d before deadline`;
+  }
+  if (projection.daysEarlyOrLate === 0) return `Est. finish ${dateLabel} — on deadline`;
+  return `Est. finish ${dateLabel} — ${Math.abs(projection.daysEarlyOrLate)}d late`;
+}
+
+export const RISK_COLORS: Record<GoalRiskLevel, string> = {
+  on_track: "#10b981",
+  at_risk: "#f59e0b",
+  critical: "#ef4444",
+};
+
+export const RISK_LABELS: Record<GoalRiskLevel, string> = {
+  on_track: "On track",
+  at_risk: "At risk",
+  critical: "Critical",
+};
 
 export function formatGoalDateRange(startDate: string, endDate: string): string {
   return `${format(parseISO(startDate), "MMM d, yyyy")} → ${format(parseISO(endDate), "MMM d, yyyy")}`;

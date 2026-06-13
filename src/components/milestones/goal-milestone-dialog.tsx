@@ -18,10 +18,11 @@ import {
   getGoalTopicIds,
   formatGoalScopeLabel,
 } from "@/lib/goal-milestones";
+import { v4 as uuid } from "uuid";
 import { getTopicProgress } from "@/lib/analytics";
 import { cn, todayISO } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
-import { Check, RefreshCw } from "lucide-react";
+import { Check, RefreshCw, Plus, X } from "lucide-react";
 
 interface GoalHierarchy {
   trackId: string;
@@ -53,6 +54,8 @@ export function GoalMilestoneDialog({
   const [startDate, setStartDate] = useState(todayISO());
   const [months, setMonths] = useState(3);
   const [notes, setNotes] = useState("");
+  const [checkpointInput, setCheckpointInput] = useState("");
+  const [checkpoints, setCheckpoints] = useState<string[]>([]);
 
   useEffect(() => {
     if (!open) return;
@@ -66,6 +69,8 @@ export function GoalMilestoneDialog({
       setStartDate(editing.startDate);
       setMonths(editing.months);
       setNotes(editing.notes ?? "");
+      setCheckpoints(editing.checkpoints?.map((c) => c.label) ?? []);
+      setCheckpointInput("");
     } else {
       setTitle("");
       setHierarchy({ trackId: tracks[0]?.id ?? "", moduleId: "" });
@@ -73,6 +78,8 @@ export function GoalMilestoneDialog({
       setStartDate(todayISO());
       setMonths(3);
       setNotes("");
+      setCheckpoints([]);
+      setCheckpointInput("");
     }
   }, [open, editing, tracks]);
 
@@ -111,6 +118,17 @@ export function GoalMilestoneDialog({
     );
   };
 
+  const addCheckpoint = () => {
+    const label = checkpointInput.trim();
+    if (!label || checkpoints.includes(label)) return;
+    setCheckpoints((prev) => [...prev, label]);
+    setCheckpointInput("");
+  };
+
+  const removeCheckpoint = (label: string) => {
+    setCheckpoints((prev) => prev.filter((c) => c !== label));
+  };
+
   const handleSave = async () => {
     if (!title.trim() || !hierarchy.trackId) return;
     const payload = {
@@ -124,9 +142,17 @@ export function GoalMilestoneDialog({
     };
 
     if (editing) {
-      await updateGoalMilestone(editing.id, payload, topics, subtopics, modules);
+      await updateGoalMilestone(editing.id, {
+        ...payload,
+        checkpoints: checkpoints.length > 0
+          ? checkpoints.map((label) => {
+              const existing = editing.checkpoints?.find((c) => c.label === label);
+              return existing ?? { id: uuid(), label, done: false };
+            })
+          : [],
+      }, topics, subtopics, modules);
     } else {
-      await createGoalMilestone({ ...payload, topics, subtopics, modules });
+      await createGoalMilestone({ ...payload, checkpoints, topics, subtopics, modules });
     }
     onOpenChange(false);
   };
@@ -275,6 +301,37 @@ export function GoalMilestoneDialog({
           <div>
             <label className="text-xs text-muted-foreground">Start date</label>
             <Input type="date" className="mt-1 h-11" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+          </div>
+
+          <div>
+            <label className="text-xs text-muted-foreground">Checkpoints (optional)</label>
+            <p className="text-[11px] text-muted-foreground mb-2">
+              Break the goal into small wins you can tick off along the way.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                className="h-9 flex-1"
+                placeholder="e.g. Finish first 5 topics"
+                value={checkpointInput}
+                onChange={(e) => setCheckpointInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCheckpoint())}
+              />
+              <Button type="button" size="sm" variant="outline" className="h-9 shrink-0" onClick={addCheckpoint}>
+                <Plus className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+            {checkpoints.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {checkpoints.map((label) => (
+                  <Badge key={label} variant="secondary" className="gap-1 pr-1 text-xs">
+                    {label}
+                    <button type="button" onClick={() => removeCheckpoint(label)} className="rounded p-0.5 hover:bg-secondary">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
 
           <div>

@@ -186,6 +186,13 @@ export interface Milestone {
 }
 
 /** User-defined learning goal with a timeline (module/topic under a track) */
+export interface GoalCheckpoint {
+  id: string;
+  label: string;
+  done: boolean;
+  doneAt?: string;
+}
+
 export interface GoalMilestone {
   id: string;
   title: string;
@@ -201,9 +208,19 @@ export interface GoalMilestone {
   baselineProgress: number;
   targetProgress: number;
   notes?: string;
+  checkpoints?: GoalCheckpoint[];
   order: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export type GoalRiskLevel = "on_track" | "at_risk" | "critical";
+
+export interface GoalProjectedFinish {
+  projectedDate: string | null;
+  daysToFinish: number | null;
+  onTimeProjection: boolean;
+  daysEarlyOrLate: number | null;
 }
 
 export type GoalPaceStatus = "ahead" | "on_track" | "behind" | "completed" | "overdue";
