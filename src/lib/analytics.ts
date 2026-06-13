@@ -8,6 +8,8 @@ import {
   eachMonthOfInterval,
   startOfMonth,
   endOfMonth,
+  startOfDay,
+  endOfDay,
 } from "date-fns";
 import type {
   Track,
@@ -661,6 +663,39 @@ export function getCompletionTrends(sessions: LearningSession[], subtopics: Subt
     trends.push({ week: weekLabel, hours, completed });
   }
   return trends;
+}
+
+/** Daily hours + completions — always shows full day range (min 7 days) */
+export function getCompletionTrendsDaily(
+  sessions: LearningSession[],
+  subtopics: Subtopic[],
+  days: number
+) {
+  const span = Math.max(7, days);
+  const result: { label: string; date: string; hours: number; completed: number }[] = [];
+  for (let i = span - 1; i >= 0; i--) {
+    const d = subDays(new Date(), i);
+    const key = format(d, "yyyy-MM-dd");
+    const dayStart = startOfDay(d);
+    const dayEnd = endOfDay(d);
+    const hours =
+      sessions.filter((s) => s.date === key).reduce((sum, s) => sum + s.duration, 0) / 3600000;
+    const completed = subtopics.filter((s) => {
+      const updated = parseISO(s.updatedAt);
+      return (
+        updated >= dayStart &&
+        updated <= dayEnd &&
+        (s.status === "completed" || s.status === "mastered")
+      );
+    }).length;
+    result.push({
+      date: key,
+      label: format(d, span <= 14 ? "EEE" : "MMM d"),
+      hours: Math.round(hours * 10) / 10,
+      completed,
+    });
+  }
+  return result;
 }
 
 export function getDifficultyAnalytics(subtopics: Subtopic[], sessions: LearningSession[]) {

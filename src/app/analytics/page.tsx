@@ -24,7 +24,7 @@ import {
 } from "@/hooks/use-data";
 import {
   getHoursByPeriod, getHoursByWeek, getFocusHeatmap,
-  getEfficiencyScores, getCompletionTrends,
+  getEfficiencyScores, getCompletionTrendsDaily,
   getQualityByWeek, getProblemsByWeek,
   trimLeadingEmptyWeeks, trimLeadingEmptyProblemWeeks,
   getConsistencyCalendar, getAnalyticsKpis, getLearningVelocityWithDelta,
@@ -162,13 +162,10 @@ export default function AnalyticsPage() {
   );
   const maxEfficiency = Math.max(...efficiency.map((e) => e.efficiency), 1);
 
+  const trendDays = weekRange === "4" ? 28 : weekRange === "12" ? 90 : 180;
   const trends = useMemo(
-    () =>
-      trimLeadingEmptyWeeks(
-        getCompletionTrends(sessions, subtopics, weekCount),
-        (d) => d.hours > 0 || d.completed > 0
-      ),
-    [sessions, subtopics, weekCount]
+    () => getCompletionTrendsDaily(sessions, subtopics, trendDays),
+    [sessions, subtopics, trendDays]
   );
 
   const diagnostics = useMemo(
@@ -268,7 +265,7 @@ export default function AnalyticsPage() {
             </Tabs>
           </div>
 
-          <Tabs defaultValue="weekly">
+          <Tabs defaultValue="daily">
             <TabsList>
               <TabsTrigger value="daily">Daily</TabsTrigger>
               <TabsTrigger value="weekly">Weekly</TabsTrigger>
@@ -509,13 +506,19 @@ export default function AnalyticsPage() {
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={trends}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                <XAxis dataKey="week" tick={{ fill: "#a1a1aa", fontSize: 10 }} />
+                <XAxis dataKey="label" tick={{ fill: "#a1a1aa", fontSize: 10 }} />
                 <YAxis yAxisId="left" tick={{ fill: "#a1a1aa", fontSize: 10 }} />
-                <YAxis yAxisId="right" orientation="right" tick={{ fill: "#a1a1aa", fontSize: 10 }} />
-                <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
+                <YAxis yAxisId="right" orientation="right" allowDecimals={false} tick={{ fill: "#a1a1aa", fontSize: 10 }} />
+                <Tooltip
+                  contentStyle={CHART_TOOLTIP_STYLE}
+                  formatter={(value: number, name: string) => [
+                    name === "Hours" ? `${Number(value).toFixed(1)}h` : value,
+                    name,
+                  ]}
+                />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Line yAxisId="left" type="monotone" dataKey="hours" stroke="#8b5cf6" strokeWidth={2} dot={false} name="Hours" />
-                <Line yAxisId="right" type="monotone" dataKey="completed" stroke="#10b981" strokeWidth={2} dot={false} name="Completed" />
+                <Line yAxisId="left" type="monotone" dataKey="hours" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 2, fill: "#8b5cf6" }} name="Hours" />
+                <Line yAxisId="right" type="monotone" dataKey="completed" stroke="#10b981" strokeWidth={2} dot={{ r: 2, fill: "#10b981" }} name="Completed" />
               </LineChart>
             </ResponsiveContainer>
           )}
