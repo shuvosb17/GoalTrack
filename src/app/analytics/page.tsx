@@ -18,6 +18,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { StatCard } from "@/components/shared/stat-card";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { ConsistencyCalendar } from "@/components/analytics/consistency-calendar";
+import { InconsistencyTrackingPanel } from "@/components/analytics/inconsistency-tracking-panel";
 import { LearningVelocityPanel } from "@/components/analytics/learning-velocity-panel";
 import {
   useTracks, useAllSubtopics, useAllTopics, useSessions, useSettings, useSkipLogs,
@@ -248,6 +249,16 @@ export default function AnalyticsPage() {
           <SectionHeading>Study Consistency</SectionHeading>
           <ConsistencyCalendar days={consistencyDays} />
           <InsightLine text={diagnostics.consistency} />
+        </CardContent>
+      </Card>
+
+      <Card className="border-[0.5px] border-white/[0.08]">
+        <CardContent className="pt-6">
+          <SectionHeading>Tracking</SectionHeading>
+          <p className="mb-4 text-xs text-muted-foreground">
+            History of missed study days and the reasons you logged.
+          </p>
+          <InconsistencyTrackingPanel skipLogs={skipLogs} />
         </CardContent>
       </Card>
 

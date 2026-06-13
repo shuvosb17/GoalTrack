@@ -45,6 +45,7 @@ export interface SkipLog {
   id: string;
   date: string;
   reason: SkipReason;
+  loggedAt?: string;
 }
 
 export interface LeetCodeStats {
