@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { format, parseISO } from "date-fns";
-import { Sparkles, Target, TrendingUp, Clock, Calendar } from "lucide-react";
+import { Target, Clock, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CircularProgress } from "@/components/shared/circular-progress";
@@ -19,7 +19,6 @@ import {
   PACE_STATUS_LABELS,
   PACE_STATUS_COLORS,
 } from "@/lib/track-estimation";
-import { DEFAULT_YEAR_START, DEFAULT_YEAR_END } from "@/lib/analytics";
 
 interface TrackEstimationPanelProps {
   filterTrackId?: string;
@@ -50,28 +49,6 @@ export function TrackEstimationPanel({ filterTrackId }: TrackEstimationPanelProp
 
   return (
     <section className="space-y-5">
-      <div className="relative overflow-hidden rounded-2xl glass-card p-5 sm:p-6">
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-600/20 via-fuchsia-600/10 to-blue-600/15 pointer-events-none" />
-        <div className="relative flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Sparkles className="h-5 w-5 text-violet-400" />
-              <h2 className="text-lg font-bold tracking-tight sm:text-xl">Completion Estimation</h2>
-            </div>
-            <p className="text-sm text-muted-foreground max-w-2xl">
-              Set your deadline per track and see if your completion trend can finish on time.
-              Adjust months — e.g. 6 → 7 — to instantly refresh the forecast.
-            </p>
-            <p className="text-xs text-violet-300/80 mt-2 font-medium">
-              Learning window: {format(parseISO(DEFAULT_YEAR_START), "MMM yyyy")} – {format(parseISO(DEFAULT_YEAR_END), "MMM yyyy")}
-            </p>
-          </div>
-          <Badge variant="outline" className="border-violet-500/30 text-violet-300 gap-1">
-            <TrendingUp className="h-3 w-3" /> Live trend analysis
-          </Badge>
-        </div>
-      </div>
-
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
         {visible.map((s, i) => (
           <motion.div
