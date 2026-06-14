@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BookmarkCheck,
   LayoutGrid,
@@ -18,11 +18,11 @@ import {
   buildRevisionCatalog,
   countCompletedByTrack,
   isRateableReviewItem,
-  type ReviewCatalogItem,
 } from "@/lib/revision-catalog";
 import { ConfidenceDots, ConfidenceLegend } from "@/components/status/confidence-dots";
 import { RevisionQuizDialog } from "@/components/status/revision-quiz-dialog";
 import { TopicConfidenceDialog } from "@/components/tracks/topic-confidence-dialog";
+import { useReviewStore } from "@/stores/review-store";
 import { cn } from "@/lib/utils";
 
 interface ReviewSessionPanelProps {
@@ -43,6 +43,38 @@ export function ReviewSessionPanel({
     [tracks, modules, topics, subtopics]
   );
 
+  const queue = useReviewStore((s) => s.queue);
+  const progress = useReviewStore((s) => s.progress);
+  const addToQueue = useReviewStore((s) => s.addToQueue);
+  const removeFromQueue = useReviewStore((s) => s.removeFromQueue);
+  const refreshQueueFromCatalog = useReviewStore((s) => s.refreshQueueFromCatalog);
+  const startSession = useReviewStore((s) => s.startSession);
+
+  const [activeTrackId, setActiveTrackId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [quizOpen, setQuizOpen] = useState(false);
+  const [resumedSession, setResumedSession] = useState(false);
+  const [rateTarget, setRateTarget] = useState<{
+    entityType: "topic" | "subtopic";
+    entityId: string;
+    name: string;
+    parentTopicName?: string;
+  } | null>(null);
+
+  const sessionActive = progress !== null;
+  const queueLocked = sessionActive;
+
+  useEffect(() => {
+    refreshQueueFromCatalog(catalog);
+  }, [catalog, refreshQueueFromCatalog]);
+
+  useEffect(() => {
+    if (!resumedSession && sessionActive && queue.length > 0) {
+      setQuizOpen(true);
+      setResumedSession(true);
+    }
+  }, [resumedSession, sessionActive, queue.length]);
+
   const completedByTrack = useMemo(() => countCompletedByTrack(catalog), [catalog]);
 
   const tracksWithItems = useMemo(() => {
@@ -50,17 +82,6 @@ export function ReviewSessionPanel({
       .filter((t) => (completedByTrack.get(t.id) ?? 0) > 0)
       .sort((a, b) => a.order - b.order);
   }, [tracks, completedByTrack]);
-
-  const [activeTrackId, setActiveTrackId] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [queue, setQueue] = useState<ReviewCatalogItem[]>([]);
-  const [quizOpen, setQuizOpen] = useState(false);
-  const [rateTarget, setRateTarget] = useState<{
-    entityType: "topic" | "subtopic";
-    entityId: string;
-    name: string;
-    parentTopicName?: string;
-  } | null>(null);
 
   const selectedTrackId =
     activeTrackId && tracksWithItems.some((t) => t.id === activeTrackId)
@@ -80,13 +101,13 @@ export function ReviewSessionPanel({
 
   const queueIds = useMemo(() => new Set(queue.map((q) => q.id)), [queue]);
 
-  const addToQueue = (item: ReviewCatalogItem) => {
-    if (queueIds.has(item.id)) return;
-    setQueue((prev) => [...prev, item]);
-  };
-
-  const removeFromQueue = (id: string) => {
-    setQueue((prev) => prev.filter((q) => q.id !== id));
+  const handleStartOrContinue = () => {
+    if (sessionActive) {
+      setQuizOpen(true);
+    } else {
+      startSession();
+      setQuizOpen(true);
+    }
   };
 
   const topicCountInTrack = selectedTrackId
@@ -111,7 +132,6 @@ export function ReviewSessionPanel({
     <>
       <Card className="border-[0.5px] border-white/[0.08]">
         <CardContent className="pt-6 pb-6">
-          {/* Header */}
           <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
             <div>
               <h2 className="text-xl font-medium tracking-tight">Review</h2>
@@ -129,7 +149,17 @@ export function ReviewSessionPanel({
             </div>
           </div>
 
-          {/* Track tabs */}
+          {sessionActive && (
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-violet-500/25 bg-violet-500/[0.06] px-4 py-3">
+              <p className="text-sm text-violet-200">
+                Revision session in progress — queue saved until you rate retention
+              </p>
+              <Button size="sm" variant="secondary" onClick={() => setQuizOpen(true)}>
+                Continue session
+              </Button>
+            </div>
+          )}
+
           <div className="mb-6 flex flex-wrap gap-2">
             {tracksWithItems.map((track) => {
               const count = completedByTrack.get(track.id) ?? 0;
@@ -160,17 +190,12 @@ export function ReviewSessionPanel({
             })}
           </div>
 
-          {/* Two-column body */}
           <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
-            {/* Left — topic list */}
             <div className="min-w-0 rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.015] p-4">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm font-medium">
                   {activeTrack?.name ?? "Track"}
-                  <span className="font-normal text-muted-foreground">
-                    {" "}
-                    · completed items
-                  </span>
+                  <span className="font-normal text-muted-foreground"> · completed items</span>
                 </p>
                 <span className="text-xs text-muted-foreground">
                   {topicCountInTrack} item{topicCountInTrack === 1 ? "" : "s"}
@@ -186,10 +211,11 @@ export function ReviewSessionPanel({
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search topics…"
                   className="h-9 border-white/[0.08] bg-white/[0.03] pl-9 text-sm"
+                  disabled={queueLocked}
                 />
               </div>
 
-              <div className="mt-3 max-h-[420px] space-y-1.5 overflow-y-auto pr-0.5 [-ms-overflow-style:none] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10">
+              <div className="mt-3 max-h-[420px] space-y-1.5 overflow-y-auto pr-0.5">
                 {trackItems.length === 0 ? (
                   <p className="py-8 text-center text-sm text-muted-foreground">
                     {search ? "No topics match your search." : "No completed topics in this track."}
@@ -201,18 +227,20 @@ export function ReviewSessionPanel({
                       <div
                         key={item.id}
                         role="button"
-                        tabIndex={0}
-                        onClick={() => addToQueue(item)}
+                        tabIndex={queueLocked ? -1 : 0}
+                        onClick={() => !queueLocked && addToQueue(item)}
                         onKeyDown={(e) => {
+                          if (queueLocked) return;
                           if (e.key === "Enter" || e.key === " ") {
                             e.preventDefault();
                             addToQueue(item);
                           }
                         }}
                         className={cn(
-                          "group flex cursor-pointer items-center gap-3 rounded-lg border-[0.5px] border-transparent px-2.5 py-2.5 transition-all duration-200",
-                          "hover:border-white/[0.08] hover:bg-white/[0.04]",
-                          inQueue && "opacity-50"
+                          "group flex items-center gap-3 rounded-lg border-[0.5px] border-transparent px-2.5 py-2.5 transition-all duration-200",
+                          !queueLocked && "cursor-pointer hover:border-white/[0.08] hover:bg-white/[0.04]",
+                          inQueue && "opacity-50",
+                          queueLocked && "pointer-events-none opacity-40"
                         )}
                       >
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border-[0.5px] border-white/[0.08] bg-white/[0.03]">
@@ -229,7 +257,7 @@ export function ReviewSessionPanel({
                         <button
                           type="button"
                           title={isRateableReviewItem(item) ? "Rate confidence" : undefined}
-                          disabled={!isRateableReviewItem(item)}
+                          disabled={!isRateableReviewItem(item) || queueLocked}
                           onClick={(e) => {
                             e.stopPropagation();
                             if (item.kind === "subtopic" && item.subtopicId) {
@@ -249,15 +277,14 @@ export function ReviewSessionPanel({
                           }}
                           className={cn(
                             "shrink-0 rounded p-0.5 transition-opacity",
-                            isRateableReviewItem(item) && "cursor-pointer hover:opacity-80",
-                            !isRateableReviewItem(item) && "cursor-default opacity-70"
+                            isRateableReviewItem(item) && !queueLocked && "cursor-pointer hover:opacity-80"
                           )}
                         >
                           <ConfidenceDots confidence={item.confidence} />
                         </button>
                         <button
                           type="button"
-                          disabled={inQueue}
+                          disabled={inQueue || queueLocked}
                           onClick={(e) => {
                             e.stopPropagation();
                             addToQueue(item);
@@ -278,7 +305,6 @@ export function ReviewSessionPanel({
               </div>
             </div>
 
-            {/* Right — review queue */}
             <div className="flex min-h-[320px] flex-col rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.015] p-4 lg:min-h-0">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <p className="text-sm font-medium">Review queue</p>
@@ -299,7 +325,7 @@ export function ReviewSessionPanel({
                   {queue.map((item, i) => (
                     <div
                       key={`${item.id}-${i}`}
-                      className="flex items-center gap-3 rounded-lg border-[0.5px] border-white/[0.08] bg-white/[0.02] px-3 py-2.5 transition-colors hover:bg-white/[0.04]"
+                      className="flex items-center gap-3 rounded-lg border-[0.5px] border-white/[0.08] bg-white/[0.02] px-3 py-2.5"
                     >
                       <span className="w-4 shrink-0 text-center text-[11px] tabular-nums text-muted-foreground">
                         {i + 1}
@@ -317,14 +343,16 @@ export function ReviewSessionPanel({
                         </p>
                       </div>
                       <ConfidenceDots confidence={item.confidence} />
-                      <button
-                        type="button"
-                        onClick={() => removeFromQueue(item.id)}
-                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground"
-                        aria-label={`Remove ${item.name}`}
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
+                      {!queueLocked && (
+                        <button
+                          type="button"
+                          onClick={() => removeFromQueue(item.id)}
+                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground"
+                          aria-label={`Remove ${item.name}`}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -333,22 +361,17 @@ export function ReviewSessionPanel({
               <Button
                 className="mt-auto w-full gap-2"
                 disabled={queue.length === 0}
-                onClick={() => setQuizOpen(true)}
+                onClick={handleStartOrContinue}
               >
                 <Play className="h-4 w-4" />
-                Start revision session
+                {sessionActive ? "Continue revision session" : "Start revision session"}
               </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <RevisionQuizDialog
-        open={quizOpen}
-        onOpenChange={setQuizOpen}
-        queue={queue}
-        onComplete={() => setQueue([])}
-      />
+      <RevisionQuizDialog open={quizOpen} onOpenChange={setQuizOpen} />
 
       <TopicConfidenceDialog
         open={!!rateTarget}
