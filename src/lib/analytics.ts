@@ -30,6 +30,7 @@ import {
   todayISO,
   parseLocalDate,
 } from "./utils";
+import { resolveSessionTopicId } from "./time-log";
 
 export const DEFAULT_YEAR_START = "2026-06-01";
 export const DEFAULT_YEAR_END = "2026-12-31";
@@ -339,19 +340,34 @@ export function getFocusHeatmap(sessions: LearningSession[]) {
   return grid;
 }
 
+function aggregateTopicStudyHours(
+  sessions: LearningSession[],
+  topics: Topic[],
+  subtopics: Subtopic[]
+): Map<string, number> {
+  const activeIds = new Set(topics.filter((t) => !t.archived).map((t) => t.id));
+  const map = new Map<string, number>();
+
+  sessions.forEach((s) => {
+    const topicId = resolveSessionTopicId(s, subtopics);
+    if (!topicId || !activeIds.has(topicId)) return;
+    map.set(topicId, (map.get(topicId) || 0) + s.duration);
+  });
+
+  return map;
+}
+
 export function getTopTopics(
   sessions: LearningSession[],
   topics: Topic[],
-  limit = 10
+  limit = 10,
+  subtopics: Subtopic[] = []
 ) {
-  const map = new Map<string, number>();
-  sessions.forEach((s) => {
-    if (s.topicId) map.set(s.topicId, (map.get(s.topicId) || 0) + s.duration);
-  });
-  return [...map.entries()]
+  return [...aggregateTopicStudyHours(sessions, topics, subtopics).entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, limit)
     .map(([id, duration]) => ({
+      id,
       name: topics.find((t) => t.id === id)?.name || "Unknown",
       hours: duration / 3600000,
     }));
@@ -980,13 +996,16 @@ export function getTopTopicsWithTrack(
   sessions: LearningSession[],
   topics: Topic[],
   tracks: Track[],
-  limit = 8
+  subtopics: Subtopic[] = [],
+  limit = 8,
+  days?: number
 ) {
-  const map = new Map<string, number>();
-  sessions.forEach((s) => {
-    if (s.topicId) map.set(s.topicId, (map.get(s.topicId) || 0) + s.duration);
-  });
-  return [...map.entries()]
+  const scoped =
+    days !== undefined
+      ? sessions.filter((s) => s.date >= format(subDays(new Date(), days - 1), "yyyy-MM-dd"))
+      : sessions;
+
+  return [...aggregateTopicStudyHours(scoped, topics, subtopics).entries()]
     .filter(([, duration]) => duration > 0)
     .sort((a, b) => b[1] - a[1])
     .slice(0, limit)
@@ -994,6 +1013,7 @@ export function getTopTopicsWithTrack(
       const topic = topics.find((t) => t.id === id);
       const track = tracks.find((t) => t.id === topic?.trackId);
       return {
+        id,
         name: topic?.name || "Unknown",
         hours: duration / 3600000,
         trackColor: track?.color ?? "#8b5cf6",

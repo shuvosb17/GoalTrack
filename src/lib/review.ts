@@ -69,7 +69,7 @@ export function buildAnnualReport(
   const streaks = calculateStreaks(windowSessions.map((s) => s.date));
   const distribution = withPercentages(getHoursByTrack(windowSessions, tracks));
   const topTrack = distribution.sort((a, b) => b.value - a.value)[0];
-  const topTopics = getTopTopics(windowSessions, topics, 5);
+  const topTopics = getTopTopics(windowSessions, topics, 5, subtopics);
 
   const interval = {
     start: parseLocalDate(window.yearStart),

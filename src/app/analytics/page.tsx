@@ -138,9 +138,10 @@ export default function AnalyticsPage() {
   const maxHeat = Math.max(...heatmap.flat(), 1);
   const peakInsight = kpis.peakFocusLabel;
 
+  const topTopicsDays = weekRange === "4" ? 28 : weekRange === "12" ? 90 : undefined;
   const topTopics = useMemo(
-    () => getTopTopicsWithTrack(sessions, topics, tracks),
-    [sessions, topics, tracks]
+    () => getTopTopicsWithTrack(sessions, topics, tracks, subtopics, 8, topTopicsDays),
+    [sessions, topics, tracks, subtopics, topTopicsDays]
   );
   const velocity = useMemo(
     () => getLearningVelocityWithDelta(subtopics, sessions),
@@ -482,12 +483,15 @@ export default function AnalyticsPage() {
         <Card className="border-[0.5px] border-white/[0.08]">
           <CardContent className="pt-6">
             <SectionHeading>Most Studied Topics</SectionHeading>
+            <p className="mb-3 text-[11px] text-muted-foreground">
+              Ranked by logged hours ({weekRange === "4" ? "last 4 weeks" : weekRange === "12" ? "last 12 weeks" : "all time"}), including subtopic sessions.
+            </p>
             {topTopics.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">No topic-level time logged yet.</p>
             ) : (
               <div className="space-y-2.5">
                 {topTopics.map((t, i) => (
-                  <div key={t.name} className="flex items-center gap-2">
+                  <div key={t.id} className="flex items-center gap-2">
                     <span className="w-4 text-[10px] text-muted-foreground">{i + 1}</span>
                     <div className="h-2 w-2 shrink-0 rounded-full" style={{ background: t.trackColor }} />
                     <div className="min-w-0 flex-1">

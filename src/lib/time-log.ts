@@ -6,7 +6,16 @@ export function getSubtopicLoggedMs(subtopicId: string, sessions: LearningSessio
     .reduce((sum, s) => sum + s.duration, 0);
 }
 
-/** Topic time = sum of all its subtopics' logged time */
+export function resolveSessionTopicId(
+  session: LearningSession,
+  subtopics: Subtopic[]
+): string | undefined {
+  if (session.topicId) return session.topicId;
+  if (!session.subtopicId) return undefined;
+  return subtopics.find((s) => s.id === session.subtopicId)?.topicId;
+}
+
+/** Sum logged ms for a topic: direct topic sessions + all subtopic sessions under it. */
 export function getTopicLoggedMs(
   topicId: string,
   subtopics: Subtopic[],
@@ -16,7 +25,10 @@ export function getTopicLoggedMs(
     subtopics.filter((s) => s.topicId === topicId && !s.archived).map((s) => s.id)
   );
   return sessions
-    .filter((s) => s.subtopicId && subIds.has(s.subtopicId))
+    .filter((s) => {
+      if (s.subtopicId && subIds.has(s.subtopicId)) return true;
+      return s.topicId === topicId && !s.subtopicId;
+    })
     .reduce((sum, s) => sum + s.duration, 0);
 }
 
