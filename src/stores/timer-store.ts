@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { v4 as uuid } from "uuid";
 import { db } from "@/lib/db";
-import type { TimerState, HierarchyPath } from "@/lib/types";
+import type { TimerState, HierarchyPath, LearningSession } from "@/lib/types";
 import { nowISO, todayISO } from "@/lib/utils";
 
 interface TimerStore extends TimerState {
@@ -68,12 +68,9 @@ export const useTimerStore = create<TimerStore>()(
         }
 
         const now = new Date();
-        const session = {
+        const session: LearningSession = {
           id: uuid(),
           trackId: state.trackId,
-          moduleId: state.moduleId,
-          topicId: state.topicId,
-          subtopicId: state.subtopicId,
           startTime: new Date(now.getTime() - duration).toISOString(),
           endTime: now.toISOString(),
           duration,
@@ -81,6 +78,9 @@ export const useTimerStore = create<TimerStore>()(
           manual: false,
           createdAt: nowISO(),
         };
+        if (state.moduleId) session.moduleId = state.moduleId;
+        if (state.topicId) session.topicId = state.topicId;
+        if (state.subtopicId) session.subtopicId = state.subtopicId;
 
         await db.sessions.add(session);
         set({ ...initialState, pendingQualitySessionId: session.id });

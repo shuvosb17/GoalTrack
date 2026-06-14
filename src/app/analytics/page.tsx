@@ -20,6 +20,7 @@ import { SectionHeading } from "@/components/shared/section-heading";
 import { ConsistencyCalendar } from "@/components/analytics/consistency-calendar";
 import { InconsistencyTrackingPanel } from "@/components/analytics/inconsistency-tracking-panel";
 import { LearningVelocityPanel } from "@/components/analytics/learning-velocity-panel";
+import { MostStudiedTopicsPanel } from "@/components/analytics/most-studied-topics-panel";
 import {
   useTracks, useAllSubtopics, useAllTopics, useAllModules, useSessions, useSettings, useSkipLogs,
 } from "@/hooks/use-data";
@@ -480,33 +481,7 @@ export default function AnalyticsPage() {
           footnote={diagnostics.velocity}
         />
 
-        <Card className="border-[0.5px] border-white/[0.08]">
-          <CardContent className="pt-6">
-            <SectionHeading>Most Studied Topics</SectionHeading>
-            <p className="mb-3 text-[11px] text-muted-foreground">
-              Ranked by all logged hours. Completed or in-progress — status does not affect counting. Includes topic, module, and track timers.
-            </p>
-            {topTopics.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">No study time logged yet.</p>
-            ) : (
-              <div className="space-y-2.5">
-                {topTopics.map((t, i) => (
-                  <div key={t.id} className="flex items-center gap-2">
-                    <span className="w-4 text-[10px] text-muted-foreground">{i + 1}</span>
-                    <div className="h-2 w-2 shrink-0 rounded-full" style={{ background: t.trackColor }} />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm">{t.name}</p>
-                      <div className="mt-1 h-1 overflow-hidden rounded-full bg-white/[0.06]">
-                        <div className="h-full rounded-full" style={{ width: `${(t.hours / topTopics[0].hours) * 100}%`, background: t.trackColor }} />
-                      </div>
-                    </div>
-                    <span className="text-xs tabular-nums text-muted-foreground">{t.hours.toFixed(1)}h</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <MostStudiedTopicsPanel items={topTopics} />
       </div>
 
       {/* Completion Trends */}
