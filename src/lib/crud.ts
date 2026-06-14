@@ -4,6 +4,17 @@ import type { Module, Topic, Subtopic, ProgressStatus, Difficulty } from "./type
 import { nowISO, todayISO } from "./utils";
 import { computeNextReviewDate } from "./metrics";
 import { isTopicComplete } from "./in-progress";
+import { enqueueConfidencePromptIfNeeded } from "./confidence-prompt";
+
+function buildCompletionMeta(existing?: Topic["completionMeta"]): NonNullable<Topic["completionMeta"]> {
+  return {
+    completedAt: existing?.completedAt ?? nowISO(),
+    confidenceRating: existing?.confidenceRating ?? 3,
+    nextReviewDue: existing?.nextReviewDue ?? computeNextReviewDate(3),
+    reviewedAt: existing?.reviewedAt,
+    confidenceRated: existing?.confidenceRated ?? false,
+  };
+}
 
 export async function renameModule(id: string, name: string) {
   await db.modules.update(id, { name, updatedAt: nowISO() });
@@ -101,8 +112,18 @@ export async function syncTopicStatusFromSubtopics(topicId: string) {
   };
   if (topicStatus === "completed" || topicStatus === "mastered") {
     updates.dueDate = undefined;
+    if (!topic.completionMeta) {
+      updates.completionMeta = buildCompletionMeta();
+    }
   }
   await db.topics.update(topicId, updates);
+
+  if (
+    topic.status !== topicStatus &&
+    (topicStatus === "completed" || topicStatus === "mastered")
+  ) {
+    await enqueueConfidencePromptIfNeeded(topicId);
+  }
 }
 
 /** Apply the user-chosen due date to the topic and all in-progress subtopics */
@@ -172,15 +193,15 @@ export async function updateTopicStatus(id: string, status: ProgressStatus, dueD
   } else if (resolvedStatus === "completed" || resolvedStatus === "mastered") {
     updates.dueDate = undefined;
     if (!topic.completionMeta) {
-      updates.completionMeta = {
-        completedAt: nowISO(),
-        confidenceRating: 3,
-        nextReviewDue: computeNextReviewDate(3),
-      };
+      updates.completionMeta = buildCompletionMeta();
     }
   }
 
   await db.topics.update(id, updates);
+
+  const justCompleted =
+    topic.status !== resolvedStatus &&
+    (resolvedStatus === "completed" || resolvedStatus === "mastered");
 
   if (resolvedStatus === "in_progress" && updates.dueDate) {
     await propagateDueDate(id, updates.dueDate);
@@ -204,6 +225,10 @@ export async function updateTopicStatus(id: string, status: ProgressStatus, dueD
   } else {
     await syncTopicStatusFromSubtopics(id);
   }
+
+  if (justCompleted) {
+    await enqueueConfidencePromptIfNeeded(id);
+  }
 }
 
 /**
@@ -225,6 +250,7 @@ export async function setTopicCompletionConfidence(
       confidenceRating: confidence,
       nextReviewDue,
       reviewedAt: options?.isReview ? nowISO() : topic.completionMeta?.reviewedAt,
+      confidenceRated: true,
     },
     updatedAt: nowISO(),
   });

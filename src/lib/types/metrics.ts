@@ -68,6 +68,8 @@ export interface TopicCompletionMeta {
   confidenceRating: 1 | 2 | 3 | 4 | 5;
   nextReviewDue: string;
   reviewedAt?: string;
+  /** False until the user explicitly rates (or skips) after completion. */
+  confidenceRated?: boolean;
 }
 
 export interface PinnedNextItem {

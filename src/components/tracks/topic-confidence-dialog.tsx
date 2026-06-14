@@ -62,7 +62,9 @@ export function TopicConfidenceDialog({
             >
               <span className="text-base font-medium text-foreground">{n}</span>
               {n === 1 && "Shaky"}
+              {n === 2 && "Low"}
               {n === 3 && "OK"}
+              {n === 4 && "Good"}
               {n === 5 && "Solid"}
             </button>
           ))}
@@ -73,7 +75,10 @@ export function TopicConfidenceDialog({
         {!isReview && (
           <button
             type="button"
-            onClick={() => onOpenChange(false)}
+            onClick={() => {
+              if (topicId) void setTopicCompletionConfidence(topicId, 3);
+              onOpenChange(false);
+            }}
             className="text-xs text-muted-foreground hover:text-foreground"
           >
             Skip — defaults to 3 ({computeNextReviewDate(3).replace(/^\d{4}-/, "")})

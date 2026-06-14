@@ -253,15 +253,11 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                   value={topic.status ?? "not_started"}
                                                   onValueChange={(v) => {
                                                     const status = v as ProgressStatus;
-                                                    const wasComplete = topic.status === "completed" || topic.status === "mastered";
                                                     if (status === "in_progress") {
                                                       updateTopicStatus(topic.id, status, topic.dueDate ?? todayISO());
                                                       setStatusDialog({ id: topic.id, type: "topic", dueDate: topic.dueDate ?? todayISO() });
                                                     } else {
                                                       updateTopicStatus(topic.id, status);
-                                                      if ((status === "completed" || status === "mastered") && !wasComplete) {
-                                                        setConfidenceDialog({ id: topic.id, name: topic.name, mode: "complete" });
-                                                      }
                                                     }
                                                   }}
                                                 >

@@ -21,6 +21,7 @@ import {
 } from "@/lib/revision-catalog";
 import { ConfidenceDots, ConfidenceLegend } from "@/components/status/confidence-dots";
 import { RevisionQuizDialog } from "@/components/status/revision-quiz-dialog";
+import { TopicConfidenceDialog } from "@/components/tracks/topic-confidence-dialog";
 import { cn } from "@/lib/utils";
 
 interface ReviewSessionPanelProps {
@@ -53,6 +54,7 @@ export function ReviewSessionPanel({
   const [search, setSearch] = useState("");
   const [queue, setQueue] = useState<ReviewCatalogItem[]>([]);
   const [quizOpen, setQuizOpen] = useState(false);
+  const [rateTarget, setRateTarget] = useState<{ topicId: string; name: string } | null>(null);
 
   const selectedTrackId =
     activeTrackId && tracksWithItems.some((t) => t.id === activeTrackId)
@@ -216,7 +218,24 @@ export function ReviewSessionPanel({
                             {item.kind}
                           </p>
                         </div>
-                        <ConfidenceDots confidence={item.confidence} />
+                        <button
+                          type="button"
+                          title={item.kind === "topic" ? "Rate confidence" : undefined}
+                          disabled={item.kind !== "topic" || !item.topicId}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (item.topicId) {
+                              setRateTarget({ topicId: item.topicId, name: item.name });
+                            }
+                          }}
+                          className={cn(
+                            "shrink-0 rounded p-0.5 transition-opacity",
+                            item.kind === "topic" && item.topicId && "hover:opacity-80 cursor-pointer",
+                            item.kind !== "topic" && "cursor-default opacity-70"
+                          )}
+                        >
+                          <ConfidenceDots confidence={item.confidence} />
+                        </button>
                         <button
                           type="button"
                           disabled={inQueue}
@@ -308,6 +327,16 @@ export function ReviewSessionPanel({
         onOpenChange={setQuizOpen}
         queue={queue}
         onComplete={() => setQueue([])}
+      />
+
+      <TopicConfidenceDialog
+        open={!!rateTarget}
+        onOpenChange={(open) => {
+          if (!open) setRateTarget(null);
+        }}
+        topicId={rateTarget?.topicId ?? null}
+        topicName={rateTarget?.name ?? ""}
+        mode="complete"
       />
     </>
   );
