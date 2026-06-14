@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { updateTopicStatus, updateSubtopicStatus } from "@/lib/crud";
 import { getTopicsDueForReview, isTopicDueForReview } from "@/lib/metrics";
+import { ReviewSessionPanel } from "@/components/status/review-session-panel";
 import { TopicConfidenceDialog } from "@/components/tracks/topic-confidence-dialog";
 
 const STATUS_ICONS: Record<ProgressStatus, typeof Circle> = {
@@ -126,17 +127,6 @@ export default function StatusPage() {
     () => getTodaySnapshot(getStatusTimeline(topics, subtopics, modules, tracks, "all")),
     [topics, subtopics, modules, tracks]
   );
-
-  const reviewItems = useMemo(() => {
-    return getTopicsDueForReview(topics)
-      .filter((t) => trackFilter === "all" || t.trackId === trackFilter)
-      .map((t) => ({
-        topic: t,
-        moduleName: modules.find((m) => m.id === t.moduleId)?.name ?? "Unknown",
-        track: tracks.find((tr) => tr.id === t.trackId),
-      }))
-      .sort((a, b) => (a.topic.completionMeta?.nextReviewDue ?? "").localeCompare(b.topic.completionMeta?.nextReviewDue ?? ""));
-  }, [topics, modules, tracks, trackFilter]);
 
   const reviewCount = useMemo(() => getTopicsDueForReview(topics).length, [topics]);
   const criticalCount = alerts.filter((a) => a.level === "critical").length;
@@ -307,6 +297,7 @@ export default function StatusPage() {
             </TabsTrigger>
           </TabsList>
         </Tabs>
+        {statusFilter !== "review" && (
         <Select value={trackFilter} onValueChange={setTrackFilter}>
           <SelectTrigger className="h-9 w-[180px] border-[0.5px] border-white/[0.08] bg-white/[0.02]">
             <SelectValue placeholder="All Tracks" />
@@ -318,55 +309,17 @@ export default function StatusPage() {
             ))}
           </SelectContent>
         </Select>
+        )}
       </div>
 
       {/* Due for Review */}
       {statusFilter === "review" ? (
-        reviewItems.length === 0 ? (
-          <Card className="border-[0.5px] border-dashed border-white/[0.08]">
-            <CardContent className="py-16 text-center">
-              <BookmarkCheck className="mx-auto mb-4 h-12 w-12 text-muted-foreground/25" />
-              <h3 className="text-lg font-medium">Nothing due for review</h3>
-              <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-                When you complete a topic, rate your confidence. Low scores schedule a review here so you refresh before forgetting.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-2.5">
-            {reviewItems.map(({ topic, moduleName, track }, i) => (
-              <motion.div
-                key={topic.id}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.04 }}
-                className="flex items-center gap-4 rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.02] p-4"
-                style={{ borderLeftWidth: 3, borderLeftColor: track?.color ?? "#a78bfa" }}
-              >
-                <span className="shrink-0 text-xl">{track?.icon ?? "📚"}</span>
-                <div className="min-w-0 flex-1">
-                  <h4 className="truncate font-semibold">{topic.name}</h4>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {track?.name} → {moduleName} · confidence {topic.completionMeta?.confidenceRating}/5
-                    {topic.completionMeta?.nextReviewDue && ` · due ${topic.completionMeta.nextReviewDue}`}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <Link href={`/tracks?track=${topic.trackId}&topic=${topic.id}`}>
-                    <Button variant="outline" size="sm" className="h-8 text-xs">Open</Button>
-                  </Link>
-                  <Button
-                    size="sm"
-                    className="h-8 gap-1 text-xs"
-                    onClick={() => setReviewDialog({ id: topic.id, name: topic.name })}
-                  >
-                    <BookmarkCheck className="h-3.5 w-3.5" /> Re-rate
-                  </Button>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        )
+        <ReviewSessionPanel
+          tracks={tracks}
+          modules={modules}
+          topics={topics}
+          subtopics={subtopics}
+        />
       ) : timeline.length === 0 ? (
         <Card className="border-[0.5px] border-dashed border-white/[0.08]">
           <CardContent className="py-16 text-center">
