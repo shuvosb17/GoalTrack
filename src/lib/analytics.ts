@@ -340,36 +340,124 @@ export function getFocusHeatmap(sessions: LearningSession[]) {
   return grid;
 }
 
-function aggregateTopicStudyHours(
+export type StudyHoursLevel = "topic" | "module" | "track";
+
+export interface AggregatedStudyHours {
+  id: string;
+  level: StudyHoursLevel;
+  name: string;
+  trackId: string;
+  hoursMs: number;
+}
+
+/** Attribute session time to topic, module, or track — status does not affect counting. */
+export function aggregateStudyHours(
   sessions: LearningSession[],
   topics: Topic[],
+  modules: Module[],
+  tracks: Track[],
   subtopics: Subtopic[]
-): Map<string, number> {
-  const activeIds = new Set(topics.filter((t) => !t.archived).map((t) => t.id));
-  const map = new Map<string, number>();
+): AggregatedStudyHours[] {
+  const topicById = new Map(topics.map((t) => [t.id, t]));
+  const moduleById = new Map(modules.map((m) => [m.id, m]));
+  const trackById = new Map(tracks.map((t) => [t.id, t]));
+  const buckets = new Map<string, AggregatedStudyHours>();
+
+  const add = (
+    key: string,
+    entry: Omit<AggregatedStudyHours, "hoursMs">,
+    ms: number
+  ) => {
+    const existing = buckets.get(key);
+    if (existing) existing.hoursMs += ms;
+    else buckets.set(key, { ...entry, hoursMs: ms });
+  };
 
   sessions.forEach((s) => {
+    if (s.duration <= 0) return;
+
     const topicId = resolveSessionTopicId(s, subtopics);
-    if (!topicId || !activeIds.has(topicId)) return;
-    map.set(topicId, (map.get(topicId) || 0) + s.duration);
+    if (topicId && topicById.has(topicId)) {
+      const topic = topicById.get(topicId)!;
+      add(`topic:${topicId}`, {
+        id: topicId,
+        level: "topic",
+        name: topic.name,
+        trackId: topic.trackId,
+      }, s.duration);
+      return;
+    }
+
+    if (s.moduleId && moduleById.has(s.moduleId)) {
+      const mod = moduleById.get(s.moduleId)!;
+      add(`module:${s.moduleId}`, {
+        id: s.moduleId,
+        level: "module",
+        name: mod.name,
+        trackId: mod.trackId,
+      }, s.duration);
+      return;
+    }
+
+    if (s.trackId && trackById.has(s.trackId)) {
+      const track = trackById.get(s.trackId)!;
+      add(`track:${s.trackId}`, {
+        id: s.trackId,
+        level: "track",
+        name: track.name,
+        trackId: s.trackId,
+      }, s.duration);
+    }
   });
 
-  return map;
+  return [...buckets.values()].sort((a, b) => b.hoursMs - a.hoursMs);
+}
+
+export function getTopTopicsWithTrack(
+  sessions: LearningSession[],
+  topics: Topic[],
+  tracks: Track[],
+  subtopics: Subtopic[] = [],
+  modules: Module[] = [],
+  limit = 10,
+  days?: number
+) {
+  const scoped =
+    days !== undefined
+      ? sessions.filter((s) => s.date >= format(subDays(new Date(), days - 1), "yyyy-MM-dd"))
+      : sessions;
+
+  return aggregateStudyHours(scoped, topics, modules, tracks, subtopics)
+    .filter((e) => e.hoursMs > 0)
+    .slice(0, limit)
+    .map((e) => {
+      const track = tracks.find((t) => t.id === e.trackId);
+      const suffix = e.level === "module" ? " · module" : e.level === "track" ? " · track" : "";
+      return {
+        id: `${e.level}:${e.id}`,
+        name: `${e.name}${suffix}`,
+        hours: e.hoursMs / 3600000,
+        trackColor: track?.color ?? "#8b5cf6",
+        trackName: track?.name ?? "",
+        level: e.level,
+      };
+    });
 }
 
 export function getTopTopics(
   sessions: LearningSession[],
   topics: Topic[],
   limit = 10,
-  subtopics: Subtopic[] = []
+  subtopics: Subtopic[] = [],
+  modules: Module[] = [],
+  tracks: Track[] = []
 ) {
-  return [...aggregateTopicStudyHours(sessions, topics, subtopics).entries()]
-    .sort((a, b) => b[1] - a[1])
+  return aggregateStudyHours(sessions, topics, modules, tracks, subtopics)
     .slice(0, limit)
-    .map(([id, duration]) => ({
-      id,
-      name: topics.find((t) => t.id === id)?.name || "Unknown",
-      hours: duration / 3600000,
+    .map((e) => ({
+      id: `${e.level}:${e.id}`,
+      name: e.name,
+      hours: e.hoursMs / 3600000,
     }));
 }
 
@@ -990,36 +1078,6 @@ export function getLearningVelocityWithDelta(
     hoursPerWeek: Math.round(hoursInRange(thisWeekStart, todayKey) * 10) / 10,
     hoursPriorWeek: Math.round(hoursInRange(priorWeekStart, priorWeekEnd) * 10) / 10,
   };
-}
-
-export function getTopTopicsWithTrack(
-  sessions: LearningSession[],
-  topics: Topic[],
-  tracks: Track[],
-  subtopics: Subtopic[] = [],
-  limit = 8,
-  days?: number
-) {
-  const scoped =
-    days !== undefined
-      ? sessions.filter((s) => s.date >= format(subDays(new Date(), days - 1), "yyyy-MM-dd"))
-      : sessions;
-
-  return [...aggregateTopicStudyHours(scoped, topics, subtopics).entries()]
-    .filter(([, duration]) => duration > 0)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, limit)
-    .map(([id, duration]) => {
-      const topic = topics.find((t) => t.id === id);
-      const track = tracks.find((t) => t.id === topic?.trackId);
-      return {
-        id,
-        name: topic?.name || "Unknown",
-        hours: duration / 3600000,
-        trackColor: track?.color ?? "#8b5cf6",
-        trackName: track?.name ?? "",
-      };
-    });
 }
 
 export function getActiveDistribution(

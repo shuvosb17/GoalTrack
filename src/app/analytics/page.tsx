@@ -21,7 +21,7 @@ import { ConsistencyCalendar } from "@/components/analytics/consistency-calendar
 import { InconsistencyTrackingPanel } from "@/components/analytics/inconsistency-tracking-panel";
 import { LearningVelocityPanel } from "@/components/analytics/learning-velocity-panel";
 import {
-  useTracks, useAllSubtopics, useAllTopics, useSessions, useSettings, useSkipLogs,
+  useTracks, useAllSubtopics, useAllTopics, useAllModules, useSessions, useSettings, useSkipLogs,
 } from "@/hooks/use-data";
 import {
   getHoursByPeriod, getHoursByWeek, getFocusHeatmap,
@@ -74,6 +74,7 @@ export default function AnalyticsPage() {
   const tracks = useTracks();
   const subtopics = useAllSubtopics();
   const topics = useAllTopics();
+  const modules = useAllModules();
   const sessions = useSessions();
   const settings = useSettings();
   const skipLogs = useSkipLogs();
@@ -138,10 +139,9 @@ export default function AnalyticsPage() {
   const maxHeat = Math.max(...heatmap.flat(), 1);
   const peakInsight = kpis.peakFocusLabel;
 
-  const topTopicsDays = weekRange === "4" ? 28 : weekRange === "12" ? 90 : undefined;
   const topTopics = useMemo(
-    () => getTopTopicsWithTrack(sessions, topics, tracks, subtopics, 8, topTopicsDays),
-    [sessions, topics, tracks, subtopics, topTopicsDays]
+    () => getTopTopicsWithTrack(sessions, topics, tracks, subtopics, modules, 10),
+    [sessions, topics, tracks, subtopics, modules]
   );
   const velocity = useMemo(
     () => getLearningVelocityWithDelta(subtopics, sessions),
@@ -484,10 +484,10 @@ export default function AnalyticsPage() {
           <CardContent className="pt-6">
             <SectionHeading>Most Studied Topics</SectionHeading>
             <p className="mb-3 text-[11px] text-muted-foreground">
-              Ranked by logged hours ({weekRange === "4" ? "last 4 weeks" : weekRange === "12" ? "last 12 weeks" : "all time"}), including subtopic sessions.
+              Ranked by all logged hours. Completed or in-progress — status does not affect counting. Includes topic, module, and track timers.
             </p>
             {topTopics.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">No topic-level time logged yet.</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">No study time logged yet.</p>
             ) : (
               <div className="space-y-2.5">
                 {topTopics.map((t, i) => (
