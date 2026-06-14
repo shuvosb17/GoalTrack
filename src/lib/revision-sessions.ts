@@ -14,7 +14,7 @@ export async function logRevisionStudyTime(
   const now = Date.now();
   const perItem = Math.floor(totalMs / queue.length);
   const remainder = totalMs - perItem * queue.length;
-  let cursor = now.getTime() - totalMs;
+  let cursor = now - totalMs;
 
   for (let i = 0; i < queue.length; i++) {
     const item = queue[i];
