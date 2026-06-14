@@ -16,6 +16,8 @@ const FILTER_CATEGORIES = [
 const FILTER_CHIPS = ["All topics", ...FILTER_CATEGORIES] as const;
 type FilterChip = (typeof FILTER_CHIPS)[number];
 
+const DONUT_SIZE = 220;
+
 export const STUDY_TRACK_COLORS: Record<string, { bar: string; dot: string }> = {
   "System Design": { bar: "#534AB7", dot: "#7F77DD" },
   "CS Fundamentals": { bar: "#0F6E56", dot: "#1D9E75" },
@@ -66,7 +68,7 @@ function AnimatedBarFill({ pct, color }: { pct: number; color: string }) {
   }, [pct]);
 
   return (
-    <div className="mt-3 h-[5px] overflow-hidden rounded-full bg-white/[0.06]">
+    <div className="mt-2.5 h-[5px] overflow-hidden rounded-full bg-white/[0.06]">
       <div
         className="h-full rounded-full"
         style={{
@@ -75,6 +77,175 @@ function AnimatedBarFill({ pct, color }: { pct: number; color: string }) {
           transition: "width 0.5s cubic-bezier(0.4,0,0.2,1)",
         }}
       />
+    </div>
+  );
+}
+
+function DonutChart({
+  data,
+  activeFilter,
+  heroTotal,
+  centerLabel,
+}: {
+  data: { name: string; hours: number; color: string }[];
+  activeFilter: FilterChip;
+  heroTotal: number;
+  centerLabel: string;
+}) {
+  return (
+    <div className="relative mx-auto shrink-0" style={{ width: DONUT_SIZE, height: DONUT_SIZE }}>
+      <PieChart width={DONUT_SIZE} height={DONUT_SIZE}>
+        <Pie
+          data={data}
+          dataKey="hours"
+          nameKey="name"
+          cx="50%"
+          cy="50%"
+          innerRadius="68%"
+          outerRadius="100%"
+          paddingAngle={2}
+          stroke="none"
+        >
+          {data.map((entry) => {
+            const highlighted =
+              activeFilter === "All topics" || activeFilter === entry.name;
+            return (
+              <Cell
+                key={entry.name}
+                fill={highlighted ? entry.color : DIM_SEGMENT}
+              />
+            );
+          })}
+        </Pie>
+      </PieChart>
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+        <p
+          className="text-2xl font-medium tabular-nums leading-none sm:text-[28px]"
+          style={{ color: PURPLE_HERO }}
+        >
+          {formatHours(heroTotal)}h
+        </p>
+        <p className="mt-1.5 max-w-[120px] truncate text-center text-[11px] text-muted-foreground">
+          {centerLabel}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function TopicBreakdown({
+  entries,
+  donutTotal,
+  activeFilter,
+}: {
+  entries: { name: string; hours: number; color: string }[];
+  donutTotal: number;
+  activeFilter: FilterChip;
+}) {
+  return (
+    <div className="flex h-full flex-col">
+      <p className="mb-4 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+        Topic breakdown
+      </p>
+      <ul className="space-y-3">
+        {entries.map((entry) => {
+          const pct =
+            donutTotal > 0 ? Math.round((entry.hours / donutTotal) * 100) : 0;
+          const colors = getTrackColors(entry.name);
+          const dimmed =
+            activeFilter !== "All topics" && activeFilter !== entry.name;
+
+          return (
+            <li
+              key={entry.name}
+              className={cn(
+                "group rounded-lg px-2 py-2 transition-colors hover:bg-white/[0.03]",
+                dimmed && "opacity-40"
+              )}
+            >
+              <div className="flex items-center gap-2.5">
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full transition-transform group-hover:scale-110"
+                  style={{ background: colors.dot }}
+                />
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                  {entry.name}
+                </span>
+                <span className="shrink-0 tabular-nums text-sm text-muted-foreground">
+                  {formatHours(entry.hours)}h
+                </span>
+                <span className="w-9 shrink-0 text-right text-sm tabular-nums text-muted-foreground">
+                  {pct}%
+                </span>
+              </div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${pct}%`, background: entry.color }}
+                />
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+function RankedList({
+  items,
+  maxHours,
+}: {
+  items: TopStudyItem[];
+  maxHours: number;
+}) {
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="max-h-[520px] space-y-2 overflow-y-auto pr-1 [-ms-overflow-style:none] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10">
+        {items.map((item, i) => {
+          const colors = getTrackColors(item.trackName);
+          const tag = TYPE_TAG_STYLES[item.level];
+          const pct = Math.max(0, (item.hours / maxHours) * 100);
+
+          return (
+            <div
+              key={item.id}
+              className="rounded-xl border-[0.5px] border-white/[0.08] px-3.5 py-3 transition-colors hover:border-white/[0.14] hover:bg-white/[0.03]"
+            >
+              <div className="flex items-start gap-2.5">
+                <span className="w-5 shrink-0 text-right text-[11px] tabular-nums text-muted-foreground">
+                  {i + 1}
+                </span>
+                <span
+                  className="mt-1.5 h-2 w-2 shrink-0 rounded-full"
+                  style={{ background: colors.dot }}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] font-medium leading-snug">{item.name}</p>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                    <span className="text-[11px] text-muted-foreground">
+                      {item.trackName}
+                    </span>
+                    <span
+                      className="rounded-full px-1.5 py-px text-[10px] font-medium lowercase"
+                      style={{ background: tag.bg, color: tag.text }}
+                    >
+                      {tag.label}
+                    </span>
+                  </div>
+                </div>
+                <div className="shrink-0 text-right leading-none">
+                  <span className="text-[15px] font-medium tabular-nums">
+                    {formatHours(item.hours)}
+                  </span>
+                  <span className="ml-0.5 text-[11px] text-muted-foreground">h</span>
+                </div>
+              </div>
+              <AnimatedBarFill pct={pct} color={colors.bar} />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -110,27 +281,33 @@ export function MostStudiedTopicsPanel({ items }: MostStudiedTopicsPanelProps) {
   }, [items]);
 
   const donutTotal = categoryBreakdown.reduce((s, d) => s + d.hours, 0);
-
   const donutCenterLabel =
     activeFilter === "All topics" ? "total" : activeFilter;
 
   return (
-    <Card className="border-[0.5px] border-white/[0.08]">
-      <CardContent className="pt-6">
+    <Card className="relative overflow-hidden border-[0.5px] border-white/[0.08]">
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-32 opacity-30"
+        style={{
+          background:
+            "radial-gradient(ellipse 70% 100% at 50% -30%, rgba(83,74,183,0.35), transparent)",
+        }}
+      />
+      <CardContent className="relative pt-6 pb-6">
         {/* Header */}
-        <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h2 className="text-[20px] font-medium leading-tight text-foreground">
-              Study tracker
+            <h2 className="text-xl font-medium tracking-tight text-foreground sm:text-[22px]">
+              Study Tracker
             </h2>
-            <p className="mt-0.5 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-muted-foreground">
               All logged hours · any status
             </p>
           </div>
           {items.length > 0 && (
             <div className="text-right">
               <p
-                className="text-[40px] font-medium tabular-nums leading-none"
+                className="text-3xl font-medium tabular-nums leading-none sm:text-[40px]"
                 style={{ color: PURPLE_HERO }}
               >
                 {formatHours(heroTotal)}h
@@ -141,13 +318,13 @@ export function MostStudiedTopicsPanel({ items }: MostStudiedTopicsPanelProps) {
         </div>
 
         {items.length === 0 ? (
-          <p className="py-10 text-center text-sm text-muted-foreground">
+          <p className="py-12 text-center text-sm text-muted-foreground">
             No study time logged yet.
           </p>
         ) : (
           <>
             {/* Filter chips */}
-            <div className="mb-6 flex flex-wrap gap-2">
+            <div className="mb-8 flex flex-wrap gap-2">
               {FILTER_CHIPS.map((chip) => {
                 const active = activeFilter === chip;
                 return (
@@ -156,10 +333,10 @@ export function MostStudiedTopicsPanel({ items }: MostStudiedTopicsPanelProps) {
                     type="button"
                     onClick={() => setActiveFilter(chip)}
                     className={cn(
-                      "rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors",
+                      "rounded-full border px-3.5 py-1.5 text-xs font-medium transition-all duration-200",
                       active
-                        ? "border-transparent"
-                        : "border-white/[0.12] bg-transparent text-muted-foreground hover:border-white/[0.2] hover:text-foreground"
+                        ? "border-transparent shadow-sm"
+                        : "border-white/[0.12] bg-transparent text-muted-foreground hover:border-white/[0.22] hover:text-foreground"
                     )}
                     style={
                       active
@@ -173,143 +350,56 @@ export function MostStudiedTopicsPanel({ items }: MostStudiedTopicsPanelProps) {
               })}
             </div>
 
-            {/* Donut + legend */}
+            {/* 3-column dashboard: donut | breakdown | rankings */}
             {categoryBreakdown.length > 0 && (
-              <div className="mb-6 grid items-center gap-6 sm:grid-cols-[180px_1fr]">
-                <div className="relative mx-auto h-[180px] w-[180px] shrink-0">
-                  <PieChart width={180} height={180}>
-                    <Pie
-                      data={categoryBreakdown}
-                      dataKey="hours"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius="68%"
-                      outerRadius="100%"
-                      paddingAngle={2}
-                      stroke="none"
-                    >
-                      {categoryBreakdown.map((entry) => {
-                        const highlighted =
-                          activeFilter === "All topics" ||
-                          activeFilter === entry.name;
-                        return (
-                          <Cell
-                            key={entry.name}
-                            fill={highlighted ? entry.color : DIM_SEGMENT}
-                          />
-                        );
-                      })}
-                    </Pie>
-                  </PieChart>
-                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                    <p
-                      className="text-xl font-medium tabular-nums leading-none"
-                      style={{ color: PURPLE_HERO }}
-                    >
-                      {formatHours(heroTotal)}h
-                    </p>
-                    <p className="mt-1 max-w-[100px] truncate text-center text-[10px] text-muted-foreground">
-                      {donutCenterLabel}
-                    </p>
-                  </div>
+              <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-[240px_minmax(240px,1fr)_minmax(300px,1.35fr)] lg:gap-10 xl:gap-12">
+                {/* Left — Donut */}
+                <div className="flex items-start justify-center lg:justify-start">
+                  <DonutChart
+                    data={categoryBreakdown}
+                    activeFilter={activeFilter}
+                    heroTotal={heroTotal}
+                    centerLabel={donutCenterLabel}
+                  />
                 </div>
 
-                <ul className="space-y-2.5">
-                  {categoryBreakdown.map((entry) => {
-                    const pct =
-                      donutTotal > 0
-                        ? Math.round((entry.hours / donutTotal) * 100)
-                        : 0;
-                    const colors = getTrackColors(entry.name);
-                    const dimmed =
-                      activeFilter !== "All topics" &&
-                      activeFilter !== entry.name;
-                    return (
-                      <li
-                        key={entry.name}
-                        className={cn(
-                          "flex items-center gap-2.5 text-sm transition-opacity",
-                          dimmed && "opacity-40"
-                        )}
-                      >
-                        <span
-                          className="h-2.5 w-2.5 shrink-0 rounded-full"
-                          style={{ background: colors.dot }}
-                        />
-                        <span className="min-w-0 flex-1 truncate">{entry.name}</span>
-                        <span className="shrink-0 tabular-nums text-muted-foreground">
-                          {formatHours(entry.hours)}h
-                        </span>
-                        <span className="w-8 shrink-0 text-right tabular-nums text-muted-foreground">
-                          {pct}%
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
+                {/* Center — Breakdown (tablet: pairs with donut in row 1) */}
+                <div className="border-white/[0.06] md:px-0 lg:border-x lg:px-8 xl:px-10">
+                  <TopicBreakdown
+                    entries={categoryBreakdown}
+                    donutTotal={donutTotal}
+                    activeFilter={activeFilter}
+                  />
+                </div>
+
+                {/* Right — Rankings (tablet+: full width row 2 on md, column on lg) */}
+                <div className="min-w-0 md:col-span-2 lg:col-span-1">
+                  <p className="mb-3 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                    {sectionLabel(activeFilter)}
+                  </p>
+                  {visibleItems.length === 0 ? (
+                    <p className="py-8 text-center text-sm text-muted-foreground">
+                      No study time logged for {activeFilter}.
+                    </p>
+                  ) : (
+                    <RankedList items={visibleItems} maxHours={maxHours} />
+                  )}
+                </div>
               </div>
             )}
 
-            {/* Section label */}
-            <p className="mb-3 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-              {sectionLabel(activeFilter)}
-            </p>
-
-            {/* Bar list */}
-            {visibleItems.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                No study time logged for {activeFilter}.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {visibleItems.map((item, i) => {
-                  const colors = getTrackColors(item.trackName);
-                  const tag = TYPE_TAG_STYLES[item.level];
-                  const pct = Math.max(0, (item.hours / maxHours) * 100);
-
-                  return (
-                    <div
-                      key={item.id}
-                      className="rounded-xl border-[0.5px] border-white/[0.08] px-3.5 py-3"
-                    >
-                      <div className="flex items-start gap-2.5">
-                        <span className="w-4 shrink-0 text-right text-[11px] tabular-nums text-muted-foreground">
-                          {i + 1}
-                        </span>
-                        <span
-                          className="mt-1.5 h-2 w-2 shrink-0 rounded-full"
-                          style={{ background: colors.dot }}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-[13px] font-medium leading-snug">
-                            {item.name}
-                          </p>
-                          <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                            <span className="text-[11px] text-muted-foreground">
-                              {item.trackName}
-                            </span>
-                            <span
-                              className="rounded-full px-1.5 py-px text-[10px] font-medium lowercase"
-                              style={{ background: tag.bg, color: tag.text }}
-                            >
-                              {tag.label}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="shrink-0 text-right leading-none">
-                          <span className="text-[15px] font-medium tabular-nums">
-                            {formatHours(item.hours)}
-                          </span>
-                          <span className="ml-0.5 text-[11px] text-muted-foreground">
-                            h
-                          </span>
-                        </div>
-                      </div>
-                      <AnimatedBarFill pct={pct} color={colors.bar} />
-                    </div>
-                  );
-                })}
+            {categoryBreakdown.length === 0 && (
+              <div>
+                <p className="mb-3 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                  {sectionLabel(activeFilter)}
+                </p>
+                {visibleItems.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">
+                    No study time logged for {activeFilter}.
+                  </p>
+                ) : (
+                  <RankedList items={visibleItems} maxHours={maxHours} />
+                )}
               </div>
             )}
           </>

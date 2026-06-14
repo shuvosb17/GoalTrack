@@ -245,6 +245,18 @@ export default function AnalyticsPage() {
         />
       </div>
 
+      {/* Study Tracker — full-width hero */}
+      <MostStudiedTopicsPanel items={topTopics} />
+
+      {/* Learning Velocity — compact KPI row */}
+      <LearningVelocityPanel
+        velocity={velocity}
+        consistency={weeklyConsistency}
+        hoursPerWeekNeeded={hoursPerWeekNeeded}
+        stretchGoalHours={tiered.stretch}
+        footnote={diagnostics.velocity}
+      />
+
       {/* Consistency calendar */}
       <Card className="border-[0.5px] border-white/[0.08]">
         <CardContent className="pt-6">
@@ -469,19 +481,6 @@ export default function AnalyticsPage() {
             <InsightLine text={diagnostics.efficiency} />
           </CardContent>
         </Card>
-      </div>
-
-      {/* Velocity + Top Topics */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <LearningVelocityPanel
-          velocity={velocity}
-          consistency={weeklyConsistency}
-          hoursPerWeekNeeded={hoursPerWeekNeeded}
-          stretchGoalHours={tiered.stretch}
-          footnote={diagnostics.velocity}
-        />
-
-        <MostStudiedTopicsPanel items={topTopics} />
       </div>
 
       {/* Completion Trends */}
