@@ -515,8 +515,8 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
       <TopicConfidenceDialog
         open={!!confidenceDialog}
         onOpenChange={() => setConfidenceDialog(null)}
-        topicId={confidenceDialog?.id ?? null}
-        topicName={confidenceDialog?.name ?? ""}
+        entityId={confidenceDialog?.id ?? null}
+        entityName={confidenceDialog?.name ?? ""}
         mode={confidenceDialog?.mode ?? "complete"}
       />
     </div>

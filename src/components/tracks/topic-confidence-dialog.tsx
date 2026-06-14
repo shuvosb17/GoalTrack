@@ -1,7 +1,12 @@
 "use client";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { setTopicCompletionConfidence, markTopicReviewed } from "@/lib/crud";
+import {
+  setTopicCompletionConfidence,
+  setSubtopicCompletionConfidence,
+  markTopicReviewed,
+  markSubtopicReviewed,
+} from "@/lib/crud";
 import { computeNextReviewDate } from "@/lib/metrics";
 
 export type TopicConfidenceMode = "complete" | "review";
@@ -9,27 +14,45 @@ export type TopicConfidenceMode = "complete" | "review";
 interface TopicConfidenceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  topicId: string | null;
-  topicName: string;
+  entityType?: "topic" | "subtopic";
+  entityId: string | null;
+  entityName: string;
+  parentTopicName?: string;
   mode: TopicConfidenceMode;
 }
 
 export function TopicConfidenceDialog({
   open,
   onOpenChange,
-  topicId,
-  topicName,
+  entityType = "topic",
+  entityId,
+  entityName,
+  parentTopicName,
   mode,
 }: TopicConfidenceDialogProps) {
   const isReview = mode === "review";
+  const isSubtopic = entityType === "subtopic";
 
   const handleRate = async (n: 1 | 2 | 3 | 4 | 5) => {
-    if (!topicId) return;
-    if (isReview) {
-      await markTopicReviewed(topicId, n);
+    if (!entityId) return;
+    if (isSubtopic) {
+      if (isReview) await markSubtopicReviewed(entityId, n);
+      else await setSubtopicCompletionConfidence(entityId, n);
+    } else if (isReview) {
+      await markTopicReviewed(entityId, n);
     } else {
-      await setTopicCompletionConfidence(topicId, n);
+      await setTopicCompletionConfidence(entityId, n);
     }
+    onOpenChange(false);
+  };
+
+  const handleSkip = async () => {
+    if (!entityId) {
+      onOpenChange(false);
+      return;
+    }
+    if (isSubtopic) await setSubtopicCompletionConfidence(entityId, 3);
+    else await setTopicCompletionConfidence(entityId, 3);
     onOpenChange(false);
   };
 
@@ -42,13 +65,20 @@ export function TopicConfidenceDialog({
         <p className="text-sm text-muted-foreground">
           {isReview ? (
             <>
-              <span className="font-medium text-foreground">{topicName}</span> is due for review.
-              Re-rate your retention — lower scores schedule sooner reviews.
+              <span className="font-medium text-foreground">{entityName}</span>
+              {isSubtopic && parentTopicName && (
+                <span className="text-muted-foreground"> ({parentTopicName})</span>
+              )}{" "}
+              is due for review. Re-rate your retention — lower scores schedule sooner reviews.
             </>
           ) : (
             <>
-              Completed <span className="font-medium text-foreground">{topicName}</span>.
-              Rate your retention — lower confidence schedules a sooner review.
+              Completed{" "}
+              <span className="font-medium text-foreground">{entityName}</span>
+              {isSubtopic && parentTopicName && (
+                <span className="text-muted-foreground"> · {parentTopicName}</span>
+              )}
+              . Rate your retention — lower confidence schedules a sooner review.
             </>
           )}
         </p>
@@ -75,10 +105,7 @@ export function TopicConfidenceDialog({
         {!isReview && (
           <button
             type="button"
-            onClick={() => {
-              if (topicId) void setTopicCompletionConfidence(topicId, 3);
-              onOpenChange(false);
-            }}
+            onClick={() => void handleSkip()}
             className="text-xs text-muted-foreground hover:text-foreground"
           >
             Skip — defaults to 3 ({computeNextReviewDate(3).replace(/^\d{4}-/, "")})

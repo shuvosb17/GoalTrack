@@ -21,8 +21,10 @@ export function ConfidencePromptProvider() {
       onOpenChange={(open) => {
         if (!open) setPrompt(null);
       }}
-      topicId={prompt?.topicId ?? null}
-      topicName={prompt?.topicName ?? ""}
+      entityType={prompt?.entityType ?? "topic"}
+      entityId={prompt?.entityId ?? null}
+      entityName={prompt?.entityName ?? ""}
+      parentTopicName={prompt?.parentTopicName}
       mode={prompt?.mode ?? "complete"}
     />
   );

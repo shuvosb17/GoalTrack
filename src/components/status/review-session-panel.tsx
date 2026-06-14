@@ -17,6 +17,7 @@ import type { Module, Subtopic, Topic, Track } from "@/lib/types";
 import {
   buildRevisionCatalog,
   countCompletedByTrack,
+  isRateableReviewItem,
   type ReviewCatalogItem,
 } from "@/lib/revision-catalog";
 import { ConfidenceDots, ConfidenceLegend } from "@/components/status/confidence-dots";
@@ -54,7 +55,12 @@ export function ReviewSessionPanel({
   const [search, setSearch] = useState("");
   const [queue, setQueue] = useState<ReviewCatalogItem[]>([]);
   const [quizOpen, setQuizOpen] = useState(false);
-  const [rateTarget, setRateTarget] = useState<{ topicId: string; name: string } | null>(null);
+  const [rateTarget, setRateTarget] = useState<{
+    entityType: "topic" | "subtopic";
+    entityId: string;
+    name: string;
+    parentTopicName?: string;
+  } | null>(null);
 
   const selectedTrackId =
     activeTrackId && tracksWithItems.some((t) => t.id === activeTrackId)
@@ -84,7 +90,7 @@ export function ReviewSessionPanel({
   };
 
   const topicCountInTrack = selectedTrackId
-    ? completedByTrack.get(selectedTrackId) ?? 0
+    ? (completedByTrack.get(selectedTrackId) ?? 0)
     : 0;
 
   if (catalog.length === 0) {
@@ -163,11 +169,11 @@ export function ReviewSessionPanel({
                   {activeTrack?.name ?? "Track"}
                   <span className="font-normal text-muted-foreground">
                     {" "}
-                    · completed topics
+                    · completed items
                   </span>
                 </p>
                 <span className="text-xs text-muted-foreground">
-                  {topicCountInTrack} topic{topicCountInTrack === 1 ? "" : "s"}
+                  {topicCountInTrack} item{topicCountInTrack === 1 ? "" : "s"}
                 </span>
               </div>
 
@@ -214,24 +220,37 @@ export function ReviewSessionPanel({
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium">{item.name}</p>
-                          <p className="text-[10px] capitalize text-muted-foreground">
-                            {item.kind}
+                          <p className="text-[10px] text-muted-foreground">
+                            {item.kind === "subtopic" && item.parentTopicName
+                              ? `${item.parentTopicName} · subtopic`
+                              : item.kind}
                           </p>
                         </div>
                         <button
                           type="button"
-                          title={item.kind === "topic" ? "Rate confidence" : undefined}
-                          disabled={item.kind !== "topic" || !item.topicId}
+                          title={isRateableReviewItem(item) ? "Rate confidence" : undefined}
+                          disabled={!isRateableReviewItem(item)}
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (item.topicId) {
-                              setRateTarget({ topicId: item.topicId, name: item.name });
+                            if (item.kind === "subtopic" && item.subtopicId) {
+                              setRateTarget({
+                                entityType: "subtopic",
+                                entityId: item.subtopicId,
+                                name: item.name,
+                                parentTopicName: item.parentTopicName,
+                              });
+                            } else if (item.kind === "topic" && item.topicId) {
+                              setRateTarget({
+                                entityType: "topic",
+                                entityId: item.topicId,
+                                name: item.name,
+                              });
                             }
                           }}
                           className={cn(
                             "shrink-0 rounded p-0.5 transition-opacity",
-                            item.kind === "topic" && item.topicId && "hover:opacity-80 cursor-pointer",
-                            item.kind !== "topic" && "cursor-default opacity-70"
+                            isRateableReviewItem(item) && "cursor-pointer hover:opacity-80",
+                            !isRateableReviewItem(item) && "cursor-default opacity-70"
                           )}
                         >
                           <ConfidenceDots confidence={item.confidence} />
@@ -292,7 +311,9 @@ export function ReviewSessionPanel({
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">{item.name}</p>
                         <p className="text-[10px] text-muted-foreground">
-                          {item.trackName} · {item.kind}
+                          {item.kind === "subtopic" && item.parentTopicName
+                            ? `${item.trackName} · ${item.parentTopicName}`
+                            : `${item.trackName} · ${item.kind}`}
                         </p>
                       </div>
                       <ConfidenceDots confidence={item.confidence} />
@@ -334,8 +355,10 @@ export function ReviewSessionPanel({
         onOpenChange={(open) => {
           if (!open) setRateTarget(null);
         }}
-        topicId={rateTarget?.topicId ?? null}
-        topicName={rateTarget?.name ?? ""}
+        entityType={rateTarget?.entityType ?? "topic"}
+        entityId={rateTarget?.entityId ?? null}
+        entityName={rateTarget?.name ?? ""}
+        parentTopicName={rateTarget?.parentTopicName}
         mode="complete"
       />
     </>

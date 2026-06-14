@@ -72,6 +72,7 @@ export interface Subtopic {
   statusChangedAt?: string;
   createdAt: string;
   updatedAt: string;
+  completionMeta?: TopicCompletionMeta;
 }
 
 export interface InProgressTask {

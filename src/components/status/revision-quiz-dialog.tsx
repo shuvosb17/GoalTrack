@@ -9,9 +9,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { markTopicReviewed } from "@/lib/crud";
-import type { ReviewCatalogItem } from "@/lib/revision-catalog";
-import { buildQuizPrompts } from "@/lib/revision-catalog";
+import { markTopicReviewed, markSubtopicReviewed } from "@/lib/crud";
+import {
+  buildQuizPrompts,
+  isRateableReviewItem,
+  type ReviewCatalogItem,
+} from "@/lib/revision-catalog";
 
 interface RevisionQuizDialogProps {
   open: boolean;
@@ -30,9 +33,9 @@ export function RevisionQuizDialog({
   const [ratingStep, setRatingStep] = useState(0);
   const [phase, setPhase] = useState<"quiz" | "rate">("quiz");
 
-  const topicItems = queue.filter((q) => q.kind === "topic" && q.topicId);
+  const rateItems = queue.filter(isRateableReviewItem);
   const quizSteps = queue.length;
-  const totalSteps = quizSteps + topicItems.length;
+  const totalSteps = quizSteps + rateItems.length;
 
   const reset = () => {
     setStep(0);
@@ -48,7 +51,7 @@ export function RevisionQuizDialog({
   };
 
   const handleFinishQuiz = () => {
-    if (topicItems.length === 0) {
+    if (rateItems.length === 0) {
       onComplete();
       reset();
       onOpenChange(false);
@@ -59,9 +62,13 @@ export function RevisionQuizDialog({
   };
 
   const handleRate = async (n: 1 | 2 | 3 | 4 | 5) => {
-    const item = topicItems[ratingStep];
-    if (item?.topicId) await markTopicReviewed(item.topicId, n);
-    if (ratingStep + 1 >= topicItems.length) {
+    const item = rateItems[ratingStep];
+    if (item?.kind === "subtopic" && item.subtopicId) {
+      await markSubtopicReviewed(item.subtopicId, n);
+    } else if (item?.kind === "topic" && item.topicId) {
+      await markTopicReviewed(item.topicId, n);
+    }
+    if (ratingStep + 1 >= rateItems.length) {
       onComplete();
       reset();
       onOpenChange(false);
@@ -70,7 +77,7 @@ export function RevisionQuizDialog({
     }
   };
 
-  const currentItem = phase === "quiz" ? queue[step] : topicItems[ratingStep];
+  const currentItem = phase === "quiz" ? queue[step] : rateItems[ratingStep];
   const progressIndex = phase === "quiz" ? step : quizSteps + ratingStep;
 
   return (
@@ -101,6 +108,7 @@ export function RevisionQuizDialog({
                 <div>
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
                     {currentItem.trackName} · {currentItem.kind}
+                    {currentItem.parentTopicName ? ` · ${currentItem.parentTopicName}` : ""}
                   </p>
                   <h3 className="mt-1 text-lg font-medium">{currentItem.name}</h3>
                 </div>
@@ -125,8 +133,11 @@ export function RevisionQuizDialog({
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
                   After reviewing{" "}
-                  <span className="font-medium text-foreground">{currentItem.name}</span>,
-                  how well do you remember it?
+                  <span className="font-medium text-foreground">{currentItem.name}</span>
+                  {currentItem.parentTopicName && (
+                    <span className="text-muted-foreground"> ({currentItem.parentTopicName})</span>
+                  )}
+                  , how well do you remember it?
                 </p>
                 <div className="grid grid-cols-5 gap-1.5">
                   {([1, 2, 3, 4, 5] as const).map((n) => (
@@ -163,7 +174,7 @@ export function RevisionQuizDialog({
                   </Button>
                 ) : (
                   <Button size="sm" onClick={handleFinishQuiz}>
-                    {topicItems.length > 0 ? "Rate retention" : "Finish"}
+                    {rateItems.length > 0 ? "Rate retention" : "Finish"}
                   </Button>
                 )}
               </div>

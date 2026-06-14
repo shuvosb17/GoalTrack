@@ -581,8 +581,8 @@ export default function StatusPage() {
       <TopicConfidenceDialog
         open={!!reviewDialog}
         onOpenChange={() => setReviewDialog(null)}
-        topicId={reviewDialog?.id ?? null}
-        topicName={reviewDialog?.name ?? ""}
+        entityId={reviewDialog?.id ?? null}
+        entityName={reviewDialog?.name ?? ""}
         mode="review"
       />
     </div>
