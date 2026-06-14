@@ -37,7 +37,11 @@ export const useTimerStore = create<TimerStore>()(
           startedAt: Date.now(),
           accumulatedMs: 0,
           pausedAt: undefined,
-          ...path,
+          // Reset the full hierarchy so stale ids from a prior timer don't leak in
+          trackId: path.trackId,
+          moduleId: path.moduleId,
+          topicId: path.topicId,
+          subtopicId: path.subtopicId,
           activityLabel: label,
         });
       },

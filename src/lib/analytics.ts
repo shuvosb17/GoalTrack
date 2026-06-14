@@ -377,10 +377,12 @@ export function aggregateStudyHours(
     if (s.duration <= 0) return;
 
     const topicId = resolveSessionTopicId(s, subtopics);
-    if (topicId && topicById.has(topicId)) {
-      const topic = topicById.get(topicId)!;
-      add(`topic:${topicId}`, {
-        id: topicId,
+    const topic = topicId ? topicById.get(topicId) : undefined;
+    // Only attribute to a topic when it genuinely belongs to the session's track.
+    // Guards against legacy sessions that carried a stale subtopic/topic id.
+    if (topic && (!s.trackId || topic.trackId === s.trackId)) {
+      add(`topic:${topic.id}`, {
+        id: topic.id,
         level: "topic",
         name: topic.name,
         trackId: topic.trackId,
@@ -388,10 +390,10 @@ export function aggregateStudyHours(
       return;
     }
 
-    if (s.moduleId && moduleById.has(s.moduleId)) {
-      const mod = moduleById.get(s.moduleId)!;
-      add(`module:${s.moduleId}`, {
-        id: s.moduleId,
+    const mod = s.moduleId ? moduleById.get(s.moduleId) : undefined;
+    if (mod && (!s.trackId || mod.trackId === s.trackId)) {
+      add(`module:${mod.id}`, {
+        id: mod.id,
         level: "module",
         name: mod.name,
         trackId: mod.trackId,
