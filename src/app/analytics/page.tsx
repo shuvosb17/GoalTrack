@@ -141,7 +141,7 @@ export default function AnalyticsPage() {
   const peakInsight = kpis.peakFocusLabel;
 
   const topTopics = useMemo(
-    () => getTopTopicsWithTrack(sessions, topics, tracks, subtopics, modules, 10),
+    () => getTopTopicsWithTrack(sessions, topics, tracks, subtopics, modules, 50),
     [sessions, topics, tracks, subtopics, modules]
   );
   const velocity = useMemo(
