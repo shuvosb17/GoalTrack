@@ -5,9 +5,8 @@ import type { ReviewCatalogItem } from "@/lib/revision-catalog";
 export type RevisionPhase = "review" | "rate";
 
 export interface RevisionProgress {
+  itemId: string;
   phase: RevisionPhase;
-  step: number;
-  ratingStep: number;
   startedAt: number;
 }
 
@@ -18,7 +17,7 @@ interface ReviewStore {
   addToQueue: (item: ReviewCatalogItem) => void;
   removeFromQueue: (id: string) => void;
   refreshQueueFromCatalog: (catalog: ReviewCatalogItem[]) => void;
-  startSession: () => void;
+  startSession: (itemId: string) => void;
   setProgress: (progress: RevisionProgress) => void;
   finishSession: () => void;
 }
@@ -30,16 +29,15 @@ export const useReviewStore = create<ReviewStore>()(
       progress: null,
 
       addToQueue: (item) => {
-        const { queue, progress } = get();
-        if (progress) return;
+        const { queue } = get();
         if (queue.some((q) => q.id === item.id)) return;
         set({ queue: [...queue, item] });
       },
 
       removeFromQueue: (id) => {
-        const { progress } = get();
-        if (progress) return;
-        set({ queue: get().queue.filter((q) => q.id !== id) });
+        const { progress, queue } = get();
+        if (progress?.itemId === id) return;
+        set({ queue: queue.filter((q) => q.id !== id) });
       },
 
       refreshQueueFromCatalog: (catalog) => {
@@ -51,14 +49,14 @@ export const useReviewStore = create<ReviewStore>()(
         });
       },
 
-      startSession: () => {
-        const { queue } = get();
-        if (queue.length === 0) return;
+      startSession: (itemId) => {
+        const { queue, progress } = get();
+        if (progress) return;
+        if (!queue.some((q) => q.id === itemId)) return;
         set({
           progress: {
+            itemId,
             phase: "review",
-            step: 0,
-            ratingStep: 0,
             startedAt: Date.now(),
           },
         });
@@ -66,8 +64,31 @@ export const useReviewStore = create<ReviewStore>()(
 
       setProgress: (progress) => set({ progress }),
 
-      finishSession: () => set({ queue: [], progress: null }),
+      finishSession: () => {
+        const { progress, queue } = get();
+        if (!progress) {
+          set({ progress: null });
+          return;
+        }
+        set({
+          queue: queue.filter((q) => q.id !== progress.itemId),
+          progress: null,
+        });
+      },
     }),
-    { name: "goaltrack-review" }
+    {
+      name: "goaltrack-review",
+      version: 2,
+      migrate: (persisted, version) => {
+        const state = persisted as {
+          queue?: ReviewCatalogItem[];
+          progress?: RevisionProgress & { step?: number; ratingStep?: number };
+        };
+        if (version < 2 && state.progress && !state.progress.itemId) {
+          return { ...state, progress: null };
+        }
+        return state as ReviewStore;
+      },
+    }
   )
 );

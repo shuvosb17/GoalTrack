@@ -61,19 +61,29 @@ export function ReviewSessionPanel({
     parentTopicName?: string;
   } | null>(null);
 
-  const sessionActive = progress !== null;
-  const queueLocked = sessionActive;
+  const activeItemId = progress?.itemId ?? null;
+  const sessionActive = activeItemId !== null;
+  const activeItem = sessionActive ? queue.find((q) => q.id === activeItemId) : undefined;
 
   useEffect(() => {
     refreshQueueFromCatalog(catalog);
   }, [catalog, refreshQueueFromCatalog]);
 
   useEffect(() => {
-    if (!resumedSession && sessionActive && queue.length > 0) {
+    if (!resumedSession && sessionActive && activeItem) {
       setQuizOpen(true);
       setResumedSession(true);
     }
-  }, [resumedSession, sessionActive, queue.length]);
+  }, [resumedSession, sessionActive, activeItem]);
+
+  const handleStartItem = (itemId: string) => {
+    if (sessionActive) {
+      if (itemId === activeItemId) setQuizOpen(true);
+      return;
+    }
+    startSession(itemId);
+    setQuizOpen(true);
+  };
 
   const completedByTrack = useMemo(() => countCompletedByTrack(catalog), [catalog]);
 
@@ -100,15 +110,6 @@ export function ReviewSessionPanel({
   }, [catalog, selectedTrackId, search]);
 
   const queueIds = useMemo(() => new Set(queue.map((q) => q.id)), [queue]);
-
-  const handleStartOrContinue = () => {
-    if (sessionActive) {
-      setQuizOpen(true);
-    } else {
-      startSession();
-      setQuizOpen(true);
-    }
-  };
 
   const topicCountInTrack = selectedTrackId
     ? (completedByTrack.get(selectedTrackId) ?? 0)
@@ -149,10 +150,10 @@ export function ReviewSessionPanel({
             </div>
           </div>
 
-          {sessionActive && (
+          {sessionActive && activeItem && (
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-violet-500/25 bg-violet-500/[0.06] px-4 py-3">
               <p className="text-sm text-violet-200">
-                Revision session in progress — queue saved until you rate retention
+                Revising <span className="font-medium text-violet-100">{activeItem.name}</span> — other queue items can still be removed
               </p>
               <Button size="sm" variant="secondary" onClick={() => setQuizOpen(true)}>
                 Continue session
@@ -211,7 +212,6 @@ export function ReviewSessionPanel({
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search topics…"
                   className="h-9 border-white/[0.08] bg-white/[0.03] pl-9 text-sm"
-                  disabled={queueLocked}
                 />
               </div>
 
@@ -227,10 +227,9 @@ export function ReviewSessionPanel({
                       <div
                         key={item.id}
                         role="button"
-                        tabIndex={queueLocked ? -1 : 0}
-                        onClick={() => !queueLocked && addToQueue(item)}
+                        tabIndex={0}
+                        onClick={() => addToQueue(item)}
                         onKeyDown={(e) => {
-                          if (queueLocked) return;
                           if (e.key === "Enter" || e.key === " ") {
                             e.preventDefault();
                             addToQueue(item);
@@ -238,9 +237,8 @@ export function ReviewSessionPanel({
                         }}
                         className={cn(
                           "group flex items-center gap-3 rounded-lg border-[0.5px] border-transparent px-2.5 py-2.5 transition-all duration-200",
-                          !queueLocked && "cursor-pointer hover:border-white/[0.08] hover:bg-white/[0.04]",
-                          inQueue && "opacity-50",
-                          queueLocked && "pointer-events-none opacity-40"
+                          "cursor-pointer hover:border-white/[0.08] hover:bg-white/[0.04]",
+                          inQueue && "opacity-50"
                         )}
                       >
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border-[0.5px] border-white/[0.08] bg-white/[0.03]">
@@ -257,7 +255,7 @@ export function ReviewSessionPanel({
                         <button
                           type="button"
                           title={isRateableReviewItem(item) ? "Rate confidence" : undefined}
-                          disabled={!isRateableReviewItem(item) || queueLocked}
+                          disabled={!isRateableReviewItem(item)}
                           onClick={(e) => {
                             e.stopPropagation();
                             if (item.kind === "subtopic" && item.subtopicId) {
@@ -277,14 +275,14 @@ export function ReviewSessionPanel({
                           }}
                           className={cn(
                             "shrink-0 rounded p-0.5 transition-opacity",
-                            isRateableReviewItem(item) && !queueLocked && "cursor-pointer hover:opacity-80"
+                            isRateableReviewItem(item) && "cursor-pointer hover:opacity-80"
                           )}
                         >
                           <ConfidenceDots confidence={item.confidence} />
                         </button>
                         <button
                           type="button"
-                          disabled={inQueue || queueLocked}
+                          disabled={inQueue}
                           onClick={(e) => {
                             e.stopPropagation();
                             addToQueue(item);
@@ -322,10 +320,18 @@ export function ReviewSessionPanel({
                 </div>
               ) : (
                 <div className="mb-4 max-h-[340px] flex-1 space-y-2 overflow-y-auto pr-0.5">
-                  {queue.map((item, i) => (
+                  {queue.map((item, i) => {
+                    const isActive = item.id === activeItemId;
+                    const canStart = !sessionActive || isActive;
+                    return (
                     <div
                       key={`${item.id}-${i}`}
-                      className="flex items-center gap-3 rounded-lg border-[0.5px] border-white/[0.08] bg-white/[0.02] px-3 py-2.5"
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg border-[0.5px] px-3 py-2.5",
+                        isActive
+                          ? "border-violet-500/30 bg-violet-500/[0.08]"
+                          : "border-white/[0.08] bg-white/[0.02]"
+                      )}
                     >
                       <span className="w-4 shrink-0 text-center text-[11px] tabular-nums text-muted-foreground">
                         {i + 1}
@@ -343,7 +349,23 @@ export function ReviewSessionPanel({
                         </p>
                       </div>
                       <ConfidenceDots confidence={item.confidence} />
-                      {!queueLocked && (
+                      <button
+                        type="button"
+                        disabled={!canStart}
+                        onClick={() => handleStartItem(item.id)}
+                        className={cn(
+                          "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-[0.5px] transition-colors",
+                          isActive
+                            ? "border-violet-500/40 bg-violet-500/20 text-violet-200 hover:bg-violet-500/30"
+                            : "border-white/[0.1] bg-white/[0.03] text-muted-foreground hover:border-white/[0.18] hover:bg-white/[0.06] hover:text-foreground",
+                          "disabled:pointer-events-none disabled:opacity-40"
+                        )}
+                        aria-label={isActive ? `Continue ${item.name}` : `Start revision for ${item.name}`}
+                        title={isActive ? "Continue session" : "Start revision session"}
+                      >
+                        <Play className="h-3.5 w-3.5" />
+                      </button>
+                      {!isActive && (
                         <button
                           type="button"
                           onClick={() => removeFromQueue(item.id)}
@@ -354,18 +376,16 @@ export function ReviewSessionPanel({
                         </button>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
-              <Button
-                className="mt-auto w-full gap-2"
-                disabled={queue.length === 0}
-                onClick={handleStartOrContinue}
-              >
-                <Play className="h-4 w-4" />
-                {sessionActive ? "Continue revision session" : "Start revision session"}
-              </Button>
+              {queue.length > 0 && (
+                <p className="mt-auto text-center text-[11px] text-muted-foreground">
+                  Start each topic individually — time is logged per session
+                </p>
+              )}
             </div>
           </div>
         </CardContent>

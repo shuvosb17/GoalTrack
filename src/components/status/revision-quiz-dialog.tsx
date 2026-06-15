@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { IconChevronLeft, IconChevronRight, IconClock } from "@tabler/icons-react";
+import { IconClock } from "@tabler/icons-react";
 import {
   Dialog,
   DialogContent,
@@ -108,16 +108,14 @@ export function RevisionQuizDialog({ open, onOpenChange }: RevisionQuizDialogPro
 
   const [elapsedMs, setElapsedMs] = useState(0);
 
-  const rateItems = useMemo(() => queue.filter(isRateableReviewItem), [queue]);
-  const phase = progress?.phase ?? "review";
-  const step = progress?.step ?? 0;
-  const ratingStep = progress?.ratingStep ?? 0;
-  const startedAt = progress?.startedAt ?? null;
+  const activeItem = useMemo(
+    () => (progress ? queue.find((q) => q.id === progress.itemId) : undefined),
+    [queue, progress]
+  );
 
-  const quizSteps = queue.length;
-  const totalSteps = quizSteps + rateItems.length;
-  const progressIndex = phase === "review" ? step : quizSteps + ratingStep;
-  const currentItem = phase === "review" ? queue[step] : rateItems[ratingStep];
+  const phase = progress?.phase ?? "review";
+  const startedAt = progress?.startedAt ?? null;
+  const canRate = activeItem ? isRateableReviewItem(activeItem) : false;
 
   useEffect(() => {
     if (!open || !startedAt) return;
@@ -127,46 +125,38 @@ export function RevisionQuizDialog({ open, onOpenChange }: RevisionQuizDialogPro
     return () => clearInterval(id);
   }, [open, startedAt]);
 
-  const patchProgress = (patch: Partial<NonNullable<typeof progress>>) => {
-    if (!progress) return;
-    setProgress({ ...progress, ...patch });
-  };
-
   const handleClose = (next: boolean) => {
     if (!next) onOpenChange(false);
   };
 
-  const handleFinishReview = () => {
-    if (rateItems.length === 0) {
-      void handleComplete();
-      return;
-    }
-    patchProgress({ phase: "rate", ratingStep: 0 });
-  };
-
   const handleComplete = async () => {
-    if (startedAt) {
-      await logRevisionStudyTime(queue, Date.now() - startedAt);
+    if (startedAt && activeItem) {
+      await logRevisionStudyTime(activeItem, Date.now() - startedAt);
     }
     finishSession();
     onOpenChange(false);
   };
 
-  const handleRate = async (n: 1 | 2 | 3 | 4 | 5) => {
-    const item = rateItems[ratingStep];
-    if (item?.kind === "subtopic" && item.subtopicId) {
-      await markSubtopicReviewed(item.subtopicId, n);
-    } else if (item?.kind === "topic" && item.topicId) {
-      await markTopicReviewed(item.topicId, n);
+  const handleFinishReview = () => {
+    if (!progress) return;
+    if (!canRate) {
+      void handleComplete();
+      return;
     }
-    if (ratingStep + 1 >= rateItems.length) {
-      await handleComplete();
-    } else {
-      patchProgress({ ratingStep: ratingStep + 1 });
-    }
+    setProgress({ ...progress, phase: "rate" });
   };
 
-  if (!progress) return null;
+  const handleRate = async (n: 1 | 2 | 3 | 4 | 5) => {
+    if (!activeItem) return;
+    if (activeItem.kind === "subtopic" && activeItem.subtopicId) {
+      await markSubtopicReviewed(activeItem.subtopicId, n);
+    } else if (activeItem.kind === "topic" && activeItem.topicId) {
+      await markTopicReviewed(activeItem.topicId, n);
+    }
+    await handleComplete();
+  };
+
+  if (!progress || !activeItem) return null;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -182,11 +172,11 @@ export function RevisionQuizDialog({ open, onOpenChange }: RevisionQuizDialogPro
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
               <div
                 className="h-full rounded-full bg-violet-500 transition-all duration-500 ease-out"
-                style={{ width: `${((progressIndex + 1) / totalSteps) * 100}%` }}
+                style={{ width: phase === "review" ? "50%" : "100%" }}
               />
             </div>
             <span className="text-[11px] tabular-nums text-muted-foreground">
-              {progressIndex + 1}/{totalSteps}
+              {phase === "review" ? "1/2" : "2/2"}
             </span>
           </div>
 
@@ -194,26 +184,24 @@ export function RevisionQuizDialog({ open, onOpenChange }: RevisionQuizDialogPro
             <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
               <IconClock className="h-3.5 w-3.5" stroke={1.5} />
               <span className="tabular-nums">{formatDuration(elapsedMs)}</span>
-              <span>· logged when you finish</span>
+              <span>· logged for this topic when you finish</span>
             </div>
           )}
         </div>
 
         <div className="px-6 py-5">
-          {phase === "review" && currentItem && (
-            <RevisionFocusCard item={currentItem} />
-          )}
+          {phase === "review" && <RevisionFocusCard item={activeItem} />}
 
-          {phase === "rate" && currentItem && (
+          {phase === "rate" && (
             <div className="space-y-5">
               <div className="text-center">
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
                   How well do you remember it?
                 </p>
-                <h3 className="mt-2 text-xl font-semibold">{currentItem.name}</h3>
-                {currentItem.parentTopicName && (
+                <h3 className="mt-2 text-xl font-semibold">{activeItem.name}</h3>
+                {activeItem.parentTopicName && (
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {currentItem.parentTopicName}
+                    {activeItem.parentTopicName}
                   </p>
                 )}
               </div>
@@ -247,29 +235,10 @@ export function RevisionQuizDialog({ open, onOpenChange }: RevisionQuizDialogPro
         </div>
 
         {phase === "review" && (
-          <div className="flex justify-between gap-2 border-t border-white/[0.06] px-6 py-4">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={step === 0}
-              onClick={() => patchProgress({ step: step - 1 })}
-              className="gap-1 border-white/[0.08]"
-            >
-              <IconChevronLeft className="h-4 w-4" /> Back
+          <div className="flex justify-end border-t border-white/[0.06] px-6 py-4">
+            <Button size="sm" onClick={handleFinishReview}>
+              {canRate ? "Rate retention" : "Finish"}
             </Button>
-            {step < quizSteps - 1 ? (
-              <Button
-                size="sm"
-                onClick={() => patchProgress({ step: step + 1 })}
-                className="gap-1"
-              >
-                Next <IconChevronRight className="h-4 w-4" />
-              </Button>
-            ) : (
-              <Button size="sm" onClick={handleFinishReview}>
-                {rateItems.length > 0 ? "Rate retention" : "Finish"}
-              </Button>
-            )}
           </div>
         )}
       </DialogContent>

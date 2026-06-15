@@ -4,42 +4,30 @@ import type { LearningSession } from "./types";
 import type { ReviewCatalogItem } from "./revision-catalog";
 import { nowISO, todayISO } from "./utils";
 
-/** Persist study time from a revision session — split evenly across queued items. */
+/** Persist study time for a single revision session item. */
 export async function logRevisionStudyTime(
-  queue: ReviewCatalogItem[],
+  item: ReviewCatalogItem,
   totalMs: number
 ): Promise<void> {
-  if (totalMs < 1000 || queue.length === 0) return;
+  if (totalMs < 1000) return;
 
   const now = Date.now();
-  const perItem = Math.floor(totalMs / queue.length);
-  const remainder = totalMs - perItem * queue.length;
-  let cursor = now - totalMs;
+  const startMs = now - totalMs;
 
-  for (let i = 0; i < queue.length; i++) {
-    const item = queue[i];
-    const duration = perItem + (i === queue.length - 1 ? remainder : 0);
-    if (duration < 1000) continue;
+  const session: LearningSession = {
+    id: uuid(),
+    trackId: item.trackId,
+    startTime: new Date(startMs).toISOString(),
+    endTime: new Date(now).toISOString(),
+    duration: totalMs,
+    date: todayISO(),
+    manual: false,
+    createdAt: nowISO(),
+    notes: "Revision session",
+  };
 
-    const startMs = cursor;
-    const endMs = cursor + duration;
-    cursor = endMs;
+  if (item.subtopicId) session.subtopicId = item.subtopicId;
+  else if (item.topicId) session.topicId = item.topicId;
 
-    const session: LearningSession = {
-      id: uuid(),
-      trackId: item.trackId,
-      startTime: new Date(startMs).toISOString(),
-      endTime: new Date(endMs).toISOString(),
-      duration,
-      date: todayISO(),
-      manual: false,
-      createdAt: nowISO(),
-      notes: "Revision session",
-    };
-
-    if (item.subtopicId) session.subtopicId = item.subtopicId;
-    else if (item.topicId) session.topicId = item.topicId;
-
-    await db.sessions.add(session);
-  }
+  await db.sessions.add(session);
 }
