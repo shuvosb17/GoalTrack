@@ -20,7 +20,7 @@ interface TrackCardProps {
   health?: TrackHealth;
   nextUp?: PinnedNextItem | null;
   nextUpHref?: string;
-  leetCodeLabel?: string;
+  leetCodeSummary?: string;
   delay?: number;
 }
 
@@ -40,7 +40,7 @@ export function TrackCard({
   health,
   nextUp,
   nextUpHref,
-  leetCodeLabel,
+  leetCodeSummary,
   delay = 0,
 }: TrackCardProps) {
   const router = useRouter();
@@ -102,25 +102,28 @@ export function TrackCard({
             </Link>
           )}
 
-          <div className="mt-auto flex items-center justify-between gap-1.5 text-[11px] text-muted-foreground">
-            <div className="flex min-w-0 items-center gap-1">
-              <IconClock className="h-3 w-3 shrink-0" stroke={1.5} />
-              {leetCodeLabel ? (
-                <span className="truncate font-medium text-foreground">{leetCodeLabel}</span>
-              ) : (
+          <div className="mt-auto space-y-1">
+            <div className="flex items-center justify-between gap-1.5 text-[11px] text-muted-foreground">
+              <div className="flex min-w-0 items-center gap-1">
+                <IconClock className="h-3 w-3 shrink-0" stroke={1.5} />
                 <span className="truncate tabular-nums">
                   <span className="font-medium text-foreground">{formatHours(hours * 3600000, 1)}h</span> today
                 </span>
-              )}
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                <IconTarget className="h-3 w-3 shrink-0" stroke={1.5} />
+                <span className="whitespace-nowrap">{remaining} left</span>
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                <IconFlame className="h-3 w-3 shrink-0" stroke={1.5} />
+                <span className="whitespace-nowrap">{streak}d</span>
+              </div>
             </div>
-            <div className="flex shrink-0 items-center gap-1">
-              <IconTarget className="h-3 w-3 shrink-0" stroke={1.5} />
-              <span className="whitespace-nowrap">{remaining} left</span>
-            </div>
-            <div className="flex shrink-0 items-center gap-1">
-              <IconFlame className="h-3 w-3 shrink-0" stroke={1.5} />
-              <span className="whitespace-nowrap">{streak}d</span>
-            </div>
+            {leetCodeSummary && (
+              <p className="truncate pl-4 text-[10px] text-muted-foreground" title={leetCodeSummary}>
+                {leetCodeSummary}
+              </p>
+            )}
           </div>
         </div>
       </motion.div>

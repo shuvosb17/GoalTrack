@@ -109,9 +109,10 @@ export default function DashboardPage() {
       const trackStreak = calculateStreaks(trackDates).current;
       const nextUp = resolveNextUpItem(track, modules, topics, subtopics);
       const leetCodeStats = settings?.leetCodeStats;
-      const leetCodeLabel = track.name === "LeetCode" && leetCodeStats
-        ? `${leetCodeStats.easy}E · ${leetCodeStats.medium}M · ${leetCodeStats.hard}H`
-        : undefined;
+      const leetCodeSummary =
+        track.name === "LeetCode" && leetCodeStats
+          ? `${leetCodeStats.easy} easy · ${leetCodeStats.medium} med · ${leetCodeStats.hard} hard`
+          : undefined;
       return {
         track,
         progress: progress.percentage,
@@ -122,7 +123,7 @@ export default function DashboardPage() {
         health: healthMap.get(track.id),
         nextUp,
         nextUpHref: nextUp ? getNextUpHref(nextUp, track.id) : undefined,
-        leetCodeLabel,
+        leetCodeSummary,
       };
     });
   }, [tracks, modules, subtopics, sessions, topics, trackHealth, settings]);

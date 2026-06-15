@@ -23,6 +23,7 @@ import type {
   AppSettings,
 } from "./types";
 import type { SkipLog, SkipReason } from "./types/metrics";
+import type { SessionQualityRating } from "./types/metrics";
 import {
   calculateSubtopicProgress,
   getCalendarWeekRange,
@@ -338,6 +339,76 @@ export function getFocusHeatmap(sessions: LearningSession[]) {
     grid[day][hour] += s.duration;
   });
   return grid;
+}
+
+/** Saturday-first day order for focus heatmap rows */
+export const FOCUS_HEATMAP_DAYS = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"] as const;
+export const FOCUS_HEATMAP_DAY_INDEX = [6, 0, 1, 2, 3, 4, 5];
+
+export const FOCUS_MODE_META: Record<
+  SessionQualityRating,
+  { label: string; color: string; bg: string }
+> = {
+  1: { label: "Distracted", color: "#f87171", bg: "rgba(248,113,113,0.15)" },
+  2: { label: "Normal", color: "#fbbf24", bg: "rgba(251,191,36,0.15)" },
+  3: { label: "Deep focus", color: "#34d399", bg: "rgba(52,211,153,0.15)" },
+};
+
+export interface FocusModeEntry {
+  id: string;
+  date: string;
+  startTime: string;
+  duration: number;
+  rating: SessionQualityRating;
+  trackName?: string;
+  topicName?: string;
+}
+
+export function getFocusModeTimeline(
+  sessions: LearningSession[],
+  tracks: Track[],
+  topics: Topic[],
+  limit = 40
+): FocusModeEntry[] {
+  const trackMap = new Map(tracks.map((t) => [t.id, t.name]));
+  const topicMap = new Map(topics.map((t) => [t.id, t.name]));
+
+  return sessions
+    .filter((s): s is LearningSession & { qualityRating: SessionQualityRating } => !!s.qualityRating)
+    .sort((a, b) => b.startTime.localeCompare(a.startTime))
+    .slice(0, limit)
+    .map((s) => ({
+      id: s.id,
+      date: s.date,
+      startTime: s.startTime,
+      duration: s.duration,
+      rating: s.qualityRating,
+      trackName: s.trackId ? trackMap.get(s.trackId) : undefined,
+      topicName: s.topicId ? topicMap.get(s.topicId) : undefined,
+    }));
+}
+
+export function getFocusModeSummary(sessions: LearningSession[]) {
+  const today = parseLocalDate(todayISO());
+  const { start } = getCalendarWeekRange(0, today);
+  const weekKey = format(start, "yyyy-MM-dd");
+  const rated = sessions.filter((s) => s.qualityRating);
+
+  const count = (arr: LearningSession[], rating: SessionQualityRating) =>
+    arr.filter((s) => s.qualityRating === rating).length;
+
+  const thisWeek = rated.filter((s) => s.date >= weekKey);
+
+  return {
+    total: rated.length,
+    thisWeek: thisWeek.length,
+    distracted: count(rated, 1),
+    normal: count(rated, 2),
+    deep: count(rated, 3),
+    weekDistracted: count(thisWeek, 1),
+    weekNormal: count(thisWeek, 2),
+    weekDeep: count(thisWeek, 3),
+  };
 }
 
 export type StudyHoursLevel = "topic" | "module" | "track";

@@ -21,6 +21,8 @@ import { ConsistencyCalendar } from "@/components/analytics/consistency-calendar
 import { InconsistencyTrackingPanel } from "@/components/analytics/inconsistency-tracking-panel";
 import { LearningVelocityPanel } from "@/components/analytics/learning-velocity-panel";
 import { MostStudiedTopicsPanel } from "@/components/analytics/most-studied-topics-panel";
+import { FocusHoursHeatmap } from "@/components/analytics/focus-hours-heatmap";
+import { FocusModePanel } from "@/components/analytics/focus-mode-panel";
 import {
   useTracks, useAllSubtopics, useAllTopics, useAllModules, useSessions, useSettings, useSkipLogs,
 } from "@/hooks/use-data";
@@ -31,6 +33,7 @@ import {
   trimLeadingEmptyWeeks, trimLeadingEmptyProblemWeeks,
   getConsistencyCalendar, getAnalyticsKpis, getLearningVelocityWithDelta,
   getTopTopicsWithTrack, getActiveDistribution, getAnalyticsDiagnostics,
+  getFocusModeTimeline, getFocusModeSummary,
   CHART_TOOLTIP_STYLE, DEFAULT_YEAR_START, DEFAULT_YEAR_END,
 } from "@/lib/analytics";
 import { getDailyPaceTarget, getWeeklyConsistency } from "@/lib/metrics";
@@ -38,7 +41,6 @@ import { resolveTieredGoal, getWeeksUntilYearEnd, getHoursLoggedThisYear } from 
 import { formatHours } from "@/lib/utils";
 import { differenceInDays, parseISO } from "date-fns";
 
-const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 type WeekRange = "4" | "12" | "all";
 
 function weekCountForRange(range: WeekRange, sessions: { date: string }[]): number {
@@ -139,6 +141,12 @@ export default function AnalyticsPage() {
   const heatmap = useMemo(() => getFocusHeatmap(sessions), [sessions]);
   const maxHeat = Math.max(...heatmap.flat(), 1);
   const peakInsight = kpis.peakFocusLabel;
+
+  const focusModeEntries = useMemo(
+    () => getFocusModeTimeline(sessions, tracks, topics, 40),
+    [sessions, tracks, topics]
+  );
+  const focusModeSummary = useMemo(() => getFocusModeSummary(sessions), [sessions]);
 
   const topTopics = useMemo(
     () => getTopTopicsWithTrack(sessions, topics, tracks, subtopics, modules, 50),
@@ -257,6 +265,17 @@ export default function AnalyticsPage() {
         footnote={diagnostics.velocity}
       />
 
+      {/* Focus mode timeline */}
+      <Card className="border-[0.5px] border-white/[0.08]">
+        <CardContent className="pt-6">
+          <SectionHeading>Focus mode</SectionHeading>
+          <p className="mb-4 text-xs text-muted-foreground">
+            Session focus ratings over time — newest at the top.
+          </p>
+          <FocusModePanel entries={focusModeEntries} summary={focusModeSummary} />
+        </CardContent>
+      </Card>
+
       {/* Consistency calendar */}
       <Card className="border-[0.5px] border-white/[0.08]">
         <CardContent className="pt-6">
@@ -369,29 +388,9 @@ export default function AnalyticsPage() {
               </TabsContent>
             )}
 
-            <TabsContent value="focus">
-              <p className="mb-3 text-xs text-muted-foreground">{peakInsight}</p>
-              <div className="overflow-x-auto">
-                <div className="inline-grid gap-0.5" style={{ gridTemplateColumns: `36px repeat(24, 1fr)` }}>
-                  <div />
-                  {Array.from({ length: 24 }, (_, h) => (
-                    <div key={h} className="text-center text-[8px] text-muted-foreground">{h}</div>
-                  ))}
-                  {DAYS.map((day, di) => (
-                    <div key={day} className="contents">
-                      <div className="pr-1 text-right text-[10px] text-muted-foreground">{day}</div>
-                      {heatmap[di].map((val, hi) => (
-                        <div
-                          key={`${di}-${hi}`}
-                          className="h-3.5 w-3.5 rounded-sm"
-                          style={{ background: val > 0 ? `rgba(139, 92, 246, ${0.15 + (val / maxHeat) * 0.85})` : "#27272a" }}
-                          title={`${day} ${hi}:00 — ${(val / 3600000).toFixed(1)}h`}
-                        />
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              </div>
+            <TabsContent value="focus" className="mt-4">
+              <p className="mb-4 text-xs text-muted-foreground">{peakInsight}</p>
+              <FocusHoursHeatmap heatmap={heatmap} maxHeat={maxHeat} />
             </TabsContent>
           </Tabs>
           <InsightLine text={diagnostics.timeInvestment} />
