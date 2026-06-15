@@ -270,7 +270,7 @@ export default function AnalyticsPage() {
         <CardContent className="pt-6">
           <SectionHeading>Focus mode</SectionHeading>
           <p className="mb-4 text-xs text-muted-foreground">
-            Session focus ratings over time — newest at the top.
+            How focused your study sessions were — this week at a glance.
           </p>
           <FocusModePanel entries={focusModeEntries} summary={focusModeSummary} />
         </CardContent>

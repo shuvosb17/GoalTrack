@@ -349,9 +349,9 @@ export const FOCUS_MODE_META: Record<
   SessionQualityRating,
   { label: string; color: string; bg: string }
 > = {
-  1: { label: "Distracted", color: "#f87171", bg: "rgba(248,113,113,0.15)" },
-  2: { label: "Normal", color: "#fbbf24", bg: "rgba(251,191,36,0.15)" },
-  3: { label: "Deep focus", color: "#34d399", bg: "rgba(52,211,153,0.15)" },
+  1: { label: "Distracted", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
+  2: { label: "Normal", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
+  3: { label: "Deep focus", color: "#10b981", bg: "rgba(16,185,129,0.12)" },
 };
 
 export interface FocusModeEntry {
