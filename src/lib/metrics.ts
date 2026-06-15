@@ -1,4 +1,4 @@
-import { differenceInDays, format, parseISO, subDays, addDays } from "date-fns";
+import { differenceInDays, format, parseISO, subDays, addDays, eachDayOfInterval } from "date-fns";
 import type {
   AppSettings,
   LearningSession,
@@ -18,7 +18,12 @@ import type {
 import { getTotalHours, getTodayHours } from "./analytics";
 import { getTargetGoal, getWeeksUntilYearEnd, getHoursLoggedThisYear } from "./goals";
 import { isTopicComplete } from "./in-progress";
-import { isSubtopicDone, parseLocalDate, todayISO } from "./utils";
+import {
+  getCalendarWeekRange,
+  isSubtopicDone,
+  parseLocalDate,
+  todayISO,
+} from "./utils";
 
 export function getDailyPaceTarget(
   settings: AppSettings | null | undefined,
@@ -56,22 +61,24 @@ export function getWeeklyConsistency(
 ): WeeklyConsistency {
   const threshold = dailyGoal * 0.8;
   const today = parseLocalDate(todayISO());
+  const currentWeek = getCalendarWeekRange(0, today);
+  const priorWeek = getCalendarWeekRange(1, today);
 
-  const countDays = (startOffset: number) => {
+  const countOnTarget = (start: Date, end: Date) => {
     let count = 0;
-    for (let i = 0; i < 7; i++) {
-      const d = subDays(today, startOffset + i);
+    eachDayOfInterval({ start, end }).forEach((d) => {
       const key = format(d, "yyyy-MM-dd");
-      const hours = sessions.filter((s) => s.date === key).reduce((sum, s) => sum + s.duration, 0) / 3600000;
+      const hours =
+        sessions.filter((s) => s.date === key).reduce((sum, s) => sum + s.duration, 0) / 3600000;
       if (hours >= threshold) count++;
-    }
+    });
     return count;
   };
 
   return {
-    daysOnTarget: countDays(0),
+    daysOnTarget: countOnTarget(currentWeek.start, currentWeek.end),
     totalDays: 7,
-    lastWeekDays: countDays(7),
+    lastWeekDays: countOnTarget(priorWeek.start, priorWeek.end),
   };
 }
 
@@ -88,7 +95,7 @@ export function getMomentumBreakdown(
   // Use local-date cutoffs for date-only fields (s.date) to avoid timezone off-by-one.
   const today = parseLocalDate(todayISO());
   const cutoff14 = subDays(today, 13); // 14-day window inclusive of today
-  const cutoff7 = subDays(today, 6); // 7-day window inclusive of today
+  const { start: weekStartDate } = getCalendarWeekRange(0, today);
   const recentSessions = sessions.filter((s) => parseLocalDate(s.date) >= cutoff14);
   const recentDays = new Set(recentSessions.map((s) => s.date)).size;
   const consistency = Math.min(25, Math.round((recentDays / 14) * 25));
@@ -97,7 +104,7 @@ export function getMomentumBreakdown(
   const weeksRemaining = getWeeksUntilYearEnd(yearEnd);
   const hoursThisWeek =
     sessions
-      .filter((s) => parseLocalDate(s.date) >= cutoff7)
+      .filter((s) => parseLocalDate(s.date) >= weekStartDate)
       .reduce((sum, s) => sum + s.duration, 0) / 3600000;
   const weeklyTarget = weeksRemaining > 0 ? (Math.max(0, target - getHoursLoggedThisYear(sessions, yearStart, yearEnd)) / weeksRemaining) : 0;
   const volume = weeklyTarget > 0 ? Math.min(25, Math.round((hoursThisWeek / weeklyTarget) * 25)) : 0;

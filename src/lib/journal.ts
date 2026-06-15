@@ -1,6 +1,6 @@
-import { format, isAfter, parseISO, subDays } from "date-fns";
+import { format, parseISO } from "date-fns";
 import type { JournalEntry, LearningSession } from "./types";
-import { calculateStreaks, todayISO } from "./utils";
+import { calculateStreaks, todayISO, weekStart } from "./utils";
 
 export interface JournalStats {
   total: number;
@@ -15,10 +15,11 @@ export function getJournalStreak(entries: JournalEntry[]): number {
 }
 
 export function getJournalStats(entries: JournalEntry[]): JournalStats {
-  const weekAgo = subDays(new Date(), 7);
+  const weekStartDate = weekStart();
+  const weekStartKey = format(weekStartDate, "yyyy-MM-dd");
   return {
     total: entries.length,
-    thisWeek: entries.filter((e) => isAfter(parseISO(e.date), weekAgo)).length,
+    thisWeek: entries.filter((e) => e.date >= weekStartKey).length,
     withTrack: entries.filter((e) => e.trackId).length,
     streak: getJournalStreak(entries),
   };

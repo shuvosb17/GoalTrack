@@ -14,6 +14,7 @@ import {
   differenceInDays,
   eachDayOfInterval,
   subDays,
+  addDays,
 } from "date-fns";
 import type { ProgressStatus, Subtopic } from "./types";
 
@@ -61,6 +62,28 @@ export function parseLocalDate(dateStr: string): Date {
   return new Date(year, month - 1, day);
 }
 
+/** Calendar weeks run Saturday → Friday */
+export const WEEK_STARTS_ON = 6 as const;
+
+export function weekStart(date: Date = parseLocalDate(todayISO())): Date {
+  return startOfWeek(date, { weekStartsOn: WEEK_STARTS_ON });
+}
+
+export function weekEnd(date: Date = parseLocalDate(todayISO())): Date {
+  return endOfWeek(date, { weekStartsOn: WEEK_STARTS_ON });
+}
+
+/** `weeksAgo = 0` is the current week; older weeks use full Sat–Fri ranges. */
+export function getCalendarWeekRange(
+  weeksAgo: number,
+  reference: Date = parseLocalDate(todayISO())
+): { start: Date; end: Date } {
+  const start = subDays(weekStart(reference), weeksAgo * 7);
+  const friday = addDays(start, 6);
+  const end = weeksAgo === 0 && friday > reference ? reference : friday;
+  return { start, end };
+}
+
 export function isSubtopicDone(status: ProgressStatus): boolean {
   return status === "completed" || status === "mastered";
 }
@@ -99,7 +122,10 @@ export function getDateRange(
     case "day":
       return { start: startOfDay(reference), end: endOfDay(reference) };
     case "week":
-      return { start: startOfWeek(reference), end: endOfWeek(reference) };
+      return {
+        start: startOfWeek(reference, { weekStartsOn: WEEK_STARTS_ON }),
+        end: endOfWeek(reference, { weekStartsOn: WEEK_STARTS_ON }),
+      };
     case "month":
       return { start: startOfMonth(reference), end: endOfMonth(reference) };
     case "year":

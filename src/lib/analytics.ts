@@ -25,10 +25,13 @@ import type {
 import type { SkipLog, SkipReason } from "./types/metrics";
 import {
   calculateSubtopicProgress,
+  getCalendarWeekRange,
   getMomentumLevel,
   isSubtopicDone,
   todayISO,
   parseLocalDate,
+  weekEnd,
+  weekStart,
 } from "./utils";
 import { aggregateStudyHours as aggregateStudyHoursItems, aggregateStudyTrackerHours } from "./session-attribution";
 
@@ -262,16 +265,15 @@ export function getHoursByPeriod(sessions: LearningSession[], days: number) {
   return result;
 }
 
-/** Rolling 7-day buckets ending today so the current week is always included */
+/** Saturday-aligned week buckets; current week runs through today */
 export function getHoursByWeek(sessions: LearningSession[], weekCount = 12) {
   const result: { date: string; hours: number; label: string }[] = [];
-  const today = new Date();
+  const today = parseLocalDate(todayISO());
 
   for (let w = weekCount - 1; w >= 0; w--) {
-    const weekEnd = subDays(today, w * 7);
-    const weekStart = subDays(weekEnd, 6);
-    const startKey = format(weekStart, "yyyy-MM-dd");
-    const endKey = format(weekEnd, "yyyy-MM-dd");
+    const { start: weekStartDate, end: weekEndDate } = getCalendarWeekRange(w, today);
+    const startKey = format(weekStartDate, "yyyy-MM-dd");
+    const endKey = format(weekEndDate, "yyyy-MM-dd");
     const hours =
       sessions
         .filter((s) => s.date >= startKey && s.date <= endKey)
@@ -280,47 +282,45 @@ export function getHoursByWeek(sessions: LearningSession[], weekCount = 12) {
     result.push({
       date: endKey,
       hours,
-      label: w === 0 ? "This week" : format(weekStart, "MMM d"),
+      label: w === 0 ? "This week" : format(weekStartDate, "MMM d"),
     });
   }
   return result;
 }
 
-/** Average session quality (1–3) per rolling 7-day week, aligned with getHoursByWeek. */
+/** Average session quality (1–3) per Saturday-aligned week. */
 export function getQualityByWeek(sessions: LearningSession[], weekCount = 12) {
   const result: { label: string; quality: number | null }[] = [];
-  const today = new Date();
+  const today = parseLocalDate(todayISO());
   for (let w = weekCount - 1; w >= 0; w--) {
-    const weekEnd = subDays(today, w * 7);
-    const weekStart = subDays(weekEnd, 6);
-    const startKey = format(weekStart, "yyyy-MM-dd");
-    const endKey = format(weekEnd, "yyyy-MM-dd");
+    const { start: weekStartDate, end: weekEndDate } = getCalendarWeekRange(w, today);
+    const startKey = format(weekStartDate, "yyyy-MM-dd");
+    const endKey = format(weekEndDate, "yyyy-MM-dd");
     const rated = sessions.filter(
       (s) => s.date >= startKey && s.date <= endKey && s.qualityRating
     );
     const quality = rated.length
       ? Math.round((rated.reduce((sum, s) => sum + (s.qualityRating ?? 0), 0) / rated.length) * 100) / 100
       : null;
-    result.push({ label: w === 0 ? "This week" : format(weekStart, "MMM d"), quality });
+    result.push({ label: w === 0 ? "This week" : format(weekStartDate, "MMM d"), quality });
   }
   return result;
 }
 
-/** LeetCode problems solved per rolling 7-day week, split by difficulty. */
+/** LeetCode problems solved per Saturday-aligned week, split by difficulty. */
 export function getProblemsByWeek(
   log: { date: string; difficulty: "easy" | "medium" | "hard" }[],
   weekCount = 12
 ) {
   const result: { label: string; easy: number; medium: number; hard: number }[] = [];
-  const today = new Date();
+  const today = parseLocalDate(todayISO());
   for (let w = weekCount - 1; w >= 0; w--) {
-    const weekEnd = subDays(today, w * 7);
-    const weekStart = subDays(weekEnd, 6);
-    const startKey = format(weekStart, "yyyy-MM-dd");
-    const endKey = format(weekEnd, "yyyy-MM-dd");
+    const { start: weekStartDate, end: weekEndDate } = getCalendarWeekRange(w, today);
+    const startKey = format(weekStartDate, "yyyy-MM-dd");
+    const endKey = format(weekEndDate, "yyyy-MM-dd");
     const inWeek = log.filter((e) => e.date >= startKey && e.date <= endKey);
     result.push({
-      label: w === 0 ? "This week" : format(weekStart, "MMM d"),
+      label: w === 0 ? "This week" : format(weekStartDate, "MMM d"),
       easy: inWeek.filter((e) => e.difficulty === "easy").length,
       medium: inWeek.filter((e) => e.difficulty === "medium").length,
       hard: inWeek.filter((e) => e.difficulty === "hard").length,
@@ -406,13 +406,14 @@ export function getTopTopics(
 }
 
 export function getLearningVelocity(subtopics: Subtopic[], sessions: LearningSession[]) {
-  const now = new Date();
-  const weekAgo = subDays(now, 7);
-  const monthAgo = subDays(now, 30);
+  const today = parseLocalDate(todayISO());
+  const { start: thisWeekStart } = getCalendarWeekRange(0, today);
+  const monthAgo = subDays(today, 30);
+  const thisWeekKey = format(thisWeekStart, "yyyy-MM-dd");
 
   const recentCompleted = subtopics.filter(
     (s) => !s.archived && (s.status === "completed" || s.status === "mastered") &&
-      parseISO(s.updatedAt) >= weekAgo
+      parseISO(s.updatedAt) >= thisWeekStart
   ).length;
 
   const recentModules = new Set(
@@ -423,7 +424,7 @@ export function getLearningVelocity(subtopics: Subtopic[], sessions: LearningSes
   ).size;
 
   const recentHours = sessions
-    .filter((s) => parseISO(s.date) >= weekAgo)
+    .filter((s) => s.date >= thisWeekKey)
     .reduce((sum, s) => sum + s.duration, 0) / 3600000;
 
   return { topicsPerWeek: recentCompleted, modulesPerMonth: recentModules, hoursPerWeek: recentHours };
@@ -697,9 +698,9 @@ export function generateInsights(
 
 export function getCompletionTrends(sessions: LearningSession[], subtopics: Subtopic[], weeks: number) {
   const trends: { week: string; hours: number; completed: number }[] = [];
+  const today = parseLocalDate(todayISO());
   for (let i = weeks - 1; i >= 0; i--) {
-    const end = subDays(new Date(), i * 7);
-    const start = subDays(end, 6);
+    const { start, end } = getCalendarWeekRange(i, today);
     const weekLabel = format(start, "MMM d");
     const hours = sessions
       .filter((s) => { const d = parseISO(s.date); return d >= start && d <= end; })
@@ -884,9 +885,10 @@ export function getConsistencyCalendar(
   const skipMap = new Map(skipLogs.map((s) => [s.date, s.reason]));
   const topicMap = new Map(topics.map((t) => [t.id, t.name]));
   const end = parseLocalDate(today);
-  const start = subDays(end, days - 1);
+  const alignedStart = weekStart(subDays(end, days - 1));
+  const calendarEnd = weekEnd(end);
 
-  return eachDayOfInterval({ start, end }).map((day) => {
+  return eachDayOfInterval({ start: alignedStart, end: calendarEnd }).map((day) => {
     const key = format(day, "yyyy-MM-dd");
     const daySessions = sessions.filter((s) => s.date === key);
     const hours = daySessions.reduce((sum, s) => sum + s.duration, 0) / 3600000;
@@ -947,15 +949,16 @@ export function getAnalyticsKpis(
   const hoursThisWeek = weekly[1]?.hours ?? 0;
   const hoursLastWeek = weekly[0]?.hours ?? 0;
   const quality = getQualityByWeek(sessions, 2);
-  const today = new Date();
-  const weekStart = format(subDays(today, 6), "yyyy-MM-dd");
-  const weekEnd = format(today, "yyyy-MM-dd");
+  const today = parseLocalDate(todayISO());
+  const thisWeek = getCalendarWeekRange(0, today);
+  const thisWeekStartKey = format(thisWeek.start, "yyyy-MM-dd");
+  const thisWeekEndKey = format(thisWeek.end, "yyyy-MM-dd");
   const ratedThisWeek = sessions.filter(
-    (s) => s.date >= weekStart && s.date <= weekEnd && s.qualityRating
+    (s) => s.date >= thisWeekStartKey && s.date <= thisWeekEndKey && s.qualityRating
   );
 
   const problemsThisWeek = leetCodeLog.filter(
-    (e) => e.date >= weekStart && e.date <= weekEnd
+    (e) => e.date >= thisWeekStartKey && e.date <= thisWeekEndKey
   ).length;
 
   return {
@@ -976,11 +979,9 @@ export function getLearningVelocityWithDelta(
   subtopics: Subtopic[],
   sessions: LearningSession[]
 ): LearningVelocityWithDelta {
-  const now = new Date();
-  const weekAgo = subDays(now, 7);
-  const twoWeeksAgo = subDays(now, 14);
-  const monthAgo = subDays(now, 30);
-  const twoMonthsAgo = subDays(now, 60);
+  const today = parseLocalDate(todayISO());
+  const monthAgo = subDays(today, 30);
+  const twoMonthsAgo = subDays(today, 60);
 
   const completedInRange = (start: Date, end: Date) =>
     subtopics.filter(
@@ -1009,18 +1010,20 @@ export function getLearningVelocityWithDelta(
       .filter((s) => s.date >= startKey && s.date <= endKey)
       .reduce((sum, s) => sum + s.duration, 0) / 3600000;
 
-  const thisWeekStart = format(weekAgo, "yyyy-MM-dd");
-  const todayKey = format(now, "yyyy-MM-dd");
-  const priorWeekStart = format(twoWeeksAgo, "yyyy-MM-dd");
-  const priorWeekEnd = format(subDays(now, 8), "yyyy-MM-dd");
+  const thisWeek = getCalendarWeekRange(0, today);
+  const priorWeek = getCalendarWeekRange(1, today);
+  const thisWeekStartKey = format(thisWeek.start, "yyyy-MM-dd");
+  const thisWeekEndKey = format(thisWeek.end, "yyyy-MM-dd");
+  const priorWeekStartKey = format(priorWeek.start, "yyyy-MM-dd");
+  const priorWeekEndKey = format(priorWeek.end, "yyyy-MM-dd");
 
   return {
-    topicsPerWeek: completedInRange(weekAgo, now),
-    topicsPriorWeek: completedInRange(twoWeeksAgo, subDays(now, 7)),
-    modulesPerMonth: modulesInRange(monthAgo, now),
-    modulesPriorMonth: modulesInRange(twoMonthsAgo, subDays(now, 30)),
-    hoursPerWeek: Math.round(hoursInRange(thisWeekStart, todayKey) * 10) / 10,
-    hoursPriorWeek: Math.round(hoursInRange(priorWeekStart, priorWeekEnd) * 10) / 10,
+    topicsPerWeek: completedInRange(thisWeek.start, today),
+    topicsPriorWeek: completedInRange(priorWeek.start, priorWeek.end),
+    modulesPerMonth: modulesInRange(monthAgo, today),
+    modulesPriorMonth: modulesInRange(twoMonthsAgo, subDays(today, 30)),
+    hoursPerWeek: Math.round(hoursInRange(thisWeekStartKey, thisWeekEndKey) * 10) / 10,
+    hoursPriorWeek: Math.round(hoursInRange(priorWeekStartKey, priorWeekEndKey) * 10) / 10,
   };
 }
 
