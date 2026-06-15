@@ -188,6 +188,19 @@ export interface JournalEntry {
   updatedAt: string;
 }
 
+/** Bookmarked URL pinned to a track / module / topic / subtopic in Journal. */
+export interface JournalLink {
+  id: string;
+  url: string;
+  title?: string;
+  trackId: string;
+  moduleId?: string;
+  topicId?: string;
+  subtopicId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Achievement {
   id: string;
   key: string;

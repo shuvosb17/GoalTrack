@@ -28,6 +28,7 @@ import {
 import {
   HierarchyPicker, getHierarchyPath, matchSessionsForJournal, type JournalHierarchy,
 } from "@/components/journal/hierarchy-picker";
+import { ResourceLinksPanel } from "@/components/journal/resource-links-panel";
 import type { JournalEntry } from "@/lib/types";
 
 const EMPTY_HIERARCHY: JournalHierarchy = { trackId: "", moduleId: "", topicId: "", subtopicId: "" };
@@ -199,6 +200,13 @@ export default function JournalPage() {
           </div>
         </div>
       )}
+
+      <ResourceLinksPanel
+        tracks={tracks}
+        modules={modules}
+        topics={topics}
+        subtopics={subtopics}
+      />
 
       <div className="flex flex-wrap items-center gap-3">
         <Input

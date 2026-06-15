@@ -6,6 +6,7 @@ import type {
   Subtopic,
   LearningSession,
   JournalEntry,
+  JournalLink,
   Achievement,
   Milestone,
   GoalMilestone,
@@ -21,6 +22,7 @@ export class GrowthOSDatabase extends Dexie {
   subtopics!: Table<Subtopic>;
   sessions!: Table<LearningSession>;
   journal!: Table<JournalEntry>;
+  journalLinks!: Table<JournalLink>;
   achievements!: Table<Achievement>;
   milestones!: Table<Milestone>;
   goalMilestones!: Table<GoalMilestone>;
@@ -105,6 +107,9 @@ export class GrowthOSDatabase extends Dexie {
       if (Object.keys(updates).length > 0) {
         await tx.table("settings").update("default", updates);
       }
+    });
+    this.version(12).stores({
+      journalLinks: "id, trackId, moduleId, topicId, subtopicId, createdAt",
     });
     this.version(7).stores({}).upgrade(async (tx) => {
       const topics = await tx.table("topics").toArray();

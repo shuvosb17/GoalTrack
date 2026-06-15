@@ -117,19 +117,19 @@ export async function seedDatabase(): Promise<void> {
 }
 
 export async function exportAllData() {
-  const [tracks, modules, topics, subtopics, sessions, journal, achievements, milestones, goalMilestones, trackEstimates, settings, skipLogs] = await Promise.all([
+  const [tracks, modules, topics, subtopics, sessions, journal, journalLinks, achievements, milestones, goalMilestones, trackEstimates, settings, skipLogs] = await Promise.all([
     db.tracks.toArray(), db.modules.toArray(), db.topics.toArray(), db.subtopics.toArray(),
-    db.sessions.toArray(), db.journal.toArray(), db.achievements.toArray(), db.milestones.toArray(),
+    db.sessions.toArray(), db.journal.toArray(), db.journalLinks.toArray(), db.achievements.toArray(), db.milestones.toArray(),
     db.goalMilestones.toArray(), db.trackEstimates.toArray(), db.settings.toArray(), db.skipLogs.toArray(),
   ]);
-  return { version: 1, exportedAt: nowISO(), tracks, modules, topics, subtopics, sessions, journal, achievements, milestones, goalMilestones, trackEstimates, settings, skipLogs };
+  return { version: 1, exportedAt: nowISO(), tracks, modules, topics, subtopics, sessions, journal, journalLinks, achievements, milestones, goalMilestones, trackEstimates, settings, skipLogs };
 }
 
 export async function importAllData(data: Awaited<ReturnType<typeof exportAllData>>) {
-  await db.transaction("rw", [db.tracks, db.modules, db.topics, db.subtopics, db.sessions, db.journal, db.achievements, db.milestones, db.goalMilestones, db.trackEstimates, db.settings, db.skipLogs], async () => {
+  await db.transaction("rw", [db.tracks, db.modules, db.topics, db.subtopics, db.sessions, db.journal, db.journalLinks, db.achievements, db.milestones, db.goalMilestones, db.trackEstimates, db.settings, db.skipLogs], async () => {
     await Promise.all([
       db.tracks.clear(), db.modules.clear(), db.topics.clear(), db.subtopics.clear(),
-      db.sessions.clear(), db.journal.clear(), db.achievements.clear(), db.milestones.clear(),
+      db.sessions.clear(), db.journal.clear(), db.journalLinks.clear(), db.achievements.clear(), db.milestones.clear(),
       db.goalMilestones.clear(), db.trackEstimates.clear(), db.settings.clear(), db.skipLogs.clear(),
     ]);
     if (data.tracks?.length) await db.tracks.bulkAdd(data.tracks);
@@ -138,6 +138,7 @@ export async function importAllData(data: Awaited<ReturnType<typeof exportAllDat
     if (data.subtopics?.length) await db.subtopics.bulkAdd(data.subtopics);
     if (data.sessions?.length) await db.sessions.bulkAdd(data.sessions);
     if (data.journal?.length) await db.journal.bulkAdd(data.journal);
+    if (data.journalLinks?.length) await db.journalLinks.bulkAdd(data.journalLinks);
     if (data.achievements?.length) await db.achievements.bulkAdd(data.achievements);
     if (data.milestones?.length) await db.milestones.bulkAdd(data.milestones);
     if (data.goalMilestones?.length) await db.goalMilestones.bulkAdd(data.goalMilestones);

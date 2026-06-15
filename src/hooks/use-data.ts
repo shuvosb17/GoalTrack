@@ -58,6 +58,10 @@ export function useJournal() {
   return useLiveQuery(() => db.journal.orderBy("date").reverse().toArray(), []) ?? [];
 }
 
+export function useJournalLinks() {
+  return useLiveQuery(() => db.journalLinks.orderBy("createdAt").reverse().toArray(), []) ?? [];
+}
+
 export function useAchievements() {
   return useLiveQuery(() => db.achievements.toArray(), []) ?? [];
 }
