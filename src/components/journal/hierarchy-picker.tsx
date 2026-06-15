@@ -21,10 +21,21 @@ interface HierarchyPickerProps {
   subtopics: Subtopic[];
 }
 
+function byOrder<T extends { order: number; name: string }>(a: T, b: T) {
+  return a.order - b.order || a.name.localeCompare(b.name);
+}
+
 export function HierarchyPicker({ value, onChange, tracks, modules, topics, subtopics }: HierarchyPickerProps) {
-  const trackModules = modules.filter((m) => m.trackId === value.trackId && !m.archived);
-  const moduleTopics = topics.filter((t) => t.moduleId === value.moduleId && !t.archived);
-  const topicSubs = subtopics.filter((s) => s.topicId === value.topicId && !s.archived);
+  const trackModules = modules
+    .filter((m) => m.trackId === value.trackId && !m.archived)
+    .sort(byOrder);
+  const moduleTopics = topics
+    .filter((t) => t.moduleId === value.moduleId && !t.archived)
+    .sort(byOrder);
+  const topicSubs = subtopics
+    .filter((s) => s.topicId === value.topicId && !s.archived)
+    .sort(byOrder);
+  const sortedTracks = [...tracks].sort(byOrder);
 
   const update = (patch: Partial<JournalHierarchy>) => {
     const next = { ...value, ...patch };
@@ -51,7 +62,7 @@ export function HierarchyPicker({ value, onChange, tracks, modules, topics, subt
           <SelectTrigger><SelectValue placeholder="Select track" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="none">No track</SelectItem>
-            {tracks.map((t) => (
+            {sortedTracks.map((t) => (
               <SelectItem key={t.id} value={t.id}>{t.icon} {t.name}</SelectItem>
             ))}
           </SelectContent>
