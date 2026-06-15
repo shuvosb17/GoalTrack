@@ -17,6 +17,8 @@ export interface TopStudyItem {
   trackColor: string;
   trackName: string;
   trackIcon: string;
+  moduleId?: string;
+  moduleName?: string;
   level: StudyAttributionLevel;
 }
 
@@ -70,6 +72,19 @@ export function getSessionStudyAttribution(
   return null;
 }
 
+/** Study Tracker ranked list: topics/modules only — subtopic hours roll into parent topic. */
+export function aggregateStudyTrackerHours(
+  sessions: LearningSession[],
+  topics: Topic[],
+  modules: Module[],
+  tracks: Track[],
+  subtopics: Subtopic[]
+): TopStudyItem[] {
+  return aggregateStudyHours(sessions, topics, modules, tracks, subtopics).filter(
+    (item) => item.level === "topic" || item.level === "module"
+  );
+}
+
 export function aggregateStudyHours(
   sessions: LearningSession[],
   topics: Topic[],
@@ -78,6 +93,8 @@ export function aggregateStudyHours(
   subtopics: Subtopic[]
 ): TopStudyItem[] {
   const trackById = new Map(tracks.map((t) => [t.id, t]));
+  const topicById = new Map(topics.map((t) => [t.id, t]));
+  const moduleById = new Map(modules.map((m) => [m.id, m]));
   const buckets = new Map<string, { attr: SessionStudyAttribution; hoursMs: number }>();
 
   sessions.forEach((session) => {
@@ -94,6 +111,14 @@ export function aggregateStudyHours(
     .sort((a, b) => b.hoursMs - a.hoursMs)
     .map(({ attr, hoursMs }) => {
       const track = trackById.get(attr.trackId);
+      const topic = attr.level === "topic" ? topicById.get(attr.id) : undefined;
+      const mod =
+        attr.level === "module"
+          ? moduleById.get(attr.id)
+          : topic
+            ? moduleById.get(topic.moduleId)
+            : undefined;
+
       return {
         id: `${attr.level}:${attr.id}`,
         name: attr.name,
@@ -102,6 +127,8 @@ export function aggregateStudyHours(
         trackColor: track?.color ?? "#8b5cf6",
         trackName: track?.name ?? "",
         trackIcon: track?.icon ?? "📚",
+        moduleId: mod?.id,
+        moduleName: mod?.name,
         level: attr.level,
       };
     });

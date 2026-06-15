@@ -30,7 +30,7 @@ import {
   todayISO,
   parseLocalDate,
 } from "./utils";
-import { aggregateStudyHours as aggregateStudyHoursItems } from "./session-attribution";
+import { aggregateStudyHours as aggregateStudyHoursItems, aggregateStudyTrackerHours } from "./session-attribution";
 
 export const DEFAULT_YEAR_START = "2026-06-01";
 export const DEFAULT_YEAR_END = "2026-12-31";
@@ -383,7 +383,7 @@ export function getTopTopicsWithTrack(
       ? sessions.filter((s) => s.date >= format(subDays(new Date(), days - 1), "yyyy-MM-dd"))
       : sessions;
 
-  return aggregateStudyHoursItems(scoped, topics, modules, tracks, subtopics)
+  return aggregateStudyTrackerHours(scoped, topics, modules, tracks, subtopics)
     .filter((e) => e.hours > 0)
     .slice(0, limit);
 }
