@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "GoalTrack — Personal Learning Command Center",
+  title: "GoalTrack",
   description: "Track your learning goals, progress, and study time with GoalTrack",
   manifest: "/manifest.json",
   icons: {

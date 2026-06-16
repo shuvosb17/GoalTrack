@@ -6,15 +6,7 @@ import type { TopStudyItem } from "@/lib/session-attribution";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-const FILTER_CATEGORIES = [
-  "System Design",
-  "CS Fundamentals",
-  "Academic",
-  "LeetCode",
-] as const;
-
-const FILTER_CHIPS = ["All topics", ...FILTER_CATEGORIES] as const;
-type FilterChip = (typeof FILTER_CHIPS)[number];
+const ALL_TOPICS = "All topics" as const;
 
 const DONUT_SIZE = 220;
 
@@ -23,6 +15,7 @@ export const STUDY_TRACK_COLORS: Record<string, { bar: string; dot: string }> = 
   "CS Fundamentals": { bar: "#0F6E56", dot: "#1D9E75" },
   Academic: { bar: "#993C1D", dot: "#D85A30" },
   LeetCode: { bar: "#185FA5", dot: "#378ADD" },
+  Development: { bar: "#10b981", dot: "#34d399" },
 };
 
 const DIM_SEGMENT = "rgba(128,128,128,0.15)";
@@ -47,9 +40,25 @@ function formatHours(h: number) {
   return h % 1 === 0 ? h.toFixed(0) : h.toFixed(1);
 }
 
-function sectionLabel(filter: FilterChip): string {
-  if (filter === "All topics") return "ALL TOPICS · RANKED BY HOURS";
+function sectionLabel(filter: string): string {
+  if (filter === ALL_TOPICS) return "ALL TOPICS · RANKED BY HOURS";
   return `${filter.toUpperCase()} · RANKED BY HOURS`;
+}
+
+function buildTrackBreakdown(items: TopStudyItem[]) {
+  const totals = new Map<string, { hours: number; color: string }>();
+  items.forEach((i) => {
+    const existing = totals.get(i.trackName);
+    const colors = getTrackColors(i.trackName);
+    totals.set(i.trackName, {
+      hours: (existing?.hours ?? 0) + i.hours,
+      color: existing?.color ?? i.trackColor ?? colors.bar,
+    });
+  });
+  return [...totals.entries()]
+    .map(([name, { hours, color }]) => ({ name, hours, color }))
+    .filter((d) => d.hours > 0)
+    .sort((a, b) => b.hours - a.hours);
 }
 
 function AnimatedBarFill({ pct, color }: { pct: number; color: string }) {
@@ -88,7 +97,7 @@ function DonutChart({
   centerLabel,
 }: {
   data: { name: string; hours: number; color: string }[];
-  activeFilter: FilterChip;
+  activeFilter: string;
   heroTotal: number;
   centerLabel: string;
 }) {
@@ -108,7 +117,7 @@ function DonutChart({
         >
           {data.map((entry) => {
             const highlighted =
-              activeFilter === "All topics" || activeFilter === entry.name;
+              activeFilter === ALL_TOPICS || activeFilter === entry.name;
             return (
               <Cell
                 key={entry.name}
@@ -140,7 +149,7 @@ function TopicBreakdown({
 }: {
   entries: { name: string; hours: number; color: string }[];
   donutTotal: number;
-  activeFilter: FilterChip;
+  activeFilter: string;
 }) {
   return (
     <div className="flex h-full flex-col">
@@ -153,7 +162,7 @@ function TopicBreakdown({
             donutTotal > 0 ? Math.round((entry.hours / donutTotal) * 100) : 0;
           const colors = getTrackColors(entry.name);
           const dimmed =
-            activeFilter !== "All topics" && activeFilter !== entry.name;
+            activeFilter !== ALL_TOPICS && activeFilter !== entry.name;
 
           return (
             <li
@@ -257,11 +266,18 @@ interface MostStudiedTopicsPanelProps {
 }
 
 export function MostStudiedTopicsPanel({ items }: MostStudiedTopicsPanelProps) {
-  const [activeFilter, setActiveFilter] = useState<FilterChip>("All topics");
+  const [activeFilter, setActiveFilter] = useState<string>(ALL_TOPICS);
+
+  const categoryBreakdown = useMemo(() => buildTrackBreakdown(items), [items]);
+
+  const filterChips = useMemo(
+    () => [ALL_TOPICS, ...categoryBreakdown.map((t) => t.name)],
+    [categoryBreakdown]
+  );
 
   const visibleItems = useMemo(() => {
     const filtered =
-      activeFilter === "All topics"
+      activeFilter === ALL_TOPICS
         ? items
         : items.filter((i) => i.trackName === activeFilter);
     return [...filtered].sort((a, b) => b.hours - a.hours);
@@ -270,21 +286,8 @@ export function MostStudiedTopicsPanel({ items }: MostStudiedTopicsPanelProps) {
   const maxHours = visibleItems[0]?.hours ?? 1;
   const heroTotal = visibleItems.reduce((sum, i) => sum + i.hours, 0);
 
-  const categoryBreakdown = useMemo(() => {
-    const totals = new Map<string, number>();
-    items.forEach((i) => {
-      totals.set(i.trackName, (totals.get(i.trackName) ?? 0) + i.hours);
-    });
-    return FILTER_CATEGORIES.map((name) => ({
-      name,
-      hours: totals.get(name) ?? 0,
-      color: getTrackColors(name).bar,
-    })).filter((d) => d.hours > 0);
-  }, [items]);
-
   const donutTotal = categoryBreakdown.reduce((s, d) => s + d.hours, 0);
-  const donutCenterLabel =
-    activeFilter === "All topics" ? "total" : activeFilter;
+  const donutCenterLabel = activeFilter === ALL_TOPICS ? "total" : activeFilter;
 
   return (
     <Card className="relative overflow-hidden border-[0.5px] border-white/[0.08]">
@@ -327,7 +330,7 @@ export function MostStudiedTopicsPanel({ items }: MostStudiedTopicsPanelProps) {
           <>
             {/* Filter chips */}
             <div className="mb-8 flex flex-wrap gap-2">
-              {FILTER_CHIPS.map((chip) => {
+              {filterChips.map((chip) => {
                 const active = activeFilter === chip;
                 return (
                   <button
