@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, X } from "lucide-react";
 import {
   addMonths,
   eachDayOfInterval,
@@ -35,7 +34,6 @@ import {
 
 const RING_RADIUS = 15.5;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
-
 const DOW_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
 
 export interface SetDeadlineDialogProps {
@@ -44,7 +42,6 @@ export interface SetDeadlineDialogProps {
   dueDate: string;
   onDueDateChange: (dateKey: string) => void;
   onSave: () => void | Promise<void>;
-  /** Override accent for track-themed dialogs */
   accent?: string;
   accentLight?: string;
 }
@@ -70,21 +67,112 @@ function CalendarIcon({ className }: { className?: string }) {
 
 function TitleCalendarIcon() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="#fff"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-5 w-5"
-      aria-hidden
-    >
+    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden>
       <rect x="3" y="5" width="18" height="16" rx="3" />
       <path d="M3 9h18" />
       <path d="M8 3v4M16 3v4" />
       <circle cx="15.5" cy="15" r="2.3" fill="#fff" stroke="none" />
     </svg>
+  );
+}
+
+function DeadlineCalendar({
+  viewMonth,
+  onViewMonthChange,
+  selectedDate,
+  today,
+  todayKey,
+  accent,
+  onSelect,
+}: {
+  viewMonth: Date;
+  onViewMonthChange: (month: Date) => void;
+  selectedDate: Date;
+  today: Date;
+  todayKey: string;
+  accent: string;
+  onSelect: (date: Date) => void;
+}) {
+  const monthDays = useMemo(() => {
+    const start = startOfWeek(startOfMonth(viewMonth), { weekStartsOn: 0 });
+    const end = endOfWeek(endOfMonth(viewMonth), { weekStartsOn: 0 });
+    return eachDayOfInterval({ start, end });
+  }, [viewMonth]);
+
+  return (
+    <div
+      className="rounded-xl border border-white/[0.1] bg-[#1a1828] p-3"
+      onPointerDown={(e) => e.stopPropagation()}
+    >
+      <div className="mb-2 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => onViewMonthChange(subMonths(viewMonth, 1))}
+          className="flex h-7 w-7 items-center justify-center rounded-md border border-white/[0.08] bg-[#221f31] text-[#a39eb6] transition-colors hover:border-white/[0.14] hover:text-white"
+          aria-label="Previous month"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+        </button>
+        <span
+          className="text-sm font-semibold text-[#f1eff8]"
+          style={{ fontFamily: "var(--font-space-grotesk), sans-serif" }}
+        >
+          {format(viewMonth, "MMMM yyyy")}
+        </span>
+        <button
+          type="button"
+          onClick={() => onViewMonthChange(addMonths(viewMonth, 1))}
+          className="flex h-7 w-7 items-center justify-center rounded-md border border-white/[0.08] bg-[#221f31] text-[#a39eb6] transition-colors hover:border-white/[0.14] hover:text-white"
+          aria-label="Next month"
+        >
+          <ChevronRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-7 gap-0.5">
+        {DOW_LABELS.map((d, i) => (
+          <div
+            key={`${d}-${i}`}
+            className="flex h-6 items-center justify-center text-[10px] font-semibold text-[#67627a]"
+          >
+            {d}
+          </div>
+        ))}
+        {monthDays.map((day) => {
+          const inMonth = isSameMonth(day, viewMonth);
+          const isToday = isSameDay(day, today);
+          const isSelected = isSameDay(day, selectedDate);
+          const isPast = isPastDeadlineDay(day, todayKey);
+          const isSelectable = inMonth && !isPast;
+
+          return (
+            <button
+              key={toDateKey(day)}
+              type="button"
+              disabled={!isSelectable}
+              onClick={() => isSelectable && onSelect(day)}
+              className={cn(
+                "relative flex h-8 items-center justify-center rounded-md text-[12px] font-medium transition-colors",
+                !inMonth && "invisible",
+                isPast && inMonth && "text-[#67627a] opacity-35",
+                isSelectable && !isSelected && "text-[#f1eff8] hover:bg-white/[0.06]",
+                isSelected && "text-white"
+              )}
+              style={
+                isSelected
+                  ? { background: `linear-gradient(135deg, ${accent} 0%, #463e9c 100%)` }
+                  : undefined
+              }
+            >
+              {format(day, "d")}
+              {isToday && !isSelected && (
+                <span className="absolute bottom-0.5 h-1 w-1 rounded-full bg-[#2dd9c3]" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -102,13 +190,6 @@ export function SetDeadlineDialog({
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [viewMonth, setViewMonth] = useState(() => parseLocalDate(dueDate || todayKey));
   const [saving, setSaving] = useState(false);
-  const [calendarPos, setCalendarPos] = useState<{
-    top: number;
-    left: number;
-    width: number;
-  } | null>(null);
-  const fieldRef = useRef<HTMLDivElement>(null);
-  const calendarRef = useRef<HTMLDivElement>(null);
 
   const selectedDate = parseLocalDate(dueDate || todayKey);
   const diff = getDeadlineDaysFromToday(dueDate || todayKey, todayKey);
@@ -124,53 +205,11 @@ export function SetDeadlineDialog({
     }
   }, [open, dueDate, todayKey]);
 
-  useEffect(() => {
-    if (!calendarOpen) return;
-    const updatePosition = () => {
-      if (!fieldRef.current) return;
-      const rect = fieldRef.current.getBoundingClientRect();
-      setCalendarPos({
-        top: rect.bottom + 8,
-        left: rect.left,
-        width: rect.width,
-      });
-    };
-    updatePosition();
-    window.addEventListener("resize", updatePosition);
-    window.addEventListener("scroll", updatePosition, true);
-    return () => {
-      window.removeEventListener("resize", updatePosition);
-      window.removeEventListener("scroll", updatePosition, true);
-    };
-  }, [calendarOpen, viewMonth]);
-
-  useEffect(() => {
-    if (!calendarOpen) return;
-    const onDocClick = (e: MouseEvent) => {
-      const target = e.target as Node;
-      if (
-        fieldRef.current?.contains(target) ||
-        calendarRef.current?.contains(target)
-      ) {
-        return;
-      }
-      setCalendarOpen(false);
-    };
-    document.addEventListener("mousedown", onDocClick);
-    return () => document.removeEventListener("mousedown", onDocClick);
-  }, [calendarOpen]);
-
-  const monthDays = useMemo(() => {
-    const start = startOfWeek(startOfMonth(viewMonth), { weekStartsOn: 0 });
-    const end = endOfWeek(endOfMonth(viewMonth), { weekStartsOn: 0 });
-    return eachDayOfInterval({ start, end });
-  }, [viewMonth]);
-
   const selectDate = useCallback(
     (date: Date) => {
       if (isPastDeadlineDay(date, todayKey)) return;
       onDueDateChange(toDateKey(date));
-      setCalendarOpen(false);
+      setViewMonth(date);
     },
     [onDueDateChange, todayKey]
   );
@@ -184,156 +223,50 @@ export function SetDeadlineDialog({
     }
   };
 
-  const calendarPopover =
-    calendarOpen && calendarPos
-      ? createPortal(
-          <AnimatePresence>
-            <motion.div
-              ref={calendarRef}
-              initial={{ opacity: 0, y: -6, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -6, scale: 0.97 }}
-              transition={{ duration: 0.22, ease: [0.2, 0.9, 0.3, 1.2] }}
-              className="rounded-2xl border border-white/[0.13] bg-[#221f31] p-4 shadow-[0_20px_50px_-16px_rgba(0,0,0,0.6)]"
-              style={{
-                position: "fixed",
-                top: calendarPos.top,
-                left: calendarPos.left,
-                width: calendarPos.width,
-                zIndex: 9999,
-              }}
-            >
-              <div className="mb-3.5 flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setViewMonth((m) => subMonths(m, 1));
-                  }}
-                  className="flex h-[26px] w-[26px] items-center justify-center rounded-md border border-white/[0.07] bg-[#1c1929] text-[#a39eb6] transition-colors hover:border-white/[0.13] hover:text-[#f1eff8]"
-                  aria-label="Previous month"
-                >
-                  <ChevronLeft className="h-3 w-3" />
-                </button>
-                <span
-                  className="text-sm font-semibold text-[#f1eff8]"
-                  style={{ fontFamily: "var(--font-space-grotesk), sans-serif" }}
-                >
-                  {format(viewMonth, "MMMM yyyy")}
-                </span>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setViewMonth((m) => addMonths(m, 1));
-                  }}
-                  className="flex h-[26px] w-[26px] items-center justify-center rounded-md border border-white/[0.07] bg-[#1c1929] text-[#a39eb6] transition-colors hover:border-white/[0.13] hover:text-[#f1eff8]"
-                  aria-label="Next month"
-                >
-                  <ChevronRight className="h-3 w-3" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-7 gap-1">
-                {DOW_LABELS.map((d, i) => (
-                  <div
-                    key={`${d}-${i}`}
-                    className="flex h-7 items-center justify-center text-center text-[10.5px] font-semibold tracking-wide text-[#67627a]"
-                  >
-                    {d}
-                  </div>
-                ))}
-                {monthDays.map((day) => {
-                  const inMonth = isSameMonth(day, viewMonth);
-                  const isToday = isSameDay(day, today);
-                  const isSelected = isSameDay(day, selectedDate);
-                  const isPast = isPastDeadlineDay(day, todayKey);
-                  const isSelectable = inMonth && !isPast;
-
-                  return (
-                    <button
-                      key={day.toISOString()}
-                      type="button"
-                      aria-disabled={!isSelectable}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (isSelectable) selectDate(day);
-                      }}
-                      className={cn(
-                        "relative flex h-9 items-center justify-center rounded-lg text-[13px] font-medium transition-all duration-150",
-                        !inMonth && "pointer-events-none text-[#67627a] opacity-35",
-                        isPast && inMonth && "pointer-events-none text-[#67627a] opacity-30",
-                        isSelectable &&
-                          !isSelected &&
-                          "cursor-pointer text-[#f1eff8] hover:bg-[#1c1929] hover:text-white",
-                        isSelected &&
-                          "cursor-pointer text-white shadow-[0_4px_14px_-4px_var(--deadline-accent-glow)]"
-                      )}
-                      style={
-                        isSelected
-                          ? {
-                              background: `linear-gradient(135deg, ${accent} 0%, #463e9c 100%)`,
-                            }
-                          : undefined
-                      }
-                    >
-                      {format(day, "d")}
-                      {isToday && !isSelected && (
-                        <span className="absolute bottom-1 h-1 w-1 rounded-full bg-[#2dd9c3]" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </motion.div>
-          </AnimatePresence>,
-          document.body
-        )
-      : null;
-
   const cssVars = {
     "--deadline-accent": accent,
     "--deadline-accent-light": accentLight,
     "--deadline-accent-glow": `${accentLight}80`,
-    "--deadline-teal": "#2dd9c3",
-    "--deadline-amber": "#f5b942",
-    "--deadline-red": "#ff6868",
   } as React.CSSProperties;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-[440px] gap-0 overflow-visible border-0 bg-transparent p-0 shadow-none [&>button]:hidden data-[state=open]:overflow-visible"
+        className="max-h-[min(92vh,720px)] max-w-[400px] gap-0 overflow-y-auto border-0 bg-transparent p-0 shadow-none [&>button]:hidden"
         style={cssVars}
+        onPointerDownOutside={(e) => {
+          if (calendarOpen) e.preventDefault();
+        }}
+        onInteractOutside={(e) => {
+          if (calendarOpen) e.preventDefault();
+        }}
       >
         <motion.div
-          initial={{ opacity: 0, y: 18, scale: 0.96 }}
+          initial={{ opacity: 0, y: 14, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.45, ease: [0.2, 0.9, 0.25, 1.1] }}
-          className="relative overflow-visible rounded-[22px] border border-white/[0.07] bg-gradient-to-br from-[#15131e] to-[#110f18] p-7 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7),inset_0_0_0_1px_rgba(255,255,255,0.02)]"
+          transition={{ duration: 0.35, ease: [0.2, 0.9, 0.25, 1.05] }}
+          className="relative overflow-visible rounded-[20px] border border-white/[0.07] bg-gradient-to-br from-[#15131e] to-[#110f18] p-5 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.75)] sm:p-6"
         >
           <div
-            className="pointer-events-none absolute -left-16 -top-16 h-[340px] w-[340px] rounded-full opacity-35 blur-[70px]"
-            style={{ background: accentLight, animation: "deadlineDrift1 14s ease-in-out infinite" }}
+            className="pointer-events-none absolute -left-12 -top-12 h-48 w-48 rounded-full opacity-30 blur-[60px]"
+            style={{ background: accentLight }}
           />
           <div
-            className="pointer-events-none absolute -bottom-12 -right-12 h-[300px] w-[300px] rounded-full opacity-[0.18] blur-[70px]"
-            style={{ background: "#2dd9c3", animation: "deadlineDrift2 16s ease-in-out infinite" }}
+            className="pointer-events-none absolute -bottom-8 -right-8 h-40 w-40 rounded-full opacity-15 blur-[60px]"
+            style={{ background: "#2dd9c3" }}
           />
 
-          <div className="relative z-10">
-            <div className="mb-3 flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
+          <div className="relative z-10 space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2.5">
                 <div
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-[0_8px_20px_-6px_var(--deadline-accent-glow)]"
-                  style={{
-                    background: `linear-gradient(135deg, ${accent} 0%, #3c3680 100%)`,
-                  }}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg shadow-[0_6px_16px_-6px_var(--deadline-accent-glow)]"
+                  style={{ background: `linear-gradient(135deg, ${accent} 0%, #3c3680 100%)` }}
                 >
                   <TitleCalendarIcon />
                 </div>
                 <h2
-                  className="text-[19px] font-semibold tracking-tight text-[#f1eff8]"
+                  className="text-lg font-semibold text-[#f1eff8]"
                   style={{ fontFamily: "var(--font-space-grotesk), sans-serif" }}
                 >
                   Set deadline
@@ -342,52 +275,52 @@ export function SetDeadlineDialog({
               <button
                 type="button"
                 onClick={() => onOpenChange(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-[#67627a] transition-colors hover:border-white/[0.13] hover:bg-[#1c1929] hover:text-[#f1eff8]"
+                className="flex h-7 w-7 items-center justify-center rounded-md text-[#67627a] hover:bg-white/[0.06] hover:text-white"
                 aria-label="Close"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <p className="mb-5 text-[13.5px] leading-relaxed text-[#a39eb6]">
-              Defaults to today in your local timezone. Pick a quick option or set a custom date — it&apos;ll show on Tracks and Status.
+            <p className="text-[13px] leading-relaxed text-[#a39eb6]">
+              Pick a quick option or choose a custom date — shown on Tracks and Status.
             </p>
 
-            <p className="mb-2.5 text-[11.5px] font-semibold uppercase tracking-[0.5px] text-[#67627a]">
-              Quick pick
-            </p>
-            <div className="mb-5 flex flex-wrap gap-2">
-              {QUICK_PICKS.map((pick) => {
-                const active = activePick === pick.id;
-                return (
-                  <button
-                    key={pick.id}
-                    type="button"
-                    onClick={() => onDueDateChange(toDateKey(pick.resolve(today)))}
-                    className={cn(
-                      "rounded-full border px-3.5 py-1.5 text-[12.5px] font-medium transition-all duration-200",
-                      active
-                        ? "border-transparent text-white shadow-[0_6px_16px_-6px_var(--deadline-accent-glow)]"
-                        : "border-white/[0.07] bg-[#1c1929] text-[#a39eb6] hover:-translate-y-px hover:border-white/[0.13] hover:text-[#f1eff8]"
-                    )}
-                    style={
-                      active
-                        ? {
-                            background: `linear-gradient(135deg, ${accent} 0%, #463e9c 100%)`,
-                          }
-                        : undefined
-                    }
-                  >
-                    {pick.label}
-                  </button>
-                );
-              })}
+            <div>
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[#67627a]">
+                Quick pick
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {QUICK_PICKS.map((pick) => {
+                  const active = activePick === pick.id;
+                  return (
+                    <button
+                      key={pick.id}
+                      type="button"
+                      onClick={() => onDueDateChange(toDateKey(pick.resolve(today)))}
+                      className={cn(
+                        "rounded-full border px-3 py-1 text-[12px] font-medium transition-all",
+                        active
+                          ? "border-transparent text-white"
+                          : "border-white/[0.07] bg-[#1c1929] text-[#a39eb6] hover:text-white"
+                      )}
+                      style={
+                        active
+                          ? { background: `linear-gradient(135deg, ${accent} 0%, #463e9c 100%)` }
+                          : undefined
+                      }
+                    >
+                      {pick.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            <p className="mb-2.5 text-[11.5px] font-semibold uppercase tracking-[0.5px] text-[#67627a]">
-              Due date
-            </p>
-            <div className="relative z-20 mb-4" ref={fieldRef}>
+            <div>
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[#67627a]">
+                Due date
+              </p>
               <button
                 type="button"
                 onClick={() => {
@@ -395,53 +328,60 @@ export function SetDeadlineDialog({
                   setCalendarOpen((v) => !v);
                 }}
                 className={cn(
-                  "flex w-full items-center justify-between gap-2.5 rounded-[14px] border-[1.5px] bg-[#1c1929] px-3.5 py-3 text-left transition-all duration-200",
+                  "flex w-full items-center gap-2.5 rounded-xl border bg-[#1c1929] px-2.5 py-2 text-left transition-all",
                   calendarOpen
-                    ? "border-[var(--deadline-accent-light)] shadow-[0_0_0_4px_rgba(132,120,232,0.14)]"
-                    : "border-white/[0.07] hover:border-white/[0.13]"
+                    ? "border-[var(--deadline-accent-light)] shadow-[0_0_0_3px_rgba(132,120,232,0.12)]"
+                    : "border-white/[0.08] hover:border-white/[0.14]"
                 )}
               >
-                <div>
-                  <span className="font-mono text-[15px] font-semibold tracking-wide text-[#f1eff8]">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#221f31] text-[var(--deadline-accent-light)]">
+                  <CalendarIcon className="h-3.5 w-3.5" />
+                </div>
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <span className="font-mono text-[13px] font-semibold text-[#f1eff8]">
                     {formatDeadlineDisplay(dueDate || todayKey)}
                   </span>
-                  <span className="ml-2 text-[13px] font-medium text-[#67627a]">
+                  <span className="text-[11px] text-[#67627a]">
                     {formatDeadlineWeekdayShort(dueDate || todayKey)}
                   </span>
                 </div>
-                <div
+                <ChevronDown
                   className={cn(
-                    "flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-lg bg-[#221f31] text-[var(--deadline-accent-light)] transition-transform duration-200",
-                    calendarOpen && "rotate-[8deg]"
+                    "h-4 w-4 shrink-0 text-[#67627a] transition-transform duration-200",
+                    calendarOpen && "rotate-180"
                   )}
-                >
-                  <CalendarIcon className="h-[15px] w-[15px]" />
-                </div>
+                />
               </button>
+
+              <AnimatePresence initial={false}>
+                {calendarOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.22, ease: "easeOut" }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pt-2">
+                      <DeadlineCalendar
+                        viewMonth={viewMonth}
+                        onViewMonthChange={setViewMonth}
+                        selectedDate={selectedDate}
+                        today={today}
+                        todayKey={todayKey}
+                        accent={accent}
+                        onSelect={selectDate}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
-            {calendarPopover}
-
-            <div
-              className={cn(
-                "mb-5 flex items-center gap-3 rounded-[14px] border border-white/[0.07] bg-[#1c1929] px-3.5 py-2.5 transition-opacity duration-200",
-                calendarOpen && "opacity-40"
-              )}
-            >
-              <div className="relative h-[38px] w-[38px] shrink-0">
-                <svg
-                  viewBox="0 0 38 38"
-                  className="h-[38px] w-[38px] -rotate-90"
-                  aria-hidden
-                >
-                  <circle
-                    cx="19"
-                    cy="19"
-                    r={RING_RADIUS}
-                    fill="none"
-                    stroke="rgba(255,255,255,0.08)"
-                    strokeWidth={4}
-                  />
+            <div className="flex items-center gap-3 rounded-xl border border-white/[0.07] bg-[#1c1929] px-3 py-2">
+              <div className="relative h-9 w-9 shrink-0">
+                <svg viewBox="0 0 38 38" className="h-9 w-9 -rotate-90" aria-hidden>
+                  <circle cx="19" cy="19" r={RING_RADIUS} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={4} />
                   <circle
                     cx="19"
                     cy="19"
@@ -452,21 +392,18 @@ export function SetDeadlineDialog({
                     strokeLinecap="round"
                     strokeDasharray={RING_CIRCUMFERENCE}
                     strokeDashoffset={ringOffset}
-                    className="transition-[stroke-dashoffset,stroke] duration-500 ease-out"
+                    className="transition-all duration-500"
                   />
                 </svg>
-                <span className="absolute inset-0 flex items-center justify-center text-[13px]">
+                <span className="absolute inset-0 flex items-center justify-center text-xs">
                   {status.emoji}
                 </span>
               </div>
               <div className="min-w-0 flex-1">
-                <p
-                  className="text-[13.5px] font-semibold transition-colors duration-300"
-                  style={{ color: ringColor }}
-                >
+                <p className="text-[13px] font-semibold" style={{ color: ringColor }}>
                   {status.main}
                 </p>
-                <p className="mt-0.5 text-[11.5px] text-[#67627a]">
+                <p className="text-[11px] text-[#67627a]">
                   {formatDeadlineLong(dueDate || todayKey)}
                 </p>
               </div>
@@ -476,7 +413,7 @@ export function SetDeadlineDialog({
               type="button"
               disabled={saving}
               onClick={handleSave}
-              className="flex w-full items-center justify-center gap-2 rounded-[14px] py-3.5 text-[14.5px] font-semibold tracking-wide text-white shadow-[0_10px_26px_-8px_var(--deadline-accent-glow)] transition-all duration-200 hover:-translate-y-px hover:brightness-110 hover:shadow-[0_14px_32px_-8px_var(--deadline-accent-glow)] active:translate-y-0 disabled:opacity-70"
+              className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold text-white shadow-[0_8px_22px_-8px_var(--deadline-accent-glow)] transition-all hover:-translate-y-px hover:brightness-110 disabled:opacity-70"
               style={{
                 background: `linear-gradient(135deg, ${accentLight} 0%, ${accent} 55%, #3c3680 100%)`,
               }}
