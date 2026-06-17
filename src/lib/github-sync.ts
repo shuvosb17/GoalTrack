@@ -1,6 +1,7 @@
 import { encryptWithPin, decryptWithPin, type EncryptedBackupEnvelope } from "./backup-crypto";
 import { exportAllData, importAllData } from "./seed";
 import type { BackupData } from "./auto-backup";
+import { fetchBackupTextFromGitHub, fetchBackupTextFromGitHubRaw } from "./github-backup-fetch";
 
 const CONFIG_KEYS = {
   repo: "goaltrack-github-repo",
@@ -78,6 +79,7 @@ function apiQuery(config: GitHubSyncConfig): string {
     repo: config.repo,
     branch: config.branch,
     path: config.path,
+    _t: String(Date.now()),
   }).toString();
 }
 
@@ -96,15 +98,6 @@ async function fetchWithTimeout(input: RequestInfo, init: RequestInit = {}, ms =
   }
 }
 
-function base64ToUtf8(b64: string): string {
-  const binary = atob(b64.replace(/\n/g, ""));
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return new TextDecoder().decode(bytes);
-}
-
 function parseEnvelope(text: string): EncryptedBackupEnvelope {
   const envelope = JSON.parse(text) as EncryptedBackupEnvelope;
   if (!envelope?.v || !envelope?.salt || !envelope?.iv || !envelope?.data) {
@@ -114,7 +107,10 @@ function parseEnvelope(text: string): EncryptedBackupEnvelope {
 }
 
 async function fetchEnvelopeFromServerApi(config: GitHubSyncConfig): Promise<EncryptedBackupEnvelope> {
-  const res = await fetchWithTimeout(`/api/github-backup?${apiQuery(config)}`, { cache: "no-store" });
+  const res = await fetchWithTimeout(`/api/github-backup?${apiQuery(config)}`, {
+    cache: "no-store",
+    headers: { "Cache-Control": "no-cache" },
+  });
   const json = await res.json();
   if (!res.ok) {
     throw new Error((json as { error?: string }).error ?? `Server fetch failed (${res.status})`);
@@ -123,40 +119,35 @@ async function fetchEnvelopeFromServerApi(config: GitHubSyncConfig): Promise<Enc
 }
 
 async function fetchEnvelopeFromGitHubApi(config: GitHubSyncConfig): Promise<EncryptedBackupEnvelope> {
-  const url = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/${encodeURIComponent(config.path)}?ref=${encodeURIComponent(config.branch)}`;
-  const res = await fetchWithTimeout(url, {
-    headers: { Accept: "application/vnd.github+json" },
-    cache: "no-store",
-  });
-  if (!res.ok) {
-    throw new Error(
-      res.status === 404
-        ? "Backup file not found on GitHub"
-        : `GitHub API fetch failed (${res.status})`
-    );
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const text = await fetchBackupTextFromGitHub(config, { signal: controller.signal });
+    return parseEnvelope(text);
+  } catch (e) {
+    if (e instanceof Error && e.name === "AbortError") {
+      throw new Error(`Request timed out after ${FETCH_TIMEOUT_MS / 1000}s`);
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
   }
-  const json = await res.json();
-  const downloadUrl = (json as { download_url?: string }).download_url;
-  if (downloadUrl) {
-    const dl = await fetchWithTimeout(downloadUrl, { cache: "no-store" });
-    if (!dl.ok) throw new Error(`GitHub download failed (${dl.status})`);
-    return parseEnvelope(await dl.text());
-  }
-  const content = (json as { content?: string }).content ?? "";
-  return parseEnvelope(base64ToUtf8(content));
 }
 
 async function fetchEnvelopeFromRaw(config: GitHubSyncConfig): Promise<EncryptedBackupEnvelope> {
-  const url = `https://raw.githubusercontent.com/${config.owner}/${config.repo}/${config.branch}/${config.path}`;
-  const res = await fetchWithTimeout(url, { cache: "no-store" }, 8_000);
-  if (!res.ok) {
-    throw new Error(
-      res.status === 404
-        ? "Backup file not found on GitHub"
-        : `Raw GitHub fetch failed (${res.status})`
-    );
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8_000);
+  try {
+    const text = await fetchBackupTextFromGitHubRaw(config, { signal: controller.signal });
+    return parseEnvelope(text);
+  } catch (e) {
+    if (e instanceof Error && e.name === "AbortError") {
+      throw new Error("Request timed out after 8s");
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
   }
-  return parseEnvelope(await res.text());
 }
 
 export async function fetchEncryptedBackupFromGitHub(

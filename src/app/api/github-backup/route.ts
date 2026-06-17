@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { EncryptedBackupEnvelope } from "@/lib/backup-crypto";
+import { fetchBackupTextFromGitHub } from "@/lib/github-backup-fetch";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -27,29 +28,6 @@ function utf8ToBase64(str: string): string {
   return btoa(binary);
 }
 
-async function fetchPublicBackup(owner: string, repo: string, branch: string, path: string): Promise<string> {
-  const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch)}`;
-  const apiRes = await fetch(apiUrl, {
-    headers: { Accept: "application/vnd.github+json", "User-Agent": "GoalTrack" },
-    cache: "no-store",
-  });
-  if (apiRes.ok) {
-    const json = await apiRes.json();
-    const downloadUrl = (json as { download_url?: string }).download_url;
-    if (downloadUrl) {
-      const dl = await fetch(downloadUrl, { cache: "no-store" });
-      if (dl.ok) return dl.text();
-    }
-    const content = (json as { content?: string }).content?.replace(/\n/g, "") ?? "";
-    return Buffer.from(content, "base64").toString("utf8");
-  }
-
-  if (apiRes.status === 404) {
-    throw new Error("Backup file not found. Run Backup to GitHub from your main device first.");
-  }
-  throw new Error(`Could not fetch backup (${apiRes.status})`);
-}
-
 async function getFileSha(
   owner: string,
   repo: string,
@@ -75,9 +53,14 @@ async function getFileSha(
 export async function GET(req: NextRequest) {
   try {
     const { owner, repo, branch, path } = resolveParams(req.nextUrl.searchParams);
-    const text = await fetchPublicBackup(owner, repo, branch, path);
+    const text = await fetchBackupTextFromGitHub({ owner, repo, branch, path });
     const envelope = JSON.parse(text) as EncryptedBackupEnvelope;
-    return NextResponse.json(envelope);
+    return NextResponse.json(envelope, {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        Pragma: "no-cache",
+      },
+    });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed to fetch backup";
     const status = message.includes("not found") ? 404 : 500;
