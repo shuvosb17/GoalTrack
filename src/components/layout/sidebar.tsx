@@ -164,11 +164,7 @@ export function Sidebar() {
         </nav>
 
         <div className="relative border-t border-white/[0.06] p-3">
-          <div className="gradient-border relative overflow-hidden">
-            <div className="relative px-3 py-2.5">
-              <DayCountdown />
-            </div>
-          </div>
+          <DayCountdown />
         </div>
       </aside>
     </>
