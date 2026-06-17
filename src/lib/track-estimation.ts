@@ -62,18 +62,9 @@ function topicsProgressAtDate(topics: Topic[], subtopics: Subtopic[], asOfDate: 
 export function computeTrackProgressAtDate(
   trackId: string,
   asOfDate: string,
-  modules: Module[],
   topics: Topic[],
   subtopics: Subtopic[]
 ): number {
-  const trackModules = modules.filter((m) => m.trackId === trackId && !m.archived);
-  if (trackModules.length > 0) {
-    const percents = trackModules.map((mod) => {
-      const modTopics = topics.filter((t) => t.moduleId === mod.id && !t.archived);
-      return modTopics.length > 0 ? topicsProgressAtDate(modTopics, subtopics, asOfDate) : 0;
-    });
-    return Math.round(percents.reduce((sum, p) => sum + p, 0) / trackModules.length);
-  }
   const trackTopics = topics.filter((t) => t.trackId === trackId && !t.archived);
   return topicsProgressAtDate(trackTopics, subtopics, asOfDate);
 }
@@ -104,7 +95,7 @@ function buildChartData(
     const point: TrackEstimationPoint = { label: format(month, "MMM"), target };
 
     if (rangeEndStr <= todayStr) {
-      point.actual = computeTrackProgressAtDate(trackId, rangeEndStr, modules, topics, subtopics);
+      point.actual = computeTrackProgressAtDate(trackId, rangeEndStr, topics, subtopics);
     }
 
     if (rangeEndStr >= todayStr) {
@@ -134,7 +125,7 @@ export function buildTrackEstimation(
   const start = parseLocalDate(startDate);
   const end = parseLocalDate(endDate);
 
-  const currentProgress = getTrackProgress(track.id, topics, subtopics, modules).percentage;
+  const currentProgress = getTrackProgress(track.id, topics, subtopics).percentage;
 
   const trackSessions = sessions.filter((s) => s.trackId === track.id && s.date >= startDate);
   const hoursInvested = trackSessions.reduce((sum, s) => sum + s.duration, 0) / 3600000;

@@ -158,33 +158,34 @@ export function getModuleProgress(moduleId: string, topics: Topic[], subtopics: 
 export function getTrackProgress(
   trackId: string,
   topics: Topic[],
-  subtopics: Subtopic[],
-  modules: Module[] = []
+  subtopics: Subtopic[]
 ) {
   const trackTopics = topics.filter((t) => t.trackId === trackId && !t.archived);
-  const trackModules = modules.filter((m) => m.trackId === trackId && !m.archived);
 
-  const completed = trackTopics.filter((t) => isTopicComplete(t, subtopics)).length;
   const inProgress = trackTopics.filter((t) => {
     const subs = subtopics.filter((s) => s.topicId === t.id && !s.archived);
     return subs.some((s) => s.status === "in_progress") && !isTopicComplete(t, subtopics);
   }).length;
 
-  // Roll up from modules so one finished module ≠ 100% track when others are untouched
-  const percentage =
-    trackModules.length > 0
-      ? Math.round(
-          trackModules
-            .map((mod) => getModuleProgress(mod.id, topics, subtopics).percentage)
-            .reduce((sum, p) => sum + p, 0) / trackModules.length
-        )
-      : calculateTopicsProgress(trackTopics, subtopics);
+  // Weight every topic/subtopic in the track — never average module percentages.
+  const percentage = calculateTopicsProgress(trackTopics, subtopics);
+
+  let totalUnits = 0;
+  let completedUnits = 0;
+  for (const topic of trackTopics) {
+    const subs = subtopics.filter((s) => s.topicId === topic.id && !s.archived);
+    if (subs.length > 0) {
+      totalUnits += subs.length;
+      completedUnits += subs.filter((s) => isSubtopicDone(s.status)).length;
+    } else {
+      totalUnits += 1;
+      if (isTopicComplete(topic, subtopics)) completedUnits += 1;
+    }
+  }
 
   return {
-    total: trackModules.length > 0 ? trackModules.length : trackTopics.length,
-    completed: trackModules.length > 0
-      ? trackModules.filter((m) => getModuleProgress(m.id, topics, subtopics).percentage >= 100).length
-      : completed,
+    total: totalUnits,
+    completed: completedUnits,
     mastered: 0,
     inProgress,
     percentage,

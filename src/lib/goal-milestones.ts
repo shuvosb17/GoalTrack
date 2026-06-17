@@ -86,8 +86,7 @@ export function buildGoalScopeSummary(
 export function resolveGoalProgress(
   goal: GoalScopeInput,
   topics: Topic[],
-  subtopics: Subtopic[],
-  modules: Module[] = []
+  subtopics: Subtopic[]
 ): number {
   const topicIds = getGoalTopicIds(goal);
   if (topicIds.length === 1) {
@@ -102,7 +101,7 @@ export function resolveGoalProgress(
   if (goal.moduleId) {
     return getModuleProgress(goal.moduleId, topics, subtopics).percentage;
   }
-  return getTrackProgress(goal.trackId, topics, subtopics, modules).percentage;
+  return getTrackProgress(goal.trackId, topics, subtopics).percentage;
 }
 
 export function formatGoalScopeLabel(
@@ -168,8 +167,8 @@ export function buildGoalStats(
   const timeProgress = Math.min(100, Math.round((daysElapsed / daysTotal) * 100));
 
   const scope = buildGoalScopeSummary(goal, topics, subtopics);
-  const currentProgress = resolveGoalProgress(goal, topics, subtopics, modules);
-  const trackWideProgress = getTrackProgress(goal.trackId, topics, subtopics, modules).percentage;
+  const currentProgress = resolveGoalProgress(goal, topics, subtopics);
+  const trackWideProgress = getTrackProgress(goal.trackId, topics, subtopics).percentage;
   const progressGained = Math.max(0, currentProgress - goal.baselineProgress);
   const range = Math.max(1, goal.targetProgress - goal.baselineProgress);
   const expectedProgress = Math.min(
@@ -252,7 +251,7 @@ export async function createGoalMilestone(input: {
     moduleId: input.moduleId,
     ...topicScope,
   };
-  const baselineProgress = resolveGoalProgress(scope, input.topics, input.subtopics, input.modules);
+  const baselineProgress = resolveGoalProgress(scope, input.topics, input.subtopics);
   const goal: GoalMilestone = {
     id: uuid(),
     title: input.title.trim(),
@@ -315,7 +314,7 @@ export async function updateGoalMilestone(
       topicId: updates.topicId ?? existing.topicId,
       topicIds: updates.topicIds ?? existing.topicIds,
     };
-    updates.baselineProgress = resolveGoalProgress(merged, topics, subtopics, modules);
+    updates.baselineProgress = resolveGoalProgress(merged, topics, subtopics);
   }
 
   await db.goalMilestones.update(id, updates);

@@ -97,7 +97,7 @@ export default function DashboardPage() {
   const trackStats = useMemo(() => {
     const healthMap = new Map(trackHealth.map((h) => [h.trackId, h]));
     return tracks.map((track) => {
-      const progress = getTrackProgress(track.id, topics, subtopics, modules);
+      const progress = getTrackProgress(track.id, topics, subtopics);
       const today = todayISO();
       const hours = sessions
         .filter((s) => s.trackId === track.id && s.date === today)
