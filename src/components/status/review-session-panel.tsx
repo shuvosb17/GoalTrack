@@ -17,6 +17,7 @@ import type { Module, Subtopic, Topic, Track } from "@/lib/types";
 import {
   buildRevisionCatalog,
   countCompletedByTrack,
+  getReviewItemHierarchyLabel,
   isRateableReviewItem,
 } from "@/lib/revision-catalog";
 import { ConfidenceDots, ConfidenceLegend } from "@/components/status/confidence-dots";
@@ -105,7 +106,13 @@ export function ReviewSessionPanel({
     const q = search.trim().toLowerCase();
     return catalog
       .filter((item) => item.trackId === selectedTrackId)
-      .filter((item) => !q || item.name.toLowerCase().includes(q))
+      .filter(
+        (item) =>
+          !q ||
+          item.name.toLowerCase().includes(q) ||
+          item.parentTopicName?.toLowerCase().includes(q) ||
+          item.moduleName?.toLowerCase().includes(q)
+      )
       .sort((a, b) => a.confidence - b.confidence || a.name.localeCompare(b.name));
   }, [catalog, selectedTrackId, search]);
 
@@ -246,10 +253,8 @@ export function ReviewSessionPanel({
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium">{item.name}</p>
-                          <p className="text-[10px] text-muted-foreground">
-                            {item.kind === "subtopic" && item.parentTopicName
-                              ? `${item.parentTopicName} · subtopic`
-                              : item.kind}
+                          <p className="truncate text-[10px] text-muted-foreground">
+                            {getReviewItemHierarchyLabel(item) || item.kind}
                           </p>
                         </div>
                         <button
@@ -342,10 +347,9 @@ export function ReviewSessionPanel({
                       />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">{item.name}</p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {item.kind === "subtopic" && item.parentTopicName
-                            ? `${item.trackName} · ${item.parentTopicName}`
-                            : `${item.trackName} · ${item.kind}`}
+                        <p className="truncate text-[10px] text-muted-foreground">
+                          {getReviewItemHierarchyLabel(item) ||
+                            `${item.trackName} · ${item.kind}`}
                         </p>
                       </div>
                       <ConfidenceDots confidence={item.confidence} />

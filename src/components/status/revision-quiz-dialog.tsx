@@ -13,6 +13,7 @@ import { markTopicReviewed, markSubtopicReviewed } from "@/lib/crud";
 import { logRevisionStudyTime } from "@/lib/revision-sessions";
 import {
   confidenceTier,
+  getReviewItemHierarchyLabel,
   isRateableReviewItem,
   type ReviewCatalogItem,
 } from "@/lib/revision-catalog";
@@ -73,10 +74,8 @@ function RevisionFocusCard({ item }: { item: ReviewCatalogItem }) {
 
         <div>
           <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-            {item.trackName}
-            {item.parentTopicName ? ` · ${item.parentTopicName}` : ""}
-            {" · "}
-            {item.kind}
+            {getReviewItemHierarchyLabel(item) ||
+              `${item.trackName} · ${item.kind}`}
           </p>
           <h3 className="mt-2 text-2xl font-semibold leading-tight tracking-tight">
             {item.name}

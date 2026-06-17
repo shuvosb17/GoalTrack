@@ -19,6 +19,19 @@ export interface ReviewCatalogItem {
   subtopicId?: string;
   /** Parent topic when kind is subtopic */
   parentTopicName?: string;
+  /** Parent module when kind is topic or subtopic */
+  moduleName?: string;
+}
+
+/** Context line under the item title: Topic → Module, or Module only for leaf topics. */
+export function getReviewItemHierarchyLabel(item: ReviewCatalogItem): string {
+  if (item.kind === "subtopic") {
+    return [item.parentTopicName, item.moduleName].filter(Boolean).join(" → ");
+  }
+  if (item.kind === "topic") {
+    return item.moduleName ?? "";
+  }
+  return "";
 }
 
 export function confidenceTier(confidence: number): "low" | "medium" | "high" {
@@ -35,11 +48,15 @@ export function buildRevisionCatalog(
 ): ReviewCatalogItem[] {
   const items: ReviewCatalogItem[] = [];
   const trackById = new Map(tracks.map((t) => [t.id, t]));
+  const moduleById = new Map(modules.map((m) => [m.id, m]));
 
   for (const topic of topics) {
     if (topic.archived) continue;
     const track = trackById.get(topic.trackId);
     if (!track) continue;
+    const moduleName = topic.moduleId
+      ? moduleById.get(topic.moduleId)?.name
+      : undefined;
 
     const topicSubs = subtopics
       .filter((s) => s.topicId === topic.id && !s.archived)
@@ -53,6 +70,7 @@ export function buildRevisionCatalog(
           kind: "subtopic",
           name: sub.name,
           parentTopicName: topic.name,
+          moduleName,
           trackId: topic.trackId,
           trackName: track.name,
           trackColor: track.color,
@@ -66,6 +84,7 @@ export function buildRevisionCatalog(
         id: `topic:${topic.id}`,
         kind: "topic",
         name: topic.name,
+        moduleName,
         trackId: topic.trackId,
         trackName: track.name,
         trackColor: track.color,
