@@ -139,3 +139,13 @@ body {
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
   background: rgba(139, 92, 246, 0.45);
 }
+
+@keyframes deadlineDrift1 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(30px, 20px); }
+}
+
+@keyframes deadlineDrift2 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-25px, -15px); }
+}

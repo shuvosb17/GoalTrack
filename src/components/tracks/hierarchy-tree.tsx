@@ -34,6 +34,8 @@ import {
 } from "@/lib/crud";
 import { isTopicDueForReview, getReviewDueLabel } from "@/lib/metrics";
 import { TopicConfidenceDialog, type TopicConfidenceMode } from "@/components/tracks/topic-confidence-dialog";
+import { SetDeadlineDialog } from "@/components/tracks/set-deadline-dialog";
+import { lightenAccent } from "@/lib/deadline-picker";
 import type { Track, Module, Topic, Subtopic, ProgressStatus, Difficulty } from "@/lib/types";
 import { getModuleProgress, getTopicProgress, getTrackProgress } from "@/lib/analytics";
 import { useSessions } from "@/hooks/use-data";
@@ -68,7 +70,12 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
   const [dialog, setDialog] = useState<{ type: string; parentId?: string; trackId?: string; moduleId?: string } | null>(null);
   const [newName, setNewName] = useState("");
   const [newDifficulty, setNewDifficulty] = useState<Difficulty>("medium");
-  const [statusDialog, setStatusDialog] = useState<{ id: string; type: "topic" | "subtopic"; dueDate: string } | null>(null);
+  const [statusDialog, setStatusDialog] = useState<{
+    id: string;
+    type: "topic" | "subtopic";
+    dueDate: string;
+    accentColor?: string;
+  } | null>(null);
   const [editDialog, setEditDialog] = useState<{ type: "module" | "topic"; id: string; name: string; difficulty?: Difficulty } | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<{ type: "module" | "topic"; id: string; name: string } | null>(null);
   const [confidenceDialog, setConfidenceDialog] = useState<{ id: string; name: string; mode: TopicConfidenceMode } | null>(null);
@@ -255,7 +262,12 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                     const status = v as ProgressStatus;
                                                     if (status === "in_progress") {
                                                       updateTopicStatus(topic.id, status, topic.dueDate ?? todayISO());
-                                                      setStatusDialog({ id: topic.id, type: "topic", dueDate: topic.dueDate ?? todayISO() });
+                                                      setStatusDialog({
+                                                        id: topic.id,
+                                                        type: "topic",
+                                                        dueDate: topic.dueDate ?? todayISO(),
+                                                        accentColor: track.color,
+                                                      });
                                                     } else {
                                                       updateTopicStatus(topic.id, status);
                                                     }
@@ -313,7 +325,12 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                             const status = v as ProgressStatus;
                                                             updateSubtopicStatus(sub.id, status, sub.dueDate ?? todayISO());
                                                             if (status === "in_progress") {
-                                                              setStatusDialog({ id: sub.id, type: "subtopic", dueDate: sub.dueDate ?? todayISO() });
+                                                              setStatusDialog({
+                                                                id: sub.id,
+                                                                type: "subtopic",
+                                                                dueDate: sub.dueDate ?? todayISO(),
+                                                                accentColor: track.color,
+                                                              });
                                                             }
                                                           }}>
                                                             <SelectTrigger className="h-7 w-[130px] text-xs">
@@ -336,7 +353,14 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                               <Badge
                                                                 variant={days! < 0 ? "destructive" : "warning"}
                                                                 className="text-[10px] cursor-pointer hover:opacity-80"
-                                                                onClick={() => setStatusDialog({ id: sub.id, type: "subtopic", dueDate: due })}
+                                                                onClick={() =>
+                                                                  setStatusDialog({
+                                                                    id: sub.id,
+                                                                    type: "subtopic",
+                                                                    dueDate: due,
+                                                                    accentColor: track.color,
+                                                                  })
+                                                                }
                                                               >
                                                                 {formatDeadline(days, due)}
                                                               </Badge>
@@ -479,38 +503,31 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!statusDialog} onOpenChange={() => setStatusDialog(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Set Deadline</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Defaults to today in your local timezone. Adjust if needed — shown on Tracks and Status pages.
-          </p>
-          <div>
-            <label className="text-xs text-muted-foreground">Due date</label>
-            <Input
-              type="date"
-              value={statusDialog?.dueDate ?? ""}
-              onChange={(e) => statusDialog && setStatusDialog({ ...statusDialog, dueDate: e.target.value })}
-            />
-          </div>
-          <Button
-            onClick={async () => {
-              if (!statusDialog) return;
-              if (statusDialog.type === "topic") {
-                await updateTopicStatus(statusDialog.id, "in_progress", statusDialog.dueDate);
-              } else {
-                await updateSubtopicStatus(statusDialog.id, "in_progress", statusDialog.dueDate);
-              }
-              setStatusDialog(null);
-            }}
-            className="w-full"
-          >
-            Save Deadline
-          </Button>
-        </DialogContent>
-      </Dialog>
+      <SetDeadlineDialog
+        open={!!statusDialog}
+        onOpenChange={(open) => {
+          if (!open) setStatusDialog(null);
+        }}
+        dueDate={statusDialog?.dueDate ?? todayISO()}
+        onDueDateChange={(dateKey) => {
+          if (statusDialog) setStatusDialog({ ...statusDialog, dueDate: dateKey });
+        }}
+        accent={statusDialog?.accentColor ?? "#534AB7"}
+        accentLight={
+          statusDialog?.accentColor
+            ? lightenAccent(statusDialog.accentColor)
+            : "#8478e8"
+        }
+        onSave={async () => {
+          if (!statusDialog) return;
+          if (statusDialog.type === "topic") {
+            await updateTopicStatus(statusDialog.id, "in_progress", statusDialog.dueDate);
+          } else {
+            await updateSubtopicStatus(statusDialog.id, "in_progress", statusDialog.dueDate);
+          }
+          setStatusDialog(null);
+        }}
+      />
 
       <TopicConfidenceDialog
         open={!!confidenceDialog}
