@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, ChevronLeft, ChevronRight, X } from "lucide-react";
 import {
@@ -101,6 +102,11 @@ export function SetDeadlineDialog({
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [viewMonth, setViewMonth] = useState(() => parseLocalDate(dueDate || todayKey));
   const [saving, setSaving] = useState(false);
+  const [calendarPos, setCalendarPos] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
   const fieldRef = useRef<HTMLDivElement>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
 
@@ -117,6 +123,26 @@ export function SetDeadlineDialog({
       setCalendarOpen(false);
     }
   }, [open, dueDate, todayKey]);
+
+  useEffect(() => {
+    if (!calendarOpen) return;
+    const updatePosition = () => {
+      if (!fieldRef.current) return;
+      const rect = fieldRef.current.getBoundingClientRect();
+      setCalendarPos({
+        top: rect.bottom + 8,
+        left: rect.left,
+        width: rect.width,
+      });
+    };
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [calendarOpen, viewMonth]);
 
   useEffect(() => {
     if (!calendarOpen) return;
@@ -158,6 +184,113 @@ export function SetDeadlineDialog({
     }
   };
 
+  const calendarPopover =
+    calendarOpen && calendarPos
+      ? createPortal(
+          <AnimatePresence>
+            <motion.div
+              ref={calendarRef}
+              initial={{ opacity: 0, y: -6, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.97 }}
+              transition={{ duration: 0.22, ease: [0.2, 0.9, 0.3, 1.2] }}
+              className="rounded-2xl border border-white/[0.13] bg-[#221f31] p-4 shadow-[0_20px_50px_-16px_rgba(0,0,0,0.6)]"
+              style={{
+                position: "fixed",
+                top: calendarPos.top,
+                left: calendarPos.left,
+                width: calendarPos.width,
+                zIndex: 9999,
+              }}
+            >
+              <div className="mb-3.5 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setViewMonth((m) => subMonths(m, 1));
+                  }}
+                  className="flex h-[26px] w-[26px] items-center justify-center rounded-md border border-white/[0.07] bg-[#1c1929] text-[#a39eb6] transition-colors hover:border-white/[0.13] hover:text-[#f1eff8]"
+                  aria-label="Previous month"
+                >
+                  <ChevronLeft className="h-3 w-3" />
+                </button>
+                <span
+                  className="text-sm font-semibold text-[#f1eff8]"
+                  style={{ fontFamily: "var(--font-space-grotesk), sans-serif" }}
+                >
+                  {format(viewMonth, "MMMM yyyy")}
+                </span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setViewMonth((m) => addMonths(m, 1));
+                  }}
+                  className="flex h-[26px] w-[26px] items-center justify-center rounded-md border border-white/[0.07] bg-[#1c1929] text-[#a39eb6] transition-colors hover:border-white/[0.13] hover:text-[#f1eff8]"
+                  aria-label="Next month"
+                >
+                  <ChevronRight className="h-3 w-3" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-7 gap-1">
+                {DOW_LABELS.map((d, i) => (
+                  <div
+                    key={`${d}-${i}`}
+                    className="flex h-7 items-center justify-center text-center text-[10.5px] font-semibold tracking-wide text-[#67627a]"
+                  >
+                    {d}
+                  </div>
+                ))}
+                {monthDays.map((day) => {
+                  const inMonth = isSameMonth(day, viewMonth);
+                  const isToday = isSameDay(day, today);
+                  const isSelected = isSameDay(day, selectedDate);
+                  const isPast = isPastDeadlineDay(day, todayKey);
+                  const isSelectable = inMonth && !isPast;
+
+                  return (
+                    <button
+                      key={day.toISOString()}
+                      type="button"
+                      aria-disabled={!isSelectable}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (isSelectable) selectDate(day);
+                      }}
+                      className={cn(
+                        "relative flex h-9 items-center justify-center rounded-lg text-[13px] font-medium transition-all duration-150",
+                        !inMonth && "pointer-events-none text-[#67627a] opacity-35",
+                        isPast && inMonth && "pointer-events-none text-[#67627a] opacity-30",
+                        isSelectable &&
+                          !isSelected &&
+                          "cursor-pointer text-[#f1eff8] hover:bg-[#1c1929] hover:text-white",
+                        isSelected &&
+                          "cursor-pointer text-white shadow-[0_4px_14px_-4px_var(--deadline-accent-glow)]"
+                      )}
+                      style={
+                        isSelected
+                          ? {
+                              background: `linear-gradient(135deg, ${accent} 0%, #463e9c 100%)`,
+                            }
+                          : undefined
+                      }
+                    >
+                      {format(day, "d")}
+                      {isToday && !isSelected && (
+                        <span className="absolute bottom-1 h-1 w-1 rounded-full bg-[#2dd9c3]" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </AnimatePresence>,
+          document.body
+        )
+      : null;
+
   const cssVars = {
     "--deadline-accent": accent,
     "--deadline-accent-light": accentLight,
@@ -170,14 +303,14 @@ export function SetDeadlineDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-[440px] gap-0 overflow-visible border-0 bg-transparent p-0 shadow-none [&>button]:hidden"
+        className="max-w-[440px] gap-0 overflow-visible border-0 bg-transparent p-0 shadow-none [&>button]:hidden data-[state=open]:overflow-visible"
         style={cssVars}
       >
         <motion.div
           initial={{ opacity: 0, y: 18, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.45, ease: [0.2, 0.9, 0.25, 1.1] }}
-          className="relative overflow-hidden rounded-[22px] border border-white/[0.07] bg-gradient-to-br from-[#15131e] to-[#110f18] p-7 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7),inset_0_0_0_1px_rgba(255,255,255,0.02)]"
+          className="relative overflow-visible rounded-[22px] border border-white/[0.07] bg-gradient-to-br from-[#15131e] to-[#110f18] p-7 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7),inset_0_0_0_1px_rgba(255,255,255,0.02)]"
         >
           <div
             className="pointer-events-none absolute -left-16 -top-16 h-[340px] w-[340px] rounded-full opacity-35 blur-[70px]"
@@ -254,10 +387,13 @@ export function SetDeadlineDialog({
             <p className="mb-2.5 text-[11.5px] font-semibold uppercase tracking-[0.5px] text-[#67627a]">
               Due date
             </p>
-            <div className="relative mb-4" ref={fieldRef}>
+            <div className="relative z-20 mb-4" ref={fieldRef}>
               <button
                 type="button"
-                onClick={() => setCalendarOpen((v) => !v)}
+                onClick={() => {
+                  setViewMonth(parseLocalDate(dueDate || todayKey));
+                  setCalendarOpen((v) => !v);
+                }}
                 className={cn(
                   "flex w-full items-center justify-between gap-2.5 rounded-[14px] border-[1.5px] bg-[#1c1929] px-3.5 py-3 text-left transition-all duration-200",
                   calendarOpen
@@ -282,93 +418,16 @@ export function SetDeadlineDialog({
                   <CalendarIcon className="h-[15px] w-[15px]" />
                 </div>
               </button>
-
-              <AnimatePresence>
-                {calendarOpen && (
-                  <motion.div
-                    ref={calendarRef}
-                    initial={{ opacity: 0, y: -6, scale: 0.97 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -6, scale: 0.97 }}
-                    transition={{ duration: 0.22, ease: [0.2, 0.9, 0.3, 1.2] }}
-                    className="absolute left-0 right-0 top-[calc(100%+8px)] z-20 rounded-2xl border border-white/[0.13] bg-[#221f31] p-4 shadow-[0_20px_50px_-16px_rgba(0,0,0,0.6)]"
-                  >
-                    <div className="mb-3.5 flex items-center justify-between">
-                      <button
-                        type="button"
-                        onClick={() => setViewMonth((m) => subMonths(m, 1))}
-                        className="flex h-[26px] w-[26px] items-center justify-center rounded-md border border-white/[0.07] bg-[#1c1929] text-[#a39eb6] transition-colors hover:border-white/[0.13] hover:text-[#f1eff8]"
-                        aria-label="Previous month"
-                      >
-                        <ChevronLeft className="h-3 w-3" />
-                      </button>
-                      <span
-                        className="text-sm font-semibold text-[#f1eff8]"
-                        style={{ fontFamily: "var(--font-space-grotesk), sans-serif" }}
-                      >
-                        {format(viewMonth, "MMMM yyyy")}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setViewMonth((m) => addMonths(m, 1))}
-                        className="flex h-[26px] w-[26px] items-center justify-center rounded-md border border-white/[0.07] bg-[#1c1929] text-[#a39eb6] transition-colors hover:border-white/[0.13] hover:text-[#f1eff8]"
-                        aria-label="Next month"
-                      >
-                        <ChevronRight className="h-3 w-3" />
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-7 gap-0.5">
-                      {DOW_LABELS.map((d, i) => (
-                        <div
-                          key={`${d}-${i}`}
-                          className="pb-1.5 text-center text-[10.5px] font-semibold tracking-wide text-[#67627a]"
-                        >
-                          {d}
-                        </div>
-                      ))}
-                      {monthDays.map((day) => {
-                        const inMonth = isSameMonth(day, viewMonth);
-                        const isToday = isSameDay(day, today);
-                        const isSelected = isSameDay(day, selectedDate);
-                        const isPast = isPastDeadlineDay(day, todayKey);
-
-                        return (
-                          <button
-                            key={day.toISOString()}
-                            type="button"
-                            disabled={isPast}
-                            onClick={() => selectDate(day)}
-                            className={cn(
-                              "relative flex aspect-square items-center justify-center rounded-lg text-[13px] font-medium transition-all duration-150",
-                              !inMonth && "text-[#67627a] opacity-40",
-                              inMonth && !isSelected && !isPast && "text-[#a39eb6] hover:bg-[#1c1929] hover:text-[#f1eff8]",
-                              isPast && "pointer-events-none opacity-25",
-                              isSelected &&
-                                "text-white shadow-[0_4px_14px_-4px_var(--deadline-accent-glow)]"
-                            )}
-                            style={
-                              isSelected
-                                ? {
-                                    background: `linear-gradient(135deg, ${accent} 0%, #463e9c 100%)`,
-                                  }
-                                : undefined
-                            }
-                          >
-                            {format(day, "d")}
-                            {isToday && !isSelected && (
-                              <span className="absolute bottom-1 h-1 w-1 rounded-full bg-[#2dd9c3]" />
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </div>
 
-            <div className="mb-5 flex items-center gap-3 rounded-[14px] border border-white/[0.07] bg-[#1c1929] px-3.5 py-2.5">
+            {calendarPopover}
+
+            <div
+              className={cn(
+                "mb-5 flex items-center gap-3 rounded-[14px] border border-white/[0.07] bg-[#1c1929] px-3.5 py-2.5 transition-opacity duration-200",
+                calendarOpen && "opacity-40"
+              )}
+            >
               <div className="relative h-[38px] w-[38px] shrink-0">
                 <svg
                   viewBox="0 0 38 38"
