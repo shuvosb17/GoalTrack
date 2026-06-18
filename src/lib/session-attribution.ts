@@ -92,14 +92,24 @@ export function getAttributedHoursByTrack(
   subtopics: Subtopic[]
 ): { name: string; value: number; color: string }[] {
   const msByTrack = new Map(tracks.map((t) => [t.id, 0]));
+  let legacyMs = 0;
   aggregateStudyHours(sessions, topics, modules, tracks, subtopics).forEach((item) => {
-    msByTrack.set(item.trackId, (msByTrack.get(item.trackId) ?? 0) + item.hours * 3600000);
+    const ms = item.hours * 3600000;
+    if (msByTrack.has(item.trackId)) {
+      msByTrack.set(item.trackId, (msByTrack.get(item.trackId) ?? 0) + ms);
+    } else {
+      legacyMs += ms;
+    }
   });
-  return tracks.map((t) => ({
+  const result = tracks.map((t) => ({
     name: t.name,
     value: msByTrack.get(t.id) ?? 0,
     color: t.color,
   }));
+  if (legacyMs > 0) {
+    result.push({ name: "Other / legacy logs", value: legacyMs, color: "#6b7280" });
+  }
+  return result;
 }
 
 export function aggregateStudyHours(
@@ -115,14 +125,23 @@ export function aggregateStudyHours(
   const buckets = new Map<string, { attr: SessionStudyAttribution; hoursMs: number }>();
 
   sessions.forEach((session) => {
+    if (session.duration <= 0) return;
+
     let attr = getSessionStudyAttribution(session, topics, modules, tracks, subtopics);
-    if (!attr && session.duration > 0 && session.trackId) {
+    if (!attr && session.trackId) {
       const track = trackById.get(session.trackId);
       if (track) {
         attr = { level: "track", id: track.id, name: track.name, trackId: track.id };
       }
     }
-    if (!attr) return;
+    if (!attr) {
+      attr = {
+        level: "track",
+        id: "__legacy__",
+        name: "Other / legacy logs",
+        trackId: session.trackId ?? "__legacy__",
+      };
+    }
 
     const key = `${attr.level}:${attr.id}`;
     const existing = buckets.get(key);
@@ -148,7 +167,7 @@ export function aggregateStudyHours(
         hours: hoursMs / 3600000,
         trackId: attr.trackId,
         trackColor: track?.color ?? "#8b5cf6",
-        trackName: track?.name ?? "",
+        trackName: track?.name ?? attr.name,
         trackIcon: track?.icon ?? "📚",
         moduleId: mod?.id,
         moduleName: mod?.name,

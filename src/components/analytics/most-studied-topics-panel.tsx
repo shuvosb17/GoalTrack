@@ -36,8 +36,13 @@ function getTrackColors(trackName: string) {
   return STUDY_TRACK_COLORS[trackName] ?? { bar: PURPLE_HERO, dot: "#7F77DD" };
 }
 
+function roundHours(h: number): number {
+  return Math.round(h * 10) / 10;
+}
+
 function formatHours(h: number) {
-  return h % 1 === 0 ? h.toFixed(0) : h.toFixed(1);
+  const rounded = roundHours(h);
+  return rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1);
 }
 
 function sectionLabel(filter: string): string {
@@ -46,17 +51,17 @@ function sectionLabel(filter: string): string {
 }
 
 function buildTrackBreakdown(items: TopStudyItem[]) {
-  const totals = new Map<string, { hours: number; color: string }>();
+  const totals = new Map<string, { hoursMs: number; color: string }>();
   items.forEach((i) => {
     const existing = totals.get(i.trackName);
     const colors = getTrackColors(i.trackName);
     totals.set(i.trackName, {
-      hours: (existing?.hours ?? 0) + i.hours,
+      hoursMs: (existing?.hoursMs ?? 0) + i.hours * 3600000,
       color: existing?.color ?? i.trackColor ?? colors.bar,
     });
   });
   return [...totals.entries()]
-    .map(([name, { hours, color }]) => ({ name, hours, color }))
+    .map(([name, { hoursMs, color }]) => ({ name, hours: roundHours(hoursMs / 3600000), color }))
     .filter((d) => d.hours > 0)
     .sort((a, b) => b.hours - a.hours);
 }
@@ -286,9 +291,10 @@ export function MostStudiedTopicsPanel({ items }: MostStudiedTopicsPanelProps) {
   }, [items, activeFilter]);
 
   const maxHours = visibleItems[0]?.hours ?? 1;
-  const heroTotal = visibleItems.reduce((sum, i) => sum + i.hours, 0);
+  const totalMs = items.reduce((sum, i) => sum + i.hours * 3600000, 0);
+  const heroTotal = roundHours(totalMs / 3600000);
 
-  const donutTotal = categoryBreakdown.reduce((s, d) => s + d.hours, 0);
+  const donutTotal = heroTotal;
   const donutCenterLabel = activeFilter === ALL_TOPICS ? "total" : activeFilter;
 
   return (

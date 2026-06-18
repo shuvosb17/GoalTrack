@@ -447,7 +447,7 @@ export function getTopTopicsWithTrack(
   tracks: Track[],
   subtopics: Subtopic[] = [],
   modules: Module[] = [],
-  limit = 10,
+  limit?: number,
   days?: number
 ) {
   const scoped =
