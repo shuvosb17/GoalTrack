@@ -1,7 +1,7 @@
 import { v4 as uuid } from "uuid";
 import { db } from "./db";
 import type { Module, Topic, Subtopic, ProgressStatus, Difficulty } from "./types";
-import { nowISO, todayISO } from "./utils";
+import { nowISO, todayISO, parseLocalDate } from "./utils";
 import { computeNextReviewDate } from "./metrics";
 import { isTopicComplete } from "./in-progress";
 import { enqueueConfidencePromptIfNeeded, enqueueConfidencePromptIfNeededForSubtopic } from "./confidence-prompt";
@@ -128,8 +128,8 @@ export async function syncTopicStatusFromSubtopics(topicId: string) {
   }
 }
 
-/** Apply the user-chosen due date to the topic and all in-progress subtopics */
-async function propagateDueDate(topicId: string, dueDate: string) {
+/** Set the same due date on the topic and all in-progress subtopics (topic-level deadline only). */
+async function propagateDueDateToAllSubtopics(topicId: string, dueDate: string) {
   await db.topics.update(topicId, { dueDate, updatedAt: nowISO() });
 
   const subs = await db.subtopics
@@ -141,6 +141,34 @@ async function propagateDueDate(topicId: string, dueDate: string) {
   await Promise.all(
     subs.map((sub) => db.subtopics.update(sub.id, { dueDate, updatedAt: nowISO() }))
   );
+}
+
+/** Roll topic due date up to the earliest in-progress subtopic deadline (display only). */
+async function syncTopicDueDateFromSubtopics(topicId: string) {
+  const topic = await db.topics.get(topicId);
+  if (!topic) return;
+
+  const subs = await db.subtopics
+    .where("topicId")
+    .equals(topicId)
+    .filter((s) => !s.archived && s.status === "in_progress" && Boolean(s.dueDate))
+    .toArray();
+
+  const dates = subs
+    .map((s) => s.dueDate!)
+    .sort((a, b) => parseLocalDate(a).getTime() - parseLocalDate(b).getTime());
+  const earliest = dates[0];
+
+  if (earliest) {
+    if (topic.dueDate !== earliest) {
+      await db.topics.update(topicId, { dueDate: earliest, updatedAt: nowISO() });
+    }
+    return;
+  }
+
+  if (topic.dueDate) {
+    await db.topics.update(topicId, { dueDate: undefined, updatedAt: nowISO() });
+  }
 }
 
 export async function updateSubtopicStatus(id: string, status: ProgressStatus, dueDate?: string) {
@@ -170,7 +198,7 @@ export async function updateSubtopicStatus(id: string, status: ProgressStatus, d
 
   await db.subtopics.update(id, updates);
   if (status === "in_progress" && updates.dueDate) {
-    await propagateDueDate(sub.topicId, updates.dueDate);
+    await syncTopicDueDateFromSubtopics(sub.topicId);
   }
   await syncTopicStatusFromSubtopics(sub.topicId);
 
@@ -216,7 +244,7 @@ export async function updateTopicStatus(id: string, status: ProgressStatus, dueD
     (resolvedStatus === "completed" || resolvedStatus === "mastered");
 
   if (resolvedStatus === "in_progress" && updates.dueDate) {
-    await propagateDueDate(id, updates.dueDate);
+    await propagateDueDateToAllSubtopics(id, updates.dueDate);
   }
 
   if (resolvedStatus === "completed" || resolvedStatus === "mastered") {
@@ -341,11 +369,11 @@ export async function updateSubtopicDueDate(id: string, dueDate: string) {
   const sub = await db.subtopics.get(id);
   if (!sub) return;
   await db.subtopics.update(id, { dueDate, updatedAt: nowISO() });
-  await propagateDueDate(sub.topicId, dueDate);
+  await syncTopicDueDateFromSubtopics(sub.topicId);
 }
 
 export async function updateTopicDueDate(id: string, dueDate: string) {
-  await propagateDueDate(id, dueDate);
+  await propagateDueDateToAllSubtopics(id, dueDate);
 }
 
 export async function updateTopicDifficulty(id: string, difficulty: Difficulty) {

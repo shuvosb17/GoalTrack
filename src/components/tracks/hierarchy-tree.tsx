@@ -28,6 +28,7 @@ import { todayISO } from "@/lib/utils";
 import { db } from "@/lib/db";
 import {
   createModule, createTopic, createSubtopic, updateSubtopicStatus, updateTopicStatus,
+  updateSubtopicDueDate,
   updateTopicDifficulty, updateSubtopicDifficulty,
   renameModule, renameTopic, deleteModule, deleteTopic,
   archiveSubtopic, deleteSubtopic, duplicateSubtopic, reorderItems,
@@ -523,7 +524,12 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
           if (statusDialog.type === "topic") {
             await updateTopicStatus(statusDialog.id, "in_progress", statusDialog.dueDate);
           } else {
-            await updateSubtopicStatus(statusDialog.id, "in_progress", statusDialog.dueDate);
+            const sub = await db.subtopics.get(statusDialog.id);
+            if (sub?.status === "in_progress") {
+              await updateSubtopicDueDate(statusDialog.id, statusDialog.dueDate);
+            } else {
+              await updateSubtopicStatus(statusDialog.id, "in_progress", statusDialog.dueDate);
+            }
           }
           setStatusDialog(null);
         }}
