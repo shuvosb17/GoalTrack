@@ -13,6 +13,8 @@ import {
   IconStack2,
   IconCalendarCheck,
   IconFlame,
+  IconArrowUpRight,
+  IconArrowDownRight,
 } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 
@@ -36,39 +38,75 @@ function loadVelocityMode(): LearningVelocityMode {
   }
 }
 
-function TrendBadge({
+function formatDelta(delta: number, decimals = 0, suffix = ""): string {
+  const rounded = decimals > 0 ? Math.round(delta * 10) / 10 : Math.round(delta);
+  const sign = rounded > 0 ? "+" : "";
+  return `${sign}${rounded}${suffix}`;
+}
+
+function TrendChip({
   current,
   prior,
   suffix = "",
+  decimals = 0,
 }: {
   current: number;
   prior: number;
   suffix?: string;
+  decimals?: number;
 }) {
-  const delta = Math.round((current - prior) * 10) / 10;
+  const delta = decimals > 0 ? Math.round((current - prior) * 10) / 10 : current - prior;
   if (delta === 0) {
     return (
-      <span className="text-[11px] text-muted-foreground">same as prior</span>
+      <span className="inline-flex items-center rounded-md bg-white/[0.04] px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+        —
+      </span>
     );
   }
   const up = delta > 0;
   return (
     <span
       className={cn(
-        "text-[11px] font-medium tabular-nums",
-        up ? "text-emerald-400" : "text-amber-400"
+        "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
+        up ? "bg-emerald-500/12 text-emerald-400" : "bg-amber-500/12 text-amber-400"
       )}
     >
-      {up ? "+" : ""}
-      {delta}
-      {suffix}
+      {up ? (
+        <IconArrowUpRight className="h-3 w-3" stroke={2} />
+      ) : (
+        <IconArrowDownRight className="h-3 w-3" stroke={2} />
+      )}
+      {formatDelta(delta, decimals, suffix)}
     </span>
+  );
+}
+
+function MiniSparkline({ values, color = "#8b5cf6" }: { values: number[]; color?: string }) {
+  const max = Math.max(...values, 1);
+  return (
+    <div className="flex h-[22px] items-end gap-[3px]">
+      {values.map((v, i) => {
+        const h = Math.max(3, Math.round((v / max) * 22));
+        const isLast = i === values.length - 1;
+        return (
+          <div
+            key={i}
+            className="w-[5px] rounded-[2px] transition-all duration-300"
+            style={{
+              height: h,
+              background: color,
+              opacity: isLast ? 1 : 0.45,
+            }}
+          />
+        );
+      })}
+    </div>
   );
 }
 
 function DayDots({ pattern }: { pattern: boolean[] }) {
   return (
-    <div className="flex gap-1">
+    <div className="flex gap-[3px]">
       {pattern.map((on, i) => (
         <div
           key={i}
@@ -82,53 +120,43 @@ function DayDots({ pattern }: { pattern: boolean[] }) {
   );
 }
 
-interface VelocityKpiCardProps {
+interface CompactKpiCardProps {
   icon: typeof IconClock;
   label: string;
   value: string;
-  sub: ReactNode;
-  progress?: number;
-  progressColor?: string;
+  footerLeft: ReactNode;
+  footerRight: ReactNode;
   valueClassName?: string;
 }
 
-function VelocityKpiCard({
+function CompactKpiCard({
   icon: Icon,
   label,
   value,
-  sub,
-  progress,
-  progressColor = "#8b5cf6",
+  footerLeft,
+  footerRight,
   valueClassName,
-}: VelocityKpiCardProps) {
+}: CompactKpiCardProps) {
   return (
-    <div className="group relative overflow-hidden rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.02] p-4 transition-all duration-200 hover:border-white/[0.14] hover:bg-white/[0.04]">
-      <div className="mb-3 flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.05] transition-colors group-hover:bg-white/[0.08]">
-          <Icon className="h-4 w-4 text-muted-foreground" stroke={1.5} />
-        </div>
-        <span className="text-xs font-medium text-muted-foreground">{label}</span>
+    <div className="group rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.02] p-3 transition-colors hover:border-white/[0.14] hover:bg-white/[0.04]">
+      <div className="flex h-[22px] w-[22px] items-center justify-center rounded-md bg-primary/10">
+        <Icon className="h-3.5 w-3.5 text-primary/80" stroke={1.5} />
       </div>
+      <p className="mt-2 text-[10px] font-medium uppercase tracking-[0.04em] text-muted-foreground">
+        {label}
+      </p>
       <p
         className={cn(
-          "metric-value text-2xl tabular-nums tracking-tight sm:text-3xl",
+          "metric-value mt-0.5 text-xl leading-none tabular-nums tracking-tight",
           valueClassName
         )}
       >
         {value}
       </p>
-      <div className="mt-1.5">{sub}</div>
-      {progress !== undefined && (
-        <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/[0.06]">
-          <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{
-              width: `${Math.min(100, Math.max(0, progress))}%`,
-              background: progressColor,
-            }}
-          />
-        </div>
-      )}
+      <div className="mt-2 flex items-end justify-between gap-2">
+        <div className="min-w-0 shrink">{footerLeft}</div>
+        <div className="shrink-0">{footerRight}</div>
+      </div>
     </div>
   );
 }
@@ -148,7 +176,7 @@ function VelocityModeToggle({
           type="button"
           onClick={() => onChange(option)}
           className={cn(
-            "rounded-full px-3.5 py-1.5 text-xs font-medium capitalize transition-colors",
+            "rounded-full px-3 py-1 text-xs font-medium capitalize transition-colors",
             mode === option
               ? "bg-primary text-primary-foreground"
               : "text-muted-foreground hover:text-foreground"
@@ -188,193 +216,142 @@ export function LearningVelocityPanel({
   const consistencyTarget = 6;
   const isDaily = mode === "daily";
   const insight = getVelocityInsight(mode, velocity);
-
-  const hoursProgress = isDaily
-    ? velocity.hoursPriorDay > 0
-      ? (velocity.hoursPerDay / Math.max(velocity.hoursPriorDay, 0.1)) * 100
-      : velocity.hoursPerDay > 0
-        ? 100
-        : 0
-    : hoursPerWeekNeeded > 0
-      ? (velocity.hoursPerWeek / hoursPerWeekNeeded) * 100
-      : 0;
-
-  const consistencyProgress = (consistency.daysOnTarget / 7) * 100;
+  const sparks = isDaily ? velocity.dailySparks : velocity.weeklySparks;
+  const activeDays = last7PacePattern.filter(Boolean).length;
 
   return (
     <Card className="border-[0.5px] border-white/[0.08]">
-      <CardContent className="pt-6">
-        <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+      <CardContent className="pt-5 pb-5">
+        <div className="mb-3.5 flex flex-wrap items-start justify-between gap-2">
           <div>
-            <SectionHeading className="mb-1">Learning Velocity</SectionHeading>
-            <p className="text-xs text-muted-foreground">
+            <SectionHeading className="mb-0.5 text-base">Learning Velocity</SectionHeading>
+            <p className="text-[11px] text-muted-foreground">
               {isDaily ? "Today vs yesterday" : "This week vs last week"}
             </p>
           </div>
           <VelocityModeToggle mode={mode} onChange={setModeAndPersist} />
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
           {isDaily ? (
             <>
-              <VelocityKpiCard
+              <CompactKpiCard
                 icon={IconClock}
                 label="Hours / day"
                 value={`${velocity.hoursPerDay}h`}
-                sub={
-                  <TrendBadge
+                footerLeft={
+                  <TrendChip
                     current={velocity.hoursPerDay}
                     prior={velocity.hoursPriorDay}
                     suffix="h"
+                    decimals={1}
                   />
                 }
-                progress={hoursProgress}
-                progressColor="#534AB7"
+                footerRight={<MiniSparkline values={sparks.hours} color="#8b5cf6" />}
               />
-
-              <VelocityKpiCard
+              <CompactKpiCard
                 icon={IconBook}
                 label="Topics / day"
                 value={String(velocity.topicsPerDay)}
-                sub={
-                  <TrendBadge
+                footerLeft={
+                  <TrendChip
                     current={velocity.topicsPerDay}
                     prior={velocity.topicsPriorDay}
                   />
                 }
-                progress={
-                  velocity.topicsPriorDay > 0
-                    ? (velocity.topicsPerDay / Math.max(velocity.topicsPriorDay, 1)) * 100
-                    : velocity.topicsPerDay > 0
-                      ? 100
-                      : 0
-                }
-                progressColor="#1D9E75"
+                footerRight={<MiniSparkline values={sparks.topics} color="#1D9E75" />}
               />
-
-              <VelocityKpiCard
+              <CompactKpiCard
                 icon={IconStack2}
                 label="Modules / day"
                 value={String(velocity.modulesPerDay)}
-                sub={
-                  <TrendBadge
+                footerLeft={
+                  <TrendChip
                     current={velocity.modulesPerDay}
                     prior={velocity.modulesPriorDay}
                   />
                 }
-                progress={
-                  velocity.modulesPriorDay > 0
-                    ? (velocity.modulesPerDay / Math.max(velocity.modulesPriorDay, 1)) * 100
-                    : velocity.modulesPerDay > 0
-                      ? 100
-                      : 0
-                }
-                progressColor="#378ADD"
+                footerRight={<MiniSparkline values={sparks.modules} color="#378ADD" />}
               />
-
-              <VelocityKpiCard
+              <CompactKpiCard
                 icon={IconFlame}
                 label="Streak"
                 value={`${streakDays} days`}
                 valueClassName="text-orange-400"
-                sub={
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-[11px] text-muted-foreground">
-                      {streakDays > 0 ? `${streakDays}-day study streak` : "Log a session to start"}
-                    </span>
-                    <DayDots pattern={last7StudyPattern} />
-                  </div>
+                footerLeft={
+                  <span className="text-[10px] leading-tight text-muted-foreground">
+                    {streakDays > 0 ? `${streakDays}-day streak` : "Start today"}
+                  </span>
                 }
-                progress={Math.min(100, (streakDays / 7) * 100)}
-                progressColor="#f97316"
+                footerRight={<DayDots pattern={last7StudyPattern} />}
               />
             </>
           ) : (
             <>
-              <VelocityKpiCard
+              <CompactKpiCard
                 icon={IconClock}
                 label="Hours / week"
                 value={`${velocity.hoursPerWeek}h`}
-                sub={
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                    <TrendBadge
-                      current={velocity.hoursPerWeek}
-                      prior={velocity.hoursPriorWeek}
-                      suffix="h"
-                    />
-                    <span className="text-[11px] text-muted-foreground">
-                      need {hoursPerWeekNeeded}h for {stretchGoalHours}h goal
-                    </span>
-                  </div>
+                footerLeft={
+                  <TrendChip
+                    current={velocity.hoursPerWeek}
+                    prior={velocity.hoursPriorWeek}
+                    suffix="h"
+                    decimals={1}
+                  />
                 }
-                progress={hoursProgress}
-                progressColor="#534AB7"
+                footerRight={<MiniSparkline values={sparks.hours} color="#8b5cf6" />}
               />
-
-              <VelocityKpiCard
+              <CompactKpiCard
                 icon={IconBook}
                 label="Topics / week"
                 value={String(velocity.topicsPerWeek)}
-                sub={
-                  <TrendBadge
+                footerLeft={
+                  <TrendChip
                     current={velocity.topicsPerWeek}
                     prior={velocity.topicsPriorWeek}
                   />
                 }
-                progress={
-                  velocity.topicsPriorWeek > 0
-                    ? (velocity.topicsPerWeek / Math.max(velocity.topicsPriorWeek, 1)) * 100
-                    : velocity.topicsPerWeek > 0
-                      ? 100
-                      : 0
-                }
-                progressColor="#1D9E75"
+                footerRight={<MiniSparkline values={sparks.topics} color="#1D9E75" />}
               />
-
-              <VelocityKpiCard
+              <CompactKpiCard
                 icon={IconStack2}
                 label="Modules / month"
                 value={String(velocity.modulesPerMonth)}
-                sub={
-                  <TrendBadge
+                footerLeft={
+                  <TrendChip
                     current={velocity.modulesPerMonth}
                     prior={velocity.modulesPriorMonth}
                   />
                 }
-                progress={
-                  velocity.modulesPriorMonth > 0
-                    ? (velocity.modulesPerMonth / Math.max(velocity.modulesPriorMonth, 1)) * 100
-                    : velocity.modulesPerMonth > 0
-                      ? 100
-                      : 0
-                }
-                progressColor="#378ADD"
+                footerRight={<MiniSparkline values={sparks.modules} color="#378ADD" />}
               />
-
-              <VelocityKpiCard
+              <CompactKpiCard
                 icon={IconCalendarCheck}
                 label="Consistency days"
-                value={`${consistency.daysOnTarget}/7`}
+                value={`${consistency.daysOnTarget} / 7`}
                 valueClassName="text-orange-400"
-                sub={
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-[11px] text-orange-400/90">
-                      target: {consistencyTarget}/7 days on pace
-                    </span>
-                    <DayDots pattern={last7PacePattern} />
-                  </div>
+                footerLeft={
+                  <span className="text-[10px] leading-tight text-orange-400/90">
+                    {activeDays}/7 active · target {consistencyTarget}/7
+                  </span>
                 }
-                progress={consistencyProgress}
-                progressColor="#f97316"
+                footerRight={<DayDots pattern={last7PacePattern} />}
               />
             </>
           )}
         </div>
 
-        <p className="mt-4 flex items-start gap-2 border-t border-white/[0.06] pt-4 text-xs leading-relaxed text-muted-foreground">
+        <div className="mt-3 flex items-start gap-2 rounded-xl border-[0.5px] border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
           <IconBulb className="mt-0.5 h-3.5 w-3.5 shrink-0 text-violet-400/80" stroke={1.5} />
-          {insight}
-        </p>
+          <p className="text-[11px] leading-relaxed text-muted-foreground">{insight}</p>
+        </div>
+
+        {!isDaily && hoursPerWeekNeeded > 0 && (
+          <p className="mt-2 text-[10px] text-muted-foreground/80">
+            Need {hoursPerWeekNeeded}h/week for {stretchGoalHours}h stretch goal.
+          </p>
+        )}
       </CardContent>
     </Card>
   );

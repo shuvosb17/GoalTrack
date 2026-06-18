@@ -879,6 +879,12 @@ export interface AnalyticsKpis {
   totalHours: number;
 }
 
+export interface VelocitySparks {
+  hours: number[];
+  topics: number[];
+  modules: number[];
+}
+
 export interface LearningVelocityWithDelta {
   topicsPerWeek: number;
   topicsPriorWeek: number;
@@ -892,6 +898,8 @@ export interface LearningVelocityWithDelta {
   modulesPriorDay: number;
   hoursPerDay: number;
   hoursPriorDay: number;
+  dailySparks: VelocitySparks;
+  weeklySparks: VelocitySparks;
 }
 
 export type LearningVelocityMode = "daily" | "weekly";
@@ -1151,6 +1159,45 @@ export function getLearningVelocityWithDelta(
   const priorWeekStartKey = format(priorWeek.start, "yyyy-MM-dd");
   const priorWeekEndKey = format(priorWeek.end, "yyyy-MM-dd");
 
+  const modulesTouchedInRange = (start: Date, end: Date) => {
+    const startKey = format(start, "yyyy-MM-dd");
+    const endKey = format(end, "yyyy-MM-dd");
+    const ids = new Set<string>();
+    sessions
+      .filter((s) => s.date >= startKey && s.date <= endKey && s.moduleId)
+      .forEach((s) => ids.add(s.moduleId!));
+    subtopics
+      .filter(
+        (s) =>
+          !s.archived &&
+          (s.status === "completed" || s.status === "mastered") &&
+          parseISO(s.updatedAt) >= start &&
+          parseISO(s.updatedAt) <= end
+      )
+      .forEach((s) => ids.add(s.moduleId));
+    return ids.size;
+  };
+
+  const dailySparks: VelocitySparks = { hours: [], topics: [], modules: [] };
+  for (let i = 5; i >= 0; i--) {
+    const day = subDays(today, i);
+    const key = format(day, "yyyy-MM-dd");
+    dailySparks.hours.push(Math.round(hoursOnDay(key) * 10) / 10);
+    dailySparks.topics.push(completedOnDay(subtopics, key));
+    dailySparks.modules.push(modulesTouchedOnDay(subtopics, sessions, key));
+  }
+
+  const weeklySparks: VelocitySparks = { hours: [], topics: [], modules: [] };
+  for (let w = 3; w >= 0; w--) {
+    const range = getCalendarWeekRange(w, today);
+    const end = w === 0 ? today : range.end;
+    const startKey = format(range.start, "yyyy-MM-dd");
+    const endKey = format(end, "yyyy-MM-dd");
+    weeklySparks.hours.push(Math.round(hoursInRange(startKey, endKey) * 10) / 10);
+    weeklySparks.topics.push(completedInRange(range.start, end));
+    weeklySparks.modules.push(modulesTouchedInRange(range.start, end));
+  }
+
   return {
     topicsPerWeek: completedInRange(thisWeek.start, today),
     topicsPriorWeek: completedInRange(priorWeek.start, priorWeek.end),
@@ -1164,6 +1211,8 @@ export function getLearningVelocityWithDelta(
     modulesPriorDay: modulesTouchedOnDay(subtopics, sessions, yesterdayKey),
     hoursPerDay: Math.round(hoursOnDay(todayKey) * 10) / 10,
     hoursPriorDay: Math.round(hoursOnDay(yesterdayKey) * 10) / 10,
+    dailySparks,
+    weeklySparks,
   };
 }
 
