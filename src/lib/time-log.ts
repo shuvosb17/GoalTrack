@@ -1,4 +1,4 @@
-import type { LearningSession, Subtopic, HierarchyPath } from "./types";
+import type { LearningSession, Subtopic, Topic, HierarchyPath } from "./types";
 
 export function getSubtopicLoggedMs(subtopicId: string, sessions: LearningSession[]): number {
   return sessions
@@ -34,14 +34,23 @@ export function getTopicLoggedMs(
 
 export function getModuleLoggedMs(
   moduleId: string,
+  topics: Topic[],
   subtopics: Subtopic[],
   sessions: LearningSession[]
 ): number {
+  const topicIds = new Set(
+    topics.filter((t) => t.moduleId === moduleId && !t.archived).map((t) => t.id)
+  );
   const subIds = new Set(
     subtopics.filter((s) => s.moduleId === moduleId && !s.archived).map((s) => s.id)
   );
   return sessions
-    .filter((s) => s.subtopicId && subIds.has(s.subtopicId))
+    .filter((s) => {
+      if (s.moduleId === moduleId && !s.topicId && !s.subtopicId) return true;
+      if (s.topicId && topicIds.has(s.topicId) && !s.subtopicId) return true;
+      if (s.subtopicId && subIds.has(s.subtopicId)) return true;
+      return false;
+    })
     .reduce((sum, s) => sum + s.duration, 0);
 }
 

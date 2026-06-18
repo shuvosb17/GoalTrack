@@ -34,7 +34,7 @@ import {
   weekEnd,
   weekStart,
 } from "./utils";
-import { aggregateStudyHours as aggregateStudyHoursItems, aggregateStudyTrackerHours } from "./session-attribution";
+import { aggregateStudyHours as aggregateStudyHoursItems, aggregateStudyTrackerHours, getAttributedHoursByTrack } from "./session-attribution";
 
 export const DEFAULT_YEAR_START = "2026-06-01";
 export const DEFAULT_YEAR_END = "2026-12-31";
@@ -455,9 +455,10 @@ export function getTopTopicsWithTrack(
       ? sessions.filter((s) => s.date >= format(subDays(new Date(), days - 1), "yyyy-MM-dd"))
       : sessions;
 
-  return aggregateStudyTrackerHours(scoped, topics, modules, tracks, subtopics)
-    .filter((e) => e.hours > 0)
-    .slice(0, limit);
+  const all = aggregateStudyTrackerHours(scoped, topics, modules, tracks, subtopics).filter(
+    (e) => e.hours > 0
+  );
+  return limit !== undefined ? all.slice(0, limit) : all;
 }
 
 export function getTopTopics(
@@ -1235,9 +1236,14 @@ export function getVelocityInsight(
 
 export function getActiveDistribution(
   sessions: LearningSession[],
-  tracks: Track[]
+  tracks: Track[],
+  topics: Topic[],
+  modules: Module[],
+  subtopics: Subtopic[]
 ) {
-  return withPercentages(getHoursByTrack(sessions, tracks)).filter((d) => d.value > 0);
+  return withPercentages(getAttributedHoursByTrack(sessions, tracks, topics, modules, subtopics)).filter(
+    (d) => d.value > 0
+  );
 }
 
 export function getAnalyticsDiagnostics(
@@ -1245,6 +1251,7 @@ export function getAnalyticsDiagnostics(
   tracks: Track[],
   topics: Topic[],
   subtopics: Subtopic[],
+  modules: Module[],
   skipLogs: SkipLog[],
   dailyGoal: number,
   kpis: AnalyticsKpis,
@@ -1252,7 +1259,7 @@ export function getAnalyticsDiagnostics(
   efficiency: ReturnType<typeof getEfficiencyScores>,
   consistencyDays: ConsistencyCalendarDay[]
 ): AnalyticsDiagnostics {
-  const activeDist = getActiveDistribution(sessions, tracks);
+  const activeDist = getActiveDistribution(sessions, tracks, topics, modules, subtopics);
   const top = activeDist[0];
   const neglected = activeDist.filter((d) => d.percentage > 0 && d.percentage < 5);
 

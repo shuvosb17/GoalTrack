@@ -72,7 +72,7 @@ export function getSessionStudyAttribution(
   return null;
 }
 
-/** Study Tracker ranked list: topics/modules only — subtopic hours roll into parent topic. */
+/** Study Tracker ranked list — topics, modules, and track-level logs. */
 export function aggregateStudyTrackerHours(
   sessions: LearningSession[],
   topics: Topic[],
@@ -80,9 +80,26 @@ export function aggregateStudyTrackerHours(
   tracks: Track[],
   subtopics: Subtopic[]
 ): TopStudyItem[] {
-  return aggregateStudyHours(sessions, topics, modules, tracks, subtopics).filter(
-    (item) => item.level === "topic" || item.level === "module"
-  );
+  return aggregateStudyHours(sessions, topics, modules, tracks, subtopics);
+}
+
+/** Per-track hours using the same attribution rules as Study Tracker. */
+export function getAttributedHoursByTrack(
+  sessions: LearningSession[],
+  tracks: Track[],
+  topics: Topic[],
+  modules: Module[],
+  subtopics: Subtopic[]
+): { name: string; value: number; color: string }[] {
+  const msByTrack = new Map(tracks.map((t) => [t.id, 0]));
+  aggregateStudyHours(sessions, topics, modules, tracks, subtopics).forEach((item) => {
+    msByTrack.set(item.trackId, (msByTrack.get(item.trackId) ?? 0) + item.hours * 3600000);
+  });
+  return tracks.map((t) => ({
+    name: t.name,
+    value: msByTrack.get(t.id) ?? 0,
+    color: t.color,
+  }));
 }
 
 export function aggregateStudyHours(
@@ -98,7 +115,13 @@ export function aggregateStudyHours(
   const buckets = new Map<string, { attr: SessionStudyAttribution; hoursMs: number }>();
 
   sessions.forEach((session) => {
-    const attr = getSessionStudyAttribution(session, topics, modules, tracks, subtopics);
+    let attr = getSessionStudyAttribution(session, topics, modules, tracks, subtopics);
+    if (!attr && session.duration > 0 && session.trackId) {
+      const track = trackById.get(session.trackId);
+      if (track) {
+        attr = { level: "track", id: track.id, name: track.name, trackId: track.id };
+      }
+    }
     if (!attr) return;
 
     const key = `${attr.level}:${attr.id}`;

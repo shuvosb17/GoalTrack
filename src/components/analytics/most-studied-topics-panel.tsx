@@ -232,7 +232,9 @@ function RankedList({
                 <div className="min-w-0 flex-1">
                   <p className="text-[13px] font-medium leading-snug">{item.name}</p>
                   <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                    {item.level !== "module" && (item.moduleName ?? item.trackName) ? (
+                    {item.level === "track" ? (
+                      <span className="text-[11px] text-muted-foreground">track-level log</span>
+                    ) : item.level !== "module" && (item.moduleName ?? item.trackName) ? (
                       <span className="text-[11px] text-muted-foreground">
                         {item.moduleName ?? item.trackName}
                       </span>

@@ -130,8 +130,8 @@ export default function AnalyticsPage() {
   );
 
   const activeDistribution = useMemo(
-    () => getActiveDistribution(sessions, tracks),
-    [sessions, tracks]
+    () => getActiveDistribution(sessions, tracks, topics, modules, subtopics),
+    [sessions, tracks, topics, modules, subtopics]
   );
   const totalDistHours = useMemo(
     () => activeDistribution.reduce((s, d) => s + d.value, 0),
@@ -149,7 +149,7 @@ export default function AnalyticsPage() {
   const focusModeSummary = useMemo(() => getFocusModeSummary(sessions), [sessions]);
 
   const topTopics = useMemo(
-    () => getTopTopicsWithTrack(sessions, topics, tracks, subtopics, modules, 50),
+    () => getTopTopicsWithTrack(sessions, topics, tracks, subtopics, modules),
     [sessions, topics, tracks, subtopics, modules]
   );
   const velocity = useMemo(
@@ -198,6 +198,7 @@ export default function AnalyticsPage() {
         tracks,
         topics,
         subtopics,
+        modules,
         skipLogs,
         dailyGoal,
         kpis,
@@ -205,7 +206,7 @@ export default function AnalyticsPage() {
         efficiency,
         consistencyDays
       ),
-    [sessions, tracks, topics, subtopics, skipLogs, dailyGoal, kpis, velocity, efficiency, consistencyDays]
+    [sessions, tracks, topics, subtopics, modules, skipLogs, dailyGoal, kpis, velocity, efficiency, consistencyDays]
   );
 
   const hasQualityData = weeklyData.some((d) => d.quality !== null);
