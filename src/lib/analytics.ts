@@ -886,7 +886,17 @@ export interface LearningVelocityWithDelta {
   modulesPriorMonth: number;
   hoursPerWeek: number;
   hoursPriorWeek: number;
+  topicsPerDay: number;
+  topicsPriorDay: number;
+  modulesPerDay: number;
+  modulesPriorDay: number;
+  hoursPerDay: number;
+  hoursPriorDay: number;
 }
+
+export type LearningVelocityMode = "daily" | "weekly";
+
+export const LEARNING_VELOCITY_MODE_KEY = "learning-velocity-mode";
 
 export interface AnalyticsDiagnostics {
   timeInvestment: string;
@@ -1047,11 +1057,58 @@ export function getAnalyticsKpis(
   };
 }
 
+function completedOnDay(subtopics: Subtopic[], dayKey: string): number {
+  return subtopics.filter(
+    (s) =>
+      !s.archived &&
+      (s.status === "completed" || s.status === "mastered") &&
+      format(parseISO(s.updatedAt), "yyyy-MM-dd") === dayKey
+  ).length;
+}
+
+function modulesTouchedOnDay(
+  subtopics: Subtopic[],
+  sessions: LearningSession[],
+  dayKey: string
+): number {
+  const ids = new Set<string>();
+  sessions
+    .filter((s) => s.date === dayKey && s.moduleId)
+    .forEach((s) => ids.add(s.moduleId!));
+  subtopics
+    .filter(
+      (s) =>
+        !s.archived &&
+        (s.status === "completed" || s.status === "mastered") &&
+        format(parseISO(s.updatedAt), "yyyy-MM-dd") === dayKey
+    )
+    .forEach((s) => ids.add(s.moduleId));
+  return ids.size;
+}
+
+export function getLast7DayPattern(
+  sessions: LearningSession[],
+  dailyGoal: number,
+  mode: "study" | "on_pace"
+): boolean[] {
+  const threshold = dailyGoal * 0.8;
+  const today = parseLocalDate(todayISO());
+  return Array.from({ length: 7 }, (_, i) => {
+    const key = format(subDays(today, 6 - i), "yyyy-MM-dd");
+    const hours =
+      sessions.filter((s) => s.date === key).reduce((sum, s) => sum + s.duration, 0) / 3600000;
+    return mode === "on_pace" ? hours >= threshold : hours > 0;
+  });
+}
+
 export function getLearningVelocityWithDelta(
   subtopics: Subtopic[],
   sessions: LearningSession[]
 ): LearningVelocityWithDelta {
   const today = parseLocalDate(todayISO());
+  const yesterday = subDays(today, 1);
+  const todayKey = format(today, "yyyy-MM-dd");
+  const yesterdayKey = format(yesterday, "yyyy-MM-dd");
   const monthAgo = subDays(today, 30);
   const twoMonthsAgo = subDays(today, 60);
 
@@ -1077,6 +1134,11 @@ export function getLearningVelocityWithDelta(
         .map((s) => s.moduleId)
     ).size;
 
+  const hoursOnDay = (dayKey: string) =>
+    sessions
+      .filter((s) => s.date === dayKey)
+      .reduce((sum, s) => sum + s.duration, 0) / 3600000;
+
   const hoursInRange = (startKey: string, endKey: string) =>
     sessions
       .filter((s) => s.date >= startKey && s.date <= endKey)
@@ -1096,7 +1158,30 @@ export function getLearningVelocityWithDelta(
     modulesPriorMonth: modulesInRange(twoMonthsAgo, subDays(today, 30)),
     hoursPerWeek: Math.round(hoursInRange(thisWeekStartKey, thisWeekEndKey) * 10) / 10,
     hoursPriorWeek: Math.round(hoursInRange(priorWeekStartKey, priorWeekEndKey) * 10) / 10,
+    topicsPerDay: completedOnDay(subtopics, todayKey),
+    topicsPriorDay: completedOnDay(subtopics, yesterdayKey),
+    modulesPerDay: modulesTouchedOnDay(subtopics, sessions, todayKey),
+    modulesPriorDay: modulesTouchedOnDay(subtopics, sessions, yesterdayKey),
+    hoursPerDay: Math.round(hoursOnDay(todayKey) * 10) / 10,
+    hoursPriorDay: Math.round(hoursOnDay(yesterdayKey) * 10) / 10,
   };
+}
+
+export function getVelocityInsight(
+  mode: LearningVelocityMode,
+  velocity: LearningVelocityWithDelta
+): string {
+  if (mode === "daily") {
+    const diff = Math.round((velocity.hoursPerDay - velocity.hoursPriorDay) * 10) / 10;
+    const sign = diff >= 0 ? "+" : "";
+    return `Hours today is ${velocity.hoursPerDay}h (${sign}${diff}h vs yesterday).`;
+  }
+  const diff = Math.round((velocity.hoursPerWeek - velocity.hoursPriorWeek) * 10) / 10;
+  if (velocity.hoursPerWeek >= velocity.hoursPriorWeek) {
+    const sign = diff >= 0 ? "+" : "";
+    return `Hours/week is ${velocity.hoursPerWeek}h (${sign}${diff}h vs previous week).`;
+  }
+  return `Hours/week dipped to ${velocity.hoursPerWeek}h (was ${velocity.hoursPriorWeek}h). Reclaim one on-pace day.`;
 }
 
 export function getActiveDistribution(
@@ -1155,10 +1240,7 @@ export function getAnalyticsDiagnostics(
     distribution,
     efficiency: efficiencyMsg,
     consistency: getConsistencyInsight(consistencyDays),
-    velocity:
-      velocity.hoursPerWeek >= velocity.hoursPriorWeek
-        ? `Hours/week is ${velocity.hoursPerWeek}h (↑ vs ${velocity.hoursPriorWeek}h prior week).`
-        : `Hours/week dipped to ${velocity.hoursPerWeek}h (was ${velocity.hoursPriorWeek}h). Reclaim one on-pace day.`,
+    velocity: getVelocityInsight("weekly", velocity),
   };
 }
 

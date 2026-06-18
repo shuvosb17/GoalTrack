@@ -33,12 +33,12 @@ import {
   trimLeadingEmptyWeeks, trimLeadingEmptyProblemWeeks,
   getConsistencyCalendar, getAnalyticsKpis, getLearningVelocityWithDelta,
   getTopTopicsWithTrack, getActiveDistribution, getAnalyticsDiagnostics,
-  getFocusModeTimeline, getFocusModeSummary,
+  getFocusModeTimeline, getFocusModeSummary, getLast7DayPattern,
   CHART_TOOLTIP_STYLE, DEFAULT_YEAR_START, DEFAULT_YEAR_END,
 } from "@/lib/analytics";
 import { getDailyPaceTarget, getWeeklyConsistency } from "@/lib/metrics";
 import { resolveTieredGoal, getWeeksUntilYearEnd, getHoursLoggedThisYear } from "@/lib/goals";
-import { formatHours } from "@/lib/utils";
+import { calculateStreaks, formatHours } from "@/lib/utils";
 import { differenceInDays, parseISO } from "date-fns";
 
 type WeekRange = "4" | "12" | "all";
@@ -160,6 +160,18 @@ export default function AnalyticsPage() {
     () => getWeeklyConsistency(sessions, dailyGoal),
     [sessions, dailyGoal]
   );
+  const streaks = useMemo(
+    () => calculateStreaks(sessions.map((s) => s.date)),
+    [sessions]
+  );
+  const last7StudyPattern = useMemo(
+    () => getLast7DayPattern(sessions, dailyGoal, "study"),
+    [sessions, dailyGoal]
+  );
+  const last7PacePattern = useMemo(
+    () => getLast7DayPattern(sessions, dailyGoal, "on_pace"),
+    [sessions, dailyGoal]
+  );
   const tiered = useMemo(() => resolveTieredGoal(settings), [settings]);
   const hoursPerWeekNeeded = useMemo(() => {
     const logged = getHoursLoggedThisYear(sessions, yearStart, yearEnd);
@@ -262,7 +274,9 @@ export default function AnalyticsPage() {
         consistency={weeklyConsistency}
         hoursPerWeekNeeded={hoursPerWeekNeeded}
         stretchGoalHours={tiered.stretch}
-        footnote={diagnostics.velocity}
+        streakDays={streaks.current}
+        last7StudyPattern={last7StudyPattern}
+        last7PacePattern={last7PacePattern}
       />
 
       {/* Focus mode timeline */}
