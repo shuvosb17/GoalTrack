@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { addDays, differenceInDays, format, parse, parseISO } from "date-fns";
 import {
   IconBolt,
@@ -11,11 +12,11 @@ import {
   IconCalendar,
   IconSparkles,
   IconArrowUpRight,
+  IconChevronDown,
+  IconChevronUp,
 } from "@tabler/icons-react";
 import { TrackProgressChart } from "@/components/tracks/track-progress-chart";
-import {
-  PACE_STATUS_LABELS,
-} from "@/lib/track-estimation";
+import { PACE_STATUS_LABELS } from "@/lib/track-estimation";
 import {
   sendPrompt,
   studyTipsPrompt,
@@ -37,17 +38,20 @@ const TAB_MONTHS = [3, 4, 5, 6, 9, 12] as const;
 interface TrackProgressWidgetProps {
   stats: TrackEstimationStats;
   onMonthsChange: (months: number) => void;
+  variant?: "full" | "compact";
+  expanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
-function OddsRing({ value }: { value: number }) {
-  const size = 72;
-  const stroke = 6;
+function OddsRing({ value, size = 72 }: { value: number; size?: number }) {
+  const stroke = Math.max(4, Math.round(size * 0.083));
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (value / 100) * circumference;
+  const fontSize = size <= 56 ? 13 : 15;
 
   return (
-    <div className="flex shrink-0 flex-col items-center gap-1">
+    <div className="flex shrink-0 flex-col items-center gap-0.5">
       <div className="relative" style={{ width: size, height: size }}>
         <svg width={size} height={size} className="-rotate-90" aria-hidden="true">
           <circle
@@ -71,12 +75,12 @@ function OddsRing({ value }: { value: number }) {
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-[15px] font-medium" style={{ color: PURPLE }}>
+          <span className="font-medium tabular-nums" style={{ color: PURPLE, fontSize }}>
             {value}%
           </span>
         </div>
       </div>
-      <span className="text-[11px] text-[var(--color-text-muted)]">odds</span>
+      <span className="text-[10px] text-[var(--color-text-muted)]">odds</span>
     </div>
   );
 }
@@ -118,7 +122,173 @@ function parseFinishDate(raw: string): { short: string; year: string } | null {
   return null;
 }
 
-export function TrackProgressWidget({ stats, onMonthsChange }: TrackProgressWidgetProps) {
+function PaceBars({ stats }: { stats: TrackEstimationStats }) {
+  const expectedProgress = Math.max(0, Math.min(100, stats.currentProgress - stats.paceDelta));
+
+  return (
+    <div className="space-y-2.5" aria-hidden="true">
+      <div>
+        <div className="mb-1 flex items-center justify-between text-[11px]">
+          <span className="text-[var(--color-text-muted)]">Your pace</span>
+          <span className="font-medium tabular-nums" style={{ color: PURPLE }}>
+            {stats.currentProgress}%
+          </span>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+          <div
+            className="h-full rounded-full transition-all duration-500"
+            style={{ width: `${stats.currentProgress}%`, background: PURPLE }}
+          />
+        </div>
+      </div>
+      <div>
+        <div className="mb-1 flex items-center justify-between text-[11px]">
+          <span className="text-[var(--color-text-muted)]">Expected plan</span>
+          <span className="font-medium tabular-nums text-[var(--color-text-muted)]">
+            {expectedProgress}%
+          </span>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+          <div
+            className="h-full rounded-full bg-[#71717a]/70 transition-all duration-500"
+            style={{ width: `${expectedProgress}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CompactStatsRow({ stats }: { stats: TrackEstimationStats }) {
+  const finishParts = parseFinishDate(stats.projectedCompletionDate);
+
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      <div className="rounded-[var(--border-radius-md)] border-[0.5px] border-[var(--color-border-tertiary)] bg-[var(--color-background-secondary)] px-2.5 py-2">
+        <p className="text-[10px] text-[var(--color-text-muted)]">Now</p>
+        <p className="text-[18px] font-medium tabular-nums leading-tight" style={{ color: PURPLE, fontWeight: 500 }}>
+          {stats.currentProgress}%
+        </p>
+      </div>
+      <div className="rounded-[var(--border-radius-md)] border-[0.5px] border-[var(--color-border-tertiary)] bg-[var(--color-background-secondary)] px-2.5 py-2">
+        <p className="text-[10px] text-[var(--color-text-muted)]">Projected</p>
+        <p className="text-[18px] font-medium tabular-nums leading-tight text-[var(--color-text-primary)]" style={{ fontWeight: 500 }}>
+          {stats.projectedProgressAtDeadline}%
+        </p>
+      </div>
+      <div className="rounded-[var(--border-radius-md)] border-[0.5px] border-[var(--color-border-tertiary)] bg-[var(--color-background-secondary)] px-2.5 py-2">
+        <p className="text-[10px] text-[var(--color-text-muted)]">Due</p>
+        <p className="text-[13px] font-medium leading-tight text-[var(--color-text-primary)]" style={{ fontWeight: 500 }}>
+          {format(parseISO(stats.endDate), "MMM d")}
+        </p>
+        {finishParts && (
+          <p className="text-[10px] tabular-nums" style={{ color: TEAL }}>
+            Est. {finishParts.short}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TrackProgressCompact({
+  stats,
+  expanded,
+  onToggleExpand,
+}: {
+  stats: TrackEstimationStats;
+  expanded?: boolean;
+  onToggleExpand?: () => void;
+}) {
+  const badge = paceBadgeStyle(stats.paceStatus);
+  const earlyLabel = getEarlyDaysLabel(stats);
+  const srSummary = `${stats.track.name}: ${stats.currentProgress}% complete, ${stats.successProbability}% odds.`;
+
+  return (
+    <article
+      className="w-full rounded-[var(--border-radius-lg)] border-[0.5px] border-[var(--color-border-tertiary)] bg-[var(--color-background-primary)] p-4 font-[family-name:var(--font-sans)]"
+      style={{ fontWeight: 400 }}
+    >
+      <h2 className="sr-only">{srSummary}</h2>
+
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-lg leading-none">{stats.track.icon}</span>
+            <h3
+              className="truncate text-[16px] font-medium text-[var(--color-text-primary)]"
+              style={{ fontWeight: 500 }}
+            >
+              {stats.track.name}
+            </h3>
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span
+              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
+              style={{
+                background: badge.bg,
+                color: badge.text,
+                border: `0.5px solid ${badge.border}`,
+                fontWeight: 500,
+              }}
+            >
+              <IconTrendingUp className="h-3 w-3" stroke={1.75} aria-hidden="true" />
+              {PACE_STATUS_LABELS[stats.paceStatus]}
+            </span>
+            {earlyLabel && (
+              <span className="text-[11px] text-[var(--color-text-muted)]">{earlyLabel}</span>
+            )}
+          </div>
+        </div>
+        <OddsRing value={stats.successProbability} size={56} />
+      </div>
+
+      <div className="mb-3">
+        <PaceBars stats={stats} />
+      </div>
+
+      <CompactStatsRow stats={stats} />
+
+      <div className="mt-3 flex items-center justify-between gap-2 border-t border-[var(--color-border-tertiary)] pt-3">
+        <p className="truncate text-[12px] text-[var(--color-text-muted)]">
+          {stats.hoursPerWeek.toFixed(1)} h/wk · {stats.targetMonths}mo window
+        </p>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <Link
+            href={`/tracks?track=${stats.track.id}`}
+            className="inline-flex items-center gap-1 rounded-[var(--border-radius-md)] border-[0.5px] border-[var(--color-border-secondary)] px-2.5 py-1.5 text-[12px] text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-border-tertiary)]"
+          >
+            Open
+            <IconArrowUpRight className="h-3 w-3" stroke={1.5} aria-hidden="true" />
+          </Link>
+          {onToggleExpand && (
+            <button
+              type="button"
+              onClick={onToggleExpand}
+              className="inline-flex items-center gap-1 rounded-[var(--border-radius-md)] border-[0.5px] border-[var(--color-border-secondary)] px-2.5 py-1.5 text-[12px] text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-border-tertiary)]"
+              aria-expanded={expanded}
+            >
+              {expanded ? "Collapse" : "Expand"}
+              {expanded ? (
+                <IconChevronUp className="h-3 w-3" stroke={1.5} aria-hidden="true" />
+              ) : (
+                <IconChevronDown className="h-3 w-3" stroke={1.5} aria-hidden="true" />
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function TrackProgressFull({
+  stats,
+  onMonthsChange,
+}: {
+  stats: TrackEstimationStats;
+  onMonthsChange: (months: number) => void;
+}) {
   const [toast, setToast] = useState<string | null>(null);
   const badge = paceBadgeStyle(stats.paceStatus);
   const earlyLabel = getEarlyDaysLabel(stats);
@@ -141,7 +311,6 @@ export function TrackProgressWidget({ stats, onMonthsChange }: TrackProgressWidg
     >
       <h2 className="sr-only">{srSummary}</h2>
 
-      {/* Header */}
       <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 space-y-2.5">
           <div className="flex items-center gap-2.5">
@@ -179,12 +348,10 @@ export function TrackProgressWidget({ stats, onMonthsChange }: TrackProgressWidg
         <OddsRing value={stats.successProbability} />
       </div>
 
-      {/* Chart */}
       <div className="mb-4">
         <TrackProgressChart data={stats.chartData} trackName={stats.track.name} />
       </div>
 
-      {/* Time window tabs */}
       <div className="mb-4 flex flex-wrap gap-2">
         {TAB_MONTHS.map((m) => {
           const active = stats.targetMonths === m;
@@ -199,11 +366,7 @@ export function TrackProgressWidget({ stats, onMonthsChange }: TrackProgressWidg
                   ? "border-transparent text-[#EEEDFE]"
                   : "border-[0.5px] border-[var(--color-border-tertiary)] bg-transparent text-[var(--color-text-muted)] hover:border-[var(--color-border-secondary)]"
               )}
-              style={
-                active
-                  ? { background: PURPLE, fontWeight: 500 }
-                  : { fontWeight: 400 }
-              }
+              style={active ? { background: PURPLE, fontWeight: 500 } : { fontWeight: 400 }}
             >
               {m}mo
             </button>
@@ -221,10 +384,7 @@ export function TrackProgressWidget({ stats, onMonthsChange }: TrackProgressWidg
         )}
       </div>
 
-      {/* Metric cards */}
-      <div
-        className="mb-4 flex flex-wrap gap-2.5 rounded-[var(--border-radius-lg)] bg-[var(--color-background-secondary)] p-3"
-      >
+      <div className="mb-4 flex flex-wrap gap-2.5 rounded-[var(--border-radius-lg)] bg-[var(--color-background-secondary)] p-3">
         <div className="min-w-[120px] flex-1 rounded-[var(--border-radius-md)] border-[0.5px] border-[var(--color-border-tertiary)] bg-[var(--color-background-primary)] p-3">
           <IconClock className="mb-2 h-4 w-4 text-[var(--color-text-muted)]" stroke={1.5} aria-hidden="true" />
           <p className="text-[28px] font-medium leading-none" style={{ color: PURPLE, fontWeight: 500 }}>
@@ -259,7 +419,6 @@ export function TrackProgressWidget({ stats, onMonthsChange }: TrackProgressWidg
         </div>
       </div>
 
-      {/* Info rows */}
       <div className="mb-3 space-y-2 text-[13px] text-[var(--color-text-muted)]">
         <p className="flex items-center gap-2">
           <IconCalendar className="h-4 w-4 shrink-0" stroke={1.5} aria-hidden="true" />
@@ -271,18 +430,13 @@ export function TrackProgressWidget({ stats, onMonthsChange }: TrackProgressWidg
         </p>
       </div>
 
-      {/* Insight callout */}
       {stats.insight && (
         <div
           className={cn(
             "mb-4 flex gap-2.5 rounded-[var(--border-radius-md)] p-3 text-[13px] leading-[1.5]",
             showTealInsight ? "" : "border-[0.5px] border-[var(--color-border-tertiary)] text-[var(--color-text-muted)]"
           )}
-          style={
-            showTealInsight
-              ? { background: TEAL_LIGHT, color: TEAL_DARK }
-              : undefined
-          }
+          style={showTealInsight ? { background: TEAL_LIGHT, color: TEAL_DARK } : undefined}
         >
           <IconSparkles className="mt-0.5 h-4 w-4 shrink-0" stroke={1.5} aria-hidden="true" />
           <p>
@@ -292,7 +446,6 @@ export function TrackProgressWidget({ stats, onMonthsChange }: TrackProgressWidg
         </div>
       )}
 
-      {/* Action buttons */}
       <div className="flex flex-wrap gap-2.5">
         {[
           { label: "Study tips", prompt: studyTipsPrompt(stats.track.name) },
@@ -322,4 +475,24 @@ export function TrackProgressWidget({ stats, onMonthsChange }: TrackProgressWidg
       )}
     </article>
   );
+}
+
+export function TrackProgressWidget({
+  stats,
+  onMonthsChange,
+  variant = "full",
+  expanded,
+  onToggleExpand,
+}: TrackProgressWidgetProps) {
+  if (variant === "compact") {
+    return (
+      <TrackProgressCompact
+        stats={stats}
+        expanded={expanded}
+        onToggleExpand={onToggleExpand}
+      />
+    );
+  }
+
+  return <TrackProgressFull stats={stats} onMonthsChange={onMonthsChange} />;
 }

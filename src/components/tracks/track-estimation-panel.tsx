@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   useTracks, useAllModules, useAllTopics, useAllSubtopics, useSessions, useTrackEstimates,
@@ -24,6 +24,7 @@ export function TrackEstimationPanel({ filterTrackId }: TrackEstimationPanelProp
   const subtopics = useAllSubtopics();
   const sessions = useSessions();
   const estimates = useTrackEstimates();
+  const [expandedTrackId, setExpandedTrackId] = useState<string | null>(null);
 
   useEffect(() => {
     if (tracks.length > 0) ensureTrackEstimates(tracks);
@@ -37,34 +38,66 @@ export function TrackEstimationPanel({ filterTrackId }: TrackEstimationPanelProp
   const visible = filterTrackId ? stats.filter((s) => s.track.id === filterTrackId) : stats;
   const isSingleTrackView = visible.length === 1;
 
+  useEffect(() => {
+    if (isSingleTrackView) setExpandedTrackId(null);
+  }, [isSingleTrackView]);
+
   const handleMonths = async (trackId: string, months: number) => {
     await upsertTrackEstimate(trackId, months);
   };
 
   if (visible.length === 0) return null;
 
+  if (isSingleTrackView) {
+    return (
+      <section className="w-full space-y-4">
+        <TrackProgressWidget
+          stats={visible[0]}
+          variant="full"
+          onMonthsChange={(months) => void handleMonths(visible[0].track.id, months)}
+        />
+      </section>
+    );
+  }
+
   return (
-    <section className="w-full space-y-5">
-      <div
-        className={cn(
-          "grid w-full gap-5",
-          isSingleTrackView ? "grid-cols-1" : "md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5"
-        )}
-      >
-        {visible.map((s, i) => (
-          <motion.div
-            key={s.track.id}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-            className="min-w-0 w-full"
-          >
-            <TrackProgressWidget
-              stats={s}
-              onMonthsChange={(months) => void handleMonths(s.track.id, months)}
-            />
-          </motion.div>
-        ))}
+    <section className="w-full space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-medium text-[var(--color-text-primary)]">Track progress</h2>
+          <p className="mt-0.5 text-[13px] text-[var(--color-text-muted)]">
+            Overview of all tracks — expand one for the full chart and planner
+          </p>
+        </div>
+        <p className="text-[12px] tabular-nums text-[var(--color-text-muted)]">
+          {visible.length} tracks
+        </p>
+      </div>
+
+      <div className="grid w-full grid-cols-1 gap-4 xl:grid-cols-2">
+        {visible.map((s, i) => {
+          const expanded = expandedTrackId === s.track.id;
+          return (
+            <motion.div
+              key={s.track.id}
+              layout
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.04 }}
+              className={cn("min-w-0 w-full", expanded && "xl:col-span-2")}
+            >
+              <TrackProgressWidget
+                stats={s}
+                variant={expanded ? "full" : "compact"}
+                expanded={expanded}
+                onToggleExpand={() =>
+                  setExpandedTrackId((prev) => (prev === s.track.id ? null : s.track.id))
+                }
+                onMonthsChange={(months) => void handleMonths(s.track.id, months)}
+              />
+            </motion.div>
+          );
+        })}
       </div>
     </section>
   );
