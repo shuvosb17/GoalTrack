@@ -12,7 +12,12 @@ import {
 import { useSettings, useTracks, useAllModules, useAllTopics, useSessions } from "@/hooks/use-data";
 import { db } from "@/lib/db";
 import { exportAllData, importAllData } from "@/lib/seed";
-import { saveAutoBackup, getLastBackupTime, downloadBackup, saveBackupToExportFolder } from "@/lib/auto-backup";
+import { saveAutoBackup, getLastBackupTime } from "@/lib/auto-backup";
+import {
+  saveBackupToExportFolder,
+  pickExportDirectory,
+  getDefaultExportFolderHint,
+} from "@/lib/export-folder";
 import { nowISO, todayISO, formatDuration } from "@/lib/utils";
 import { getSuggestedDailyFromTarget } from "@/lib/metrics";
 import { MdImportPanel } from "@/components/settings/md-import-panel";
@@ -39,14 +44,21 @@ export default function SettingsPage() {
     const data = await exportAllData();
     const filename = `goaltrack-backup-${todayISO()}.json`;
     const saved = await saveBackupToExportFolder(data, filename);
-    downloadBackup(data, filename);
     await saveAutoBackup();
     if (saved.ok) {
-      setExportNotice(`Saved to ${saved.path ?? "Goaltrack Json Files"}`);
+      setExportNotice(`Saved to ${saved.path ?? getDefaultExportFolderHint()}`);
     } else {
-      setExportNotice(saved.error ?? "Downloaded only — could not save to export folder");
+      setExportNotice(saved.error ?? "Export failed");
     }
-    window.setTimeout(() => setExportNotice(null), 4000);
+    window.setTimeout(() => setExportNotice(null), 5000);
+  };
+
+  const handleChooseExportFolder = async () => {
+    const handle = await pickExportDirectory();
+    if (handle) {
+      setExportNotice(`Export folder set to "${handle.name}". Future exports save here.`);
+      window.setTimeout(() => setExportNotice(null), 5000);
+    }
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -135,16 +147,22 @@ export default function SettingsPage() {
             <Button onClick={handleExport} className="gap-2 h-11 px-6">
               <Download className="h-4 w-4" /> Export Full Backup
             </Button>
+            <Button variant="outline" onClick={() => void handleChooseExportFolder()} className="gap-2 h-11 px-6">
+              Choose export folder
+            </Button>
             <Button variant="outline" onClick={() => fileRef.current?.click()} className="gap-2 h-11 px-6">
               <Upload className="h-4 w-4" /> Import Backup
             </Button>
             <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
           </div>
           {exportNotice && (
-            <p className="text-xs text-emerald-400">{exportNotice}</p>
+            <p className={exportNotice.startsWith("Saved") || exportNotice.startsWith("Export folder") ? "text-xs text-emerald-400" : "text-xs text-amber-400"}>
+              {exportNotice}
+            </p>
           )}
           <p className="text-xs text-muted-foreground">
-            Exports save to <code className="text-[11px]">E:\Career Track\Development\Goaltrack Json Files</code> when running locally, and also download to your browser.
+            Exports save to <code className="text-[11px]">{getDefaultExportFolderHint()}</code> when the local app is running.
+            For the installed Edge app, use Choose export folder once and select that folder.
           </p>
         </CardContent>
       </Card>

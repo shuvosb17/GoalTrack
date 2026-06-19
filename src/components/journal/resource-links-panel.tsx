@@ -73,7 +73,7 @@ interface LinkGroup {
   key: string;
   name: string;
   color: string;
-  links: JournalLink[];
+  allLinks: JournalLink[];
   totalCount: number;
 }
 
@@ -98,6 +98,7 @@ export function ResourceLinksPanel({
 
   const [search, setSearch] = useState("");
   const [trackFilter, setTrackFilter] = useState<TrackFilter>("all");
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState<string | null>(null);
 
   const [editingLink, setEditingLink] = useState<JournalLink | null>(null);
@@ -164,7 +165,6 @@ export function ResourceLinksPanel({
   }, [links, search, trackFilter]);
 
   const linkGroups = useMemo((): LinkGroup[] => {
-    const isSearchActive = search.trim().length > 0;
     const grouped = new Map<string, JournalLink[]>();
     for (const link of filteredLinks) {
       const key = getLinkGroupKey(link);
@@ -181,7 +181,7 @@ export function ResourceLinksPanel({
           key: track.id,
           name: track.name,
           color: track.color,
-          links: isSearchActive ? trackLinks : trackLinks.slice(0, RECENT_LINKS_PER_TRACK),
+          allLinks: trackLinks,
           totalCount: trackLinks.length,
         });
       }
@@ -192,12 +192,21 @@ export function ResourceLinksPanel({
         key: UNCATEGORIZED_GROUP_KEY,
         name: "Uncategorized",
         color: UNCATEGORIZED_COLOR,
-        links: isSearchActive ? uncategorized : uncategorized.slice(0, RECENT_LINKS_PER_TRACK),
+        allLinks: uncategorized,
         totalCount: uncategorized.length,
       });
     }
     return result;
-  }, [filteredLinks, tracks, search]);
+  }, [filteredLinks, tracks]);
+
+  const toggleGroupExpanded = (groupKey: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupKey)) next.delete(groupKey);
+      else next.add(groupKey);
+      return next;
+    });
+  };
 
   const showToast = (message: string) => {
     setToast(message);
@@ -516,7 +525,16 @@ export function ResourceLinksPanel({
         ) : (
           <div className="space-y-6">
             <AnimatePresence mode="popLayout">
-              {linkGroups.map((group) => (
+              {linkGroups.map((group) => {
+                const isSearchActive = search.trim().length > 0;
+                const isExpanded = expandedGroups.has(group.key);
+                const canExpand = !isSearchActive && group.totalCount > RECENT_LINKS_PER_TRACK;
+                const visibleLinks =
+                  isSearchActive || isExpanded
+                    ? group.allLinks
+                    : group.allLinks.slice(0, RECENT_LINKS_PER_TRACK);
+
+                return (
                 <motion.div
                   key={group.key}
                   layout
@@ -525,7 +543,7 @@ export function ResourceLinksPanel({
                   exit={{ opacity: 0, y: -8 }}
                   className="space-y-3"
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span
                       className="h-2 w-2 shrink-0 rounded-full"
                       style={{ background: group.color }}
@@ -534,15 +552,26 @@ export function ResourceLinksPanel({
                     <span className="text-xs tabular-nums text-muted-foreground">
                       ({group.totalCount})
                     </span>
-                    {!search.trim() && group.totalCount > group.links.length && (
+                    {canExpand && !isExpanded && (
                       <span className="text-[11px] text-muted-foreground">
-                        · showing {group.links.length} most recent
+                        · showing {RECENT_LINKS_PER_TRACK} most recent
                       </span>
+                    )}
+                    {canExpand && (
+                      <button
+                        type="button"
+                        onClick={() => toggleGroupExpanded(group.key)}
+                        className="ml-auto text-[11px] font-medium text-[#534AB7] transition-colors hover:text-[#7F77DD]"
+                      >
+                        {isExpanded
+                          ? "Collapse"
+                          : `Show ${group.totalCount - RECENT_LINKS_PER_TRACK} more`}
+                      </button>
                     )}
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-2">
-                    {group.links.map((link, i) => {
+                    {visibleLinks.map((link, i) => {
                       const track = tracks.find((t) => t.id === link.trackId);
                       const color = track?.color ?? UNCATEGORIZED_COLOR;
                       const displayTitle = link.title || suggestLinkTitle(link.url);
@@ -661,7 +690,8 @@ export function ResourceLinksPanel({
                     })}
                   </div>
                 </motion.div>
-              ))}
+                );
+              })}
             </AnimatePresence>
           </div>
         )}
