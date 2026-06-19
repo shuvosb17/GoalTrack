@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { addDays, differenceInDays, format, parse, parseISO } from "date-fns";
 import {
@@ -17,12 +16,6 @@ import {
 } from "@tabler/icons-react";
 import { TrackProgressChart } from "@/components/tracks/track-progress-chart";
 import { PACE_STATUS_LABELS } from "@/lib/track-estimation";
-import {
-  sendPrompt,
-  studyTipsPrompt,
-  nextTopicsPrompt,
-  weeklyPlanPrompt,
-} from "@/lib/track-prompts";
 import type { TrackEstimationStats, TrackPaceStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -323,21 +316,16 @@ function TrackProgressCompact({
 function TrackProgressFull({
   stats,
   onMonthsChange,
+  onToggleExpand,
 }: {
   stats: TrackEstimationStats;
   onMonthsChange: (months: number) => void;
+  onToggleExpand?: () => void;
 }) {
-  const [toast, setToast] = useState<string | null>(null);
   const badge = paceBadgeStyle(stats.paceStatus);
   const earlyLabel = getEarlyDaysLabel(stats);
   const finishParts = parseFinishDate(stats.projectedCompletionDate);
   const insightStyle = insightCalloutStyle(stats.paceStatus);
-
-  const handlePrompt = async (question: string) => {
-    const ok = await sendPrompt(question);
-    setToast(ok ? "Prompt copied to clipboard" : "Could not copy prompt");
-    window.setTimeout(() => setToast(null), 2200);
-  };
 
   const srSummary = `${stats.track.name} progress tracker. ${stats.currentProgress}% complete. ${PACE_STATUS_LABELS[stats.paceStatus]}. ${stats.successProbability}% odds of finishing on time.`;
 
@@ -382,7 +370,20 @@ function TrackProgressFull({
             )}
           </div>
         </div>
-        <OddsRing value={stats.successProbability} />
+        <div className="flex shrink-0 items-start gap-2">
+          {onToggleExpand && (
+            <button
+              type="button"
+              onClick={onToggleExpand}
+              className="inline-flex items-center gap-1 rounded-[var(--border-radius-md)] border-[0.5px] border-[var(--color-border-secondary)] px-2.5 py-1.5 text-[12px] text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-border-tertiary)]"
+              aria-expanded="true"
+            >
+              Collapse
+              <IconChevronUp className="h-3.5 w-3.5" stroke={1.5} aria-hidden="true" />
+            </button>
+          )}
+          <OddsRing value={stats.successProbability} />
+        </div>
       </div>
 
       <div className="mb-4">
@@ -489,33 +490,6 @@ function TrackProgressFull({
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2.5">
-        {[
-          { label: "Study tips", prompt: studyTipsPrompt(stats.track.name) },
-          { label: "Next topics", prompt: nextTopicsPrompt(stats.track.name) },
-          { label: "Weekly plan", prompt: weeklyPlanPrompt(stats.track.name) },
-        ].map(({ label, prompt }) => (
-          <button
-            key={label}
-            type="button"
-            onClick={() => void handlePrompt(prompt)}
-            className="flex min-w-[140px] flex-1 items-center justify-between rounded-[var(--border-radius-md)] border-[0.5px] border-[var(--color-border-secondary)] bg-transparent px-3 py-2.5 text-left text-[13px] text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-border-tertiary)]"
-            style={{ fontFamily: "var(--font-sans)", fontWeight: 400 }}
-          >
-            {label}
-            <IconArrowUpRight className="h-3.5 w-3.5 shrink-0 text-[var(--color-text-muted)]" stroke={1.5} aria-hidden="true" />
-          </button>
-        ))}
-      </div>
-
-      {toast && (
-        <p
-          className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-lg border-[0.5px] border-[var(--color-border-tertiary)] bg-[var(--color-background-secondary)] px-4 py-2 text-[13px] text-[var(--color-text-primary)]"
-          role="status"
-        >
-          {toast}
-        </p>
-      )}
     </article>
   );
 }
@@ -537,5 +511,11 @@ export function TrackProgressWidget({
     );
   }
 
-  return <TrackProgressFull stats={stats} onMonthsChange={onMonthsChange} />;
+  return (
+    <TrackProgressFull
+      stats={stats}
+      onMonthsChange={onMonthsChange}
+      onToggleExpand={onToggleExpand}
+    />
+  );
 }
