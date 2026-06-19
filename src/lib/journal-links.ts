@@ -46,20 +46,26 @@ export function suggestLinkTitle(url: string): string {
   }
 }
 
-export function getLinkDepth(link: Pick<JournalLink, "moduleId" | "topicId" | "subtopicId">): JournalHierarchyLevel {
+export function getLinkDepth(
+  link: Pick<JournalLink, "trackId" | "moduleId" | "topicId" | "subtopicId">
+): JournalHierarchyLevel {
+  if (!link.trackId) return "uncategorized";
   if (link.subtopicId) return "subtopic";
   if (link.topicId) return "topic";
   if (link.moduleId) return "module";
   return "track";
 }
 
-export type JournalHierarchyLevel = "track" | "module" | "topic" | "subtopic";
+export type JournalHierarchyLevel = "track" | "module" | "topic" | "subtopic" | "uncategorized";
+
+export const UNCATEGORIZED_GROUP_KEY = "__uncategorized__";
 
 const LEVEL_LABELS: Record<JournalHierarchyLevel, string> = {
   track: "Track",
   module: "Module",
   topic: "Topic",
   subtopic: "Subtopic",
+  uncategorized: "Uncategorized",
 };
 
 export function getLevelLabel(level: JournalHierarchyLevel) {
@@ -91,11 +97,23 @@ export function getLinkPathLabel(
   topics: Topic[],
   subtopics: Subtopic[]
 ): string {
+  if (!link.trackId) return "No category assigned";
   const track = tracks.find((t) => t.id === link.trackId);
   const mod = link.moduleId ? modules.find((m) => m.id === link.moduleId) : undefined;
   const topic = link.topicId ? topics.find((t) => t.id === link.topicId) : undefined;
   const sub = link.subtopicId ? subtopics.find((s) => s.id === link.subtopicId) : undefined;
   return [track?.name, mod?.name, topic?.name, sub?.name].filter(Boolean).join(" → ");
+}
+
+export function getLinkGroupKey(link: Pick<JournalLink, "trackId">): string {
+  return link.trackId || UNCATEGORIZED_GROUP_KEY;
+}
+
+export function linkMatchesSearch(link: JournalLink, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  const label = (link.title || suggestLinkTitle(link.url)).toLowerCase();
+  return label.includes(q) || link.url.toLowerCase().includes(q);
 }
 
 export function hierarchyFromLink(
@@ -117,9 +135,9 @@ export function buildLinkPayload(
   return {
     url,
     title: title?.trim() || undefined,
-    trackId: hierarchy.trackId,
-    moduleId: hierarchy.moduleId || undefined,
-    topicId: hierarchy.topicId || undefined,
-    subtopicId: hierarchy.subtopicId || undefined,
+    trackId: hierarchy.trackId || "",
+    moduleId: hierarchy.trackId && hierarchy.moduleId ? hierarchy.moduleId : undefined,
+    topicId: hierarchy.trackId && hierarchy.topicId ? hierarchy.topicId : undefined,
+    subtopicId: hierarchy.trackId && hierarchy.subtopicId ? hierarchy.subtopicId : undefined,
   };
 }
