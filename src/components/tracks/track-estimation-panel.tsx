@@ -19,6 +19,7 @@ import {
   PACE_STATUS_LABELS,
   PACE_STATUS_COLORS,
 } from "@/lib/track-estimation";
+import { cn } from "@/lib/utils";
 
 interface TrackEstimationPanelProps {
   filterTrackId?: string;
@@ -42,6 +43,7 @@ export function TrackEstimationPanel({ filterTrackId }: TrackEstimationPanelProp
   );
 
   const visible = filterTrackId ? stats.filter((s) => s.track.id === filterTrackId) : stats;
+  const isSingleTrackView = visible.length === 1;
 
   const handleMonths = async (trackId: string, months: number) => {
     await upsertTrackEstimate(trackId, months);
@@ -49,7 +51,14 @@ export function TrackEstimationPanel({ filterTrackId }: TrackEstimationPanelProp
 
   return (
     <section className="space-y-5">
-      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
+      <div
+        className={cn(
+          "grid gap-5",
+          isSingleTrackView
+            ? "grid-cols-1 max-w-2xl"
+            : "md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5"
+        )}
+      >
         {visible.map((s, i) => (
           <motion.div
             key={s.track.id}
