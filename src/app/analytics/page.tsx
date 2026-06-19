@@ -33,7 +33,7 @@ import {
   trimLeadingEmptyWeeks, trimLeadingEmptyProblemWeeks,
   getConsistencyCalendar, getAnalyticsKpis, getLearningVelocityWithDelta,
   getTopTopicsWithTrack, getActiveDistribution, getAnalyticsDiagnostics,
-  getFocusModeTimeline, getFocusModeSummary, getLast7DayPattern,
+  getFocusModeTimeline, getLast7DayPattern,
   CHART_TOOLTIP_STYLE, DEFAULT_YEAR_START, DEFAULT_YEAR_END,
 } from "@/lib/analytics";
 import { getDailyPaceTarget, getWeeklyConsistency } from "@/lib/metrics";
@@ -146,7 +146,6 @@ export default function AnalyticsPage() {
     () => getFocusModeTimeline(sessions, tracks, topics, 40),
     [sessions, tracks, topics]
   );
-  const focusModeSummary = useMemo(() => getFocusModeSummary(sessions), [sessions]);
 
   const topTopics = useMemo(
     () => getTopTopicsWithTrack(sessions, topics, tracks, subtopics, modules),
@@ -285,9 +284,9 @@ export default function AnalyticsPage() {
         <CardContent className="pt-6">
           <SectionHeading>Focus mode</SectionHeading>
           <p className="mb-4 text-xs text-muted-foreground">
-            How focused your study sessions were — this week at a glance.
+            How focused your study sessions were — browse by week or day.
           </p>
-          <FocusModePanel entries={focusModeEntries} summary={focusModeSummary} />
+          <FocusModePanel entries={focusModeEntries} />
         </CardContent>
       </Card>
 

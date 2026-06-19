@@ -12,7 +12,7 @@ import {
 import { useSettings, useTracks, useAllModules, useAllTopics, useSessions } from "@/hooks/use-data";
 import { db } from "@/lib/db";
 import { exportAllData, importAllData } from "@/lib/seed";
-import { saveAutoBackup, getLastBackupTime, downloadBackup } from "@/lib/auto-backup";
+import { saveAutoBackup, getLastBackupTime, downloadBackup, saveBackupToExportFolder } from "@/lib/auto-backup";
 import { nowISO, todayISO, formatDuration } from "@/lib/utils";
 import { getSuggestedDailyFromTarget } from "@/lib/metrics";
 import { MdImportPanel } from "@/components/settings/md-import-panel";
@@ -33,10 +33,20 @@ export default function SettingsPage() {
     hours: 1, minutes: 0, date: todayISO(), notes: "",
   });
 
+  const [exportNotice, setExportNotice] = useState<string | null>(null);
+
   const handleExport = async () => {
     const data = await exportAllData();
-    downloadBackup(data, `goaltrack-backup-${todayISO()}.json`);
+    const filename = `goaltrack-backup-${todayISO()}.json`;
+    const saved = await saveBackupToExportFolder(data, filename);
+    downloadBackup(data, filename);
     await saveAutoBackup();
+    if (saved.ok) {
+      setExportNotice(`Saved to ${saved.path ?? "Goaltrack Json Files"}`);
+    } else {
+      setExportNotice(saved.error ?? "Downloaded only — could not save to export folder");
+    }
+    window.setTimeout(() => setExportNotice(null), 4000);
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -130,6 +140,12 @@ export default function SettingsPage() {
             </Button>
             <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
           </div>
+          {exportNotice && (
+            <p className="text-xs text-emerald-400">{exportNotice}</p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Exports save to <code className="text-[11px]">E:\Career Track\Development\Goaltrack Json Files</code> when running locally, and also download to your browser.
+          </p>
         </CardContent>
       </Card>
 

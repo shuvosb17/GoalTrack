@@ -51,3 +51,24 @@ export function downloadBackup(data: BackupData, filename?: string) {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+export async function saveBackupToExportFolder(
+  data: BackupData,
+  filename?: string
+): Promise<{ ok: boolean; path?: string; error?: string }> {
+  const name = filename ?? `goaltrack-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  try {
+    const res = await fetch("/api/export-backup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data, filename: name }),
+    });
+    const payload = (await res.json()) as { ok?: boolean; path?: string; error?: string };
+    if (!res.ok) {
+      return { ok: false, error: payload.error ?? "Could not save export file" };
+    }
+    return { ok: true, path: payload.path };
+  } catch {
+    return { ok: false, error: "Could not reach local export service" };
+  }
+}

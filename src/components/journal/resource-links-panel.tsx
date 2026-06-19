@@ -74,7 +74,10 @@ interface LinkGroup {
   name: string;
   color: string;
   links: JournalLink[];
+  totalCount: number;
 }
+
+const RECENT_LINKS_PER_TRACK = 4;
 
 function byOrder<T extends { order: number; name: string }>(a: T, b: T) {
   return a.order - b.order || a.name.localeCompare(b.name);
@@ -161,6 +164,7 @@ export function ResourceLinksPanel({
   }, [links, search, trackFilter]);
 
   const linkGroups = useMemo((): LinkGroup[] => {
+    const isSearchActive = search.trim().length > 0;
     const grouped = new Map<string, JournalLink[]>();
     for (const link of filteredLinks) {
       const key = getLinkGroupKey(link);
@@ -177,7 +181,8 @@ export function ResourceLinksPanel({
           key: track.id,
           name: track.name,
           color: track.color,
-          links: trackLinks,
+          links: isSearchActive ? trackLinks : trackLinks.slice(0, RECENT_LINKS_PER_TRACK),
+          totalCount: trackLinks.length,
         });
       }
     }
@@ -187,11 +192,12 @@ export function ResourceLinksPanel({
         key: UNCATEGORIZED_GROUP_KEY,
         name: "Uncategorized",
         color: UNCATEGORIZED_COLOR,
-        links: uncategorized,
+        links: isSearchActive ? uncategorized : uncategorized.slice(0, RECENT_LINKS_PER_TRACK),
+        totalCount: uncategorized.length,
       });
     }
     return result;
-  }, [filteredLinks, tracks]);
+  }, [filteredLinks, tracks, search]);
 
   const showToast = (message: string) => {
     setToast(message);
@@ -526,8 +532,13 @@ export function ResourceLinksPanel({
                     />
                     <h4 className="text-sm font-medium">{group.name}</h4>
                     <span className="text-xs tabular-nums text-muted-foreground">
-                      ({group.links.length})
+                      ({group.totalCount})
                     </span>
+                    {!search.trim() && group.totalCount > group.links.length && (
+                      <span className="text-[11px] text-muted-foreground">
+                        · showing {group.links.length} most recent
+                      </span>
+                    )}
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-2">

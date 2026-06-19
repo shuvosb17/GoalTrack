@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { format, parseISO } from "date-fns";
-import { IconBrain } from "@tabler/icons-react";
+import { useEffect, useMemo, useState } from "react";
+import { eachDayOfInterval, format, isSameDay, parseISO } from "date-fns";
+import { IconBrain, IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import {
   Bar,
   BarChart,
@@ -33,33 +33,84 @@ const RATING_ORDER: SessionQualityRating[] = [3, 2, 1];
 
 interface FocusModePanelProps {
   entries: FocusModeEntry[];
-  summary: {
-    total: number;
-    thisWeek: number;
-    weekDistracted: number;
-    weekNormal: number;
-    weekDeep: number;
-  };
 }
 
-export function FocusModePanel({ entries, summary }: FocusModePanelProps) {
-  const [filter, setFilter] = useState<FocusFilter>("all");
+function countByRating(items: FocusModeEntry[], rating: SessionQualityRating) {
+  return items.filter((e) => e.rating === rating).length;
+}
 
-  const weekStartKey = useMemo(
-    () => format(getCalendarWeekRange(0, parseLocalDate(todayISO())).start, "yyyy-MM-dd"),
-    []
+export function FocusModePanel({ entries }: FocusModePanelProps) {
+  const [filter, setFilter] = useState<FocusFilter>("all");
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+
+  const today = useMemo(() => parseLocalDate(todayISO()), []);
+
+  const maxWeekOffset = useMemo(() => {
+    if (entries.length === 0) return 0;
+    const earliest = entries.reduce((min, e) => (e.date < min ? e.date : min), entries[0].date);
+    const earliestDate = parseLocalDate(earliest);
+    const { start: currentStart } = getCalendarWeekRange(0, today);
+    const diffWeeks = Math.floor(
+      (currentStart.getTime() - getCalendarWeekRange(0, earliestDate).start.getTime()) /
+        (7 * 24 * 60 * 60 * 1000)
+    );
+    return Math.max(0, Math.min(52, diffWeeks));
+  }, [entries, today]);
+
+  const weekRange = useMemo(
+    () => getCalendarWeekRange(weekOffset, today),
+    [weekOffset, today]
   );
+
+  const weekStartKey = format(weekRange.start, "yyyy-MM-dd");
+  const weekEndKey = format(weekRange.end, "yyyy-MM-dd");
+
+  const weekLabel = useMemo(() => {
+    if (weekOffset === 0) {
+      return `This week · ${format(weekRange.start, "MMM d")} – ${format(weekRange.end, "MMM d")}`;
+    }
+    return `${format(weekRange.start, "MMM d")} – ${format(weekRange.end, "MMM d, yyyy")}`;
+  }, [weekOffset, weekRange]);
 
   const weekEntries = useMemo(
-    () => entries.filter((e) => e.date >= weekStartKey),
-    [entries, weekStartKey]
+    () => entries.filter((e) => e.date >= weekStartKey && e.date <= weekEndKey),
+    [entries, weekStartKey, weekEndKey]
   );
 
-  const weekTotal = summary.weekDeep + summary.weekNormal + summary.weekDistracted;
+  const weekDays = useMemo(
+    () =>
+      eachDayOfInterval({ start: weekRange.start, end: weekRange.end }).map((d) =>
+        format(d, "yyyy-MM-dd")
+      ),
+    [weekRange]
+  );
+
+  const dayCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const entry of weekEntries) {
+      counts.set(entry.date, (counts.get(entry.date) ?? 0) + 1);
+    }
+    return counts;
+  }, [weekEntries]);
+
+  useEffect(() => {
+    setSelectedDay(null);
+  }, [weekOffset]);
+
+  const scopedEntries = useMemo(() => {
+    if (!selectedDay) return weekEntries;
+    return weekEntries.filter((e) => e.date === selectedDay);
+  }, [weekEntries, selectedDay]);
+
+  const weekDeep = countByRating(scopedEntries, 3);
+  const weekNormal = countByRating(scopedEntries, 2);
+  const weekDistracted = countByRating(scopedEntries, 1);
+  const weekTotal = weekDeep + weekNormal + weekDistracted;
 
   const timelineData = useMemo(
     () =>
-      [...weekEntries]
+      [...scopedEntries]
         .sort((a, b) => a.startTime.localeCompare(b.startTime))
         .map((e) => ({
           id: e.id,
@@ -68,19 +119,18 @@ export function FocusModePanel({ entries, summary }: FocusModePanelProps) {
           durationMs: e.duration,
           rating: e.rating,
         })),
-    [weekEntries]
+    [scopedEntries]
   );
 
   const filteredEntries = useMemo(() => {
-    const pool = weekEntries.length > 0 ? weekEntries : entries;
-    const sorted = [...pool].sort((a, b) => b.startTime.localeCompare(a.startTime));
+    const sorted = [...scopedEntries].sort((a, b) => b.startTime.localeCompare(a.startTime));
     if (filter === "all") return sorted;
     return sorted.filter((e) => e.rating === filter);
-  }, [entries, weekEntries, filter]);
+  }, [scopedEntries, filter]);
 
   const maxTimelineMinutes = Math.max(...timelineData.map((d) => d.minutes), 5);
 
-  if (summary.total === 0) {
+  if (entries.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-white/[0.08] py-12 text-center">
         <IconBrain className="mx-auto mb-3 h-10 w-10 text-muted-foreground/30" stroke={1.25} />
@@ -99,18 +149,96 @@ export function FocusModePanel({ entries, summary }: FocusModePanelProps) {
     { key: 1, label: "Distracted" },
   ];
 
+  const periodLabel = selectedDay
+    ? format(parseLocalDate(selectedDay), "EEEE, MMM d")
+    : weekOffset === 0
+      ? "this week"
+      : "selected week";
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {/* Week selector */}
+      <div className="rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.02] p-3">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            Week
+          </p>
+          <p className="truncate text-xs text-muted-foreground">{weekLabel}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={weekOffset >= maxWeekOffset}
+            onClick={() => setWeekOffset((w) => w + 1)}
+            className="inline-flex items-center gap-1 rounded-lg border-[0.5px] border-white/[0.08] px-3 py-2 text-xs text-foreground transition-colors hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <IconChevronLeft className="h-3.5 w-3.5" stroke={1.5} />
+            Previous week
+          </button>
+          <button
+            type="button"
+            disabled={weekOffset === 0}
+            onClick={() => setWeekOffset((w) => Math.max(0, w - 1))}
+            className="ml-auto inline-flex items-center gap-1 rounded-lg border-[0.5px] border-white/[0.08] px-3 py-2 text-xs text-foreground transition-colors hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Next week
+            <IconChevronRight className="h-3.5 w-3.5" stroke={1.5} />
+          </button>
+        </div>
+      </div>
+
+      {/* Day selector */}
+      <div className="rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.02] p-3">
+        <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          Day
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setSelectedDay(null)}
+            className={cn(
+              "rounded-full border px-3 py-1.5 text-[11px] font-medium transition-colors",
+              selectedDay === null
+                ? "border-[#534AB7]/50 bg-[#534AB7]/20 text-foreground"
+                : "border-white/[0.08] text-muted-foreground hover:border-white/[0.14] hover:text-foreground"
+            )}
+          >
+            All week
+          </button>
+          {weekDays.map((dayKey) => {
+            const dayDate = parseLocalDate(dayKey);
+            const count = dayCounts.get(dayKey) ?? 0;
+            const isToday = isSameDay(dayDate, today);
+            const active = selectedDay === dayKey;
+
+            return (
+              <button
+                key={dayKey}
+                type="button"
+                onClick={() => setSelectedDay(dayKey)}
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-[11px] font-medium transition-colors",
+                  active
+                    ? "border-[#534AB7]/50 bg-[#534AB7]/20 text-foreground"
+                    : count > 0
+                      ? "border-white/[0.1] text-foreground hover:border-white/[0.16]"
+                      : "border-white/[0.06] text-muted-foreground/70 hover:border-white/[0.1]"
+                )}
+              >
+                {isToday ? "Today" : format(dayDate, "EEE d")}
+                {count > 0 && <span className="ml-1 tabular-nums opacity-70">({count})</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Metric cards */}
       <div className="grid gap-3 sm:grid-cols-3">
         {RATING_ORDER.map((rating) => {
           const meta = FOCUS_MODE_META[rating];
           const count =
-            rating === 3
-              ? summary.weekDeep
-              : rating === 2
-                ? summary.weekNormal
-                : summary.weekDistracted;
+            rating === 3 ? weekDeep : rating === 2 ? weekNormal : weekDistracted;
           const pct = weekTotal > 0 ? (count / weekTotal) * 100 : 0;
 
           return (
@@ -125,7 +253,9 @@ export function FocusModePanel({ entries, summary }: FocusModePanelProps) {
                 </span>
               </div>
               <p className="metric-value text-3xl tabular-nums leading-none">{count}</p>
-              <p className="mt-1 text-[11px] text-muted-foreground">sessions this week</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                sessions {selectedDay ? "this day" : periodLabel}
+              </p>
               <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/[0.06]">
                 <div
                   className="h-full rounded-full transition-all duration-500"
@@ -213,7 +343,8 @@ export function FocusModePanel({ entries, summary }: FocusModePanelProps) {
         <div className="max-h-[360px] space-y-2 overflow-y-auto pr-1">
           {filteredEntries.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              No {filter === "all" ? "" : FOCUS_MODE_META[filter].label.toLowerCase()} sessions this week.
+              No {filter === "all" ? "" : FOCUS_MODE_META[filter].label.toLowerCase()} sessions for{" "}
+              {selectedDay ? format(parseLocalDate(selectedDay), "MMM d") : periodLabel}.
             </p>
           ) : (
             filteredEntries.map((entry) => {
