@@ -27,10 +27,7 @@ import type { TrackEstimationStats, TrackPaceStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const PURPLE = "#534AB7";
-const PURPLE_LIGHT = "#EEEDFE";
-const TEAL = "#0F6E56";
-const TEAL_LIGHT = "#E1F5EE";
-const TEAL_DARK = "#085041";
+const TEAL_SOFT = "#6ee7b7";
 const AMBER = "#EF9F27";
 
 const TAB_MONTHS = [3, 4, 5, 6, 9, 12] as const;
@@ -87,15 +84,56 @@ function OddsRing({ value, size = 72 }: { value: number; size?: number }) {
 
 function paceBadgeStyle(status: TrackPaceStatus) {
   if (status === "ahead" || status === "completed") {
-    return { bg: TEAL_LIGHT, text: TEAL, border: "rgba(15, 110, 86, 0.25)" };
+    return {
+      bg: "rgba(15, 110, 86, 0.14)",
+      text: TEAL_SOFT,
+      border: "rgba(15, 110, 86, 0.32)",
+    };
   }
   if (status === "on_track") {
-    return { bg: PURPLE_LIGHT, text: PURPLE, border: "rgba(83, 74, 183, 0.25)" };
+    return {
+      bg: "rgba(83, 74, 183, 0.14)",
+      text: "#b8b0f0",
+      border: "rgba(83, 74, 183, 0.32)",
+    };
   }
   if (status === "behind") {
-    return { bg: "rgba(239, 159, 39, 0.12)", text: AMBER, border: "rgba(239, 159, 39, 0.25)" };
+    return { bg: "rgba(239, 159, 39, 0.12)", text: "#f5cc84", border: "rgba(239, 159, 39, 0.28)" };
   }
   return { bg: "rgba(255,255,255,0.04)", text: "var(--color-text-muted)", border: "var(--color-border-tertiary)" };
+}
+
+function insightCalloutStyle(status: TrackPaceStatus) {
+  if (status === "ahead" || status === "completed") {
+    return {
+      background: "rgba(15, 110, 86, 0.1)",
+      borderColor: "rgba(15, 110, 86, 0.24)",
+      color: "#a7f3d0",
+      iconColor: TEAL_SOFT,
+    };
+  }
+  if (status === "on_track") {
+    return {
+      background: "rgba(83, 74, 183, 0.1)",
+      borderColor: "rgba(83, 74, 183, 0.24)",
+      color: "#c4b5fd",
+      iconColor: "#a89cf0",
+    };
+  }
+  if (status === "behind") {
+    return {
+      background: "rgba(239, 159, 39, 0.08)",
+      borderColor: "rgba(239, 159, 39, 0.22)",
+      color: "#f5cc84",
+      iconColor: AMBER,
+    };
+  }
+  return {
+    background: "var(--color-background-secondary)",
+    borderColor: "var(--color-border-tertiary)",
+    color: "var(--color-text-muted)",
+    iconColor: "var(--color-text-muted)",
+  };
 }
 
 function getEarlyDaysLabel(stats: TrackEstimationStats): string | null {
@@ -182,7 +220,7 @@ function CompactStatsRow({ stats }: { stats: TrackEstimationStats }) {
           {format(parseISO(stats.endDate), "MMM d")}
         </p>
         {finishParts && (
-          <p className="text-[10px] tabular-nums" style={{ color: TEAL }}>
+          <p className="text-[10px] tabular-nums" style={{ color: TEAL_SOFT }}>
             Est. {finishParts.short}
           </p>
         )}
@@ -293,8 +331,7 @@ function TrackProgressFull({
   const badge = paceBadgeStyle(stats.paceStatus);
   const earlyLabel = getEarlyDaysLabel(stats);
   const finishParts = parseFinishDate(stats.projectedCompletionDate);
-  const showTealInsight =
-    stats.paceStatus === "ahead" || stats.paceStatus === "on_track" || stats.paceStatus === "completed";
+  const insightStyle = insightCalloutStyle(stats.paceStatus);
 
   const handlePrompt = async (question: string) => {
     const ok = await sendPrompt(question);
@@ -403,7 +440,7 @@ function TrackProgressFull({
           <IconCalendarCheck className="mb-2 h-4 w-4 text-[var(--color-text-muted)]" stroke={1.5} aria-hidden="true" />
           {finishParts ? (
             <>
-              <p className="text-[20px] font-medium leading-none" style={{ color: TEAL, fontWeight: 500 }}>
+              <p className="text-[20px] font-medium leading-none" style={{ color: TEAL_SOFT, fontWeight: 500 }}>
                 {finishParts.short}
               </p>
               <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">{finishParts.year}</p>
@@ -432,16 +469,22 @@ function TrackProgressFull({
 
       {stats.insight && (
         <div
-          className={cn(
-            "mb-4 flex gap-2.5 rounded-[var(--border-radius-md)] p-3 text-[13px] leading-[1.5]",
-            showTealInsight ? "" : "border-[0.5px] border-[var(--color-border-tertiary)] text-[var(--color-text-muted)]"
-          )}
-          style={showTealInsight ? { background: TEAL_LIGHT, color: TEAL_DARK } : undefined}
+          className="mb-4 flex gap-2.5 rounded-[var(--border-radius-md)] border-[0.5px] p-3 text-[13px] leading-[1.5]"
+          style={{
+            background: insightStyle.background,
+            borderColor: insightStyle.borderColor,
+            color: insightStyle.color,
+          }}
         >
-          <IconSparkles className="mt-0.5 h-4 w-4 shrink-0" stroke={1.5} aria-hidden="true" />
+          <IconSparkles
+            className="mt-0.5 h-4 w-4 shrink-0"
+            stroke={1.5}
+            aria-hidden="true"
+            style={{ color: insightStyle.iconColor }}
+          />
           <p>
             {stats.insight}
-            {showTealInsight && stats.paceStatus === "ahead" ? " Keep it up!" : ""}
+            {stats.paceStatus === "ahead" ? " Keep it up!" : ""}
           </p>
         </div>
       )}
