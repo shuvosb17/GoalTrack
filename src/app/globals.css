@@ -26,6 +26,22 @@
   --radius-xl: 0.75rem;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  /* Track progress widget tokens */
+  --color-background-primary: #09090b;
+  --color-background-secondary: #18181b;
+  --color-text-primary: #fafafa;
+  --color-text-muted: #a1a1aa;
+  --color-border-secondary: rgba(255, 255, 255, 0.1);
+  --color-border-tertiary: rgba(255, 255, 255, 0.08);
+  --color-accent-purple: #534ab7;
+  --color-accent-purple-light: #eeedfe;
+  --color-accent-purple-dark: #26215c;
+  --color-success-teal: #0f6e56;
+  --color-success-teal-light: #e1f5ee;
+  --color-success-teal-dark: #085041;
+  --border-radius-lg: 0.75rem;
+  --border-radius-md: 0.625rem;
 }
 
 * {
