@@ -368,8 +368,7 @@ export interface FocusModeEntry {
 export function getFocusModeTimeline(
   sessions: LearningSession[],
   tracks: Track[],
-  topics: Topic[],
-  limit = 40
+  topics: Topic[]
 ): FocusModeEntry[] {
   const trackMap = new Map(tracks.map((t) => [t.id, t.name]));
   const topicMap = new Map(topics.map((t) => [t.id, t.name]));
@@ -377,7 +376,6 @@ export function getFocusModeTimeline(
   return sessions
     .filter((s): s is LearningSession & { qualityRating: SessionQualityRating } => !!s.qualityRating)
     .sort((a, b) => b.startTime.localeCompare(a.startTime))
-    .slice(0, limit)
     .map((s) => ({
       id: s.id,
       date: s.date,

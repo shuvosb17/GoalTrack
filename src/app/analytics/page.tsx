@@ -143,7 +143,7 @@ export default function AnalyticsPage() {
   const peakInsight = kpis.peakFocusLabel;
 
   const focusModeEntries = useMemo(
-    () => getFocusModeTimeline(sessions, tracks, topics, 40),
+    () => getFocusModeTimeline(sessions, tracks, topics),
     [sessions, tracks, topics]
   );
 

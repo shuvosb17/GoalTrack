@@ -55,7 +55,7 @@ export function FocusModePanel({ entries }: FocusModePanelProps) {
       (currentStart.getTime() - getCalendarWeekRange(0, earliestDate).start.getTime()) /
         (7 * 24 * 60 * 60 * 1000)
     );
-    return Math.max(0, Math.min(52, diffWeeks));
+    return Math.max(0, diffWeeks);
   }, [entries, today]);
 
   const weekRange = useMemo(
@@ -96,6 +96,7 @@ export function FocusModePanel({ entries }: FocusModePanelProps) {
 
   useEffect(() => {
     setSelectedDay(null);
+    setFilter("all");
   }, [weekOffset]);
 
   const scopedEntries = useMemo(() => {
