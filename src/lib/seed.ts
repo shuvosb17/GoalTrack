@@ -1,8 +1,9 @@
 import { v4 as uuid } from "uuid";
 import { db } from "./db";
-import type { Track, Module, Topic, Subtopic, Achievement, AppSettings } from "./types";
+import type { Track, Module, Topic, Subtopic, Achievement, AppSettings, LeetcodeProblem, CsReviewItem } from "./types";
 import { DEFAULT_TIERED_GOAL } from "./types/metrics";
 import { nowISO } from "./utils";
+import { CS_FUNDAMENTALS, LEETCODE_PATTERNS } from "./leetcode-patterns";
 
 const ACHIEVEMENTS: Omit<Achievement, "id">[] = [
   { key: "first_session", title: "First Study Session", description: "Complete your first learning session", icon: "🎯" },
@@ -116,21 +117,89 @@ export async function seedDatabase(): Promise<void> {
   });
 }
 
+export async function ensureLeetcodePrep(): Promise<void> {
+  const [problemCount, csCount] = await Promise.all([
+    db.leetcodeProblems.count(),
+    db.csReviewItems.count(),
+  ]);
+
+  const now = nowISO();
+  const toInsert: LeetcodeProblem[] = [];
+  let order = 0;
+
+  if (problemCount === 0) {
+    for (const pattern of LEETCODE_PATTERNS) {
+      for (const sample of pattern.sampleProblems) {
+        toInsert.push({
+          id: uuid(),
+          pattern: pattern.name,
+          title: sample.title,
+          url: sample.url,
+          difficulty: sample.difficulty,
+          done: false,
+          isCore: true,
+          order: order++,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+    }
+  }
+
+  const csToInsert: CsReviewItem[] =
+    csCount === 0
+      ? CS_FUNDAMENTALS.map((item, idx) => ({
+          id: uuid(),
+          category: item.category,
+          title: item.title,
+          done: false,
+          order: idx,
+          createdAt: now,
+          updatedAt: now,
+        }))
+      : [];
+
+  if (toInsert.length === 0 && csToInsert.length === 0) return;
+
+  await db.transaction("rw", [db.leetcodeProblems, db.csReviewItems], async () => {
+    if (toInsert.length > 0) await db.leetcodeProblems.bulkAdd(toInsert);
+    if (csToInsert.length > 0) await db.csReviewItems.bulkAdd(csToInsert);
+  });
+}
+
 export async function exportAllData() {
-  const [tracks, modules, topics, subtopics, sessions, journal, journalLinks, achievements, milestones, goalMilestones, trackEstimates, settings, skipLogs] = await Promise.all([
+  const [
+    tracks, modules, topics, subtopics, sessions, journal, journalLinks,
+    achievements, milestones, goalMilestones, trackEstimates, settings, skipLogs,
+    leetcodeProblems, csReviewItems,
+  ] = await Promise.all([
     db.tracks.toArray(), db.modules.toArray(), db.topics.toArray(), db.subtopics.toArray(),
     db.sessions.toArray(), db.journal.toArray(), db.journalLinks.toArray(), db.achievements.toArray(), db.milestones.toArray(),
     db.goalMilestones.toArray(), db.trackEstimates.toArray(), db.settings.toArray(), db.skipLogs.toArray(),
+    db.leetcodeProblems.toArray(), db.csReviewItems.toArray(),
   ]);
-  return { version: 1, exportedAt: nowISO(), tracks, modules, topics, subtopics, sessions, journal, journalLinks, achievements, milestones, goalMilestones, trackEstimates, settings, skipLogs };
+  return {
+    version: 1,
+    exportedAt: nowISO(),
+    tracks, modules, topics, subtopics, sessions, journal, journalLinks, achievements, milestones,
+    goalMilestones, trackEstimates, settings, skipLogs, leetcodeProblems, csReviewItems,
+  };
 }
 
 export async function importAllData(data: Awaited<ReturnType<typeof exportAllData>>) {
-  await db.transaction("rw", [db.tracks, db.modules, db.topics, db.subtopics, db.sessions, db.journal, db.journalLinks, db.achievements, db.milestones, db.goalMilestones, db.trackEstimates, db.settings, db.skipLogs], async () => {
+  await db.transaction(
+    "rw",
+    [
+      db.tracks, db.modules, db.topics, db.subtopics, db.sessions, db.journal, db.journalLinks,
+      db.achievements, db.milestones, db.goalMilestones, db.trackEstimates, db.settings, db.skipLogs,
+      db.leetcodeProblems, db.csReviewItems,
+    ],
+    async () => {
     await Promise.all([
       db.tracks.clear(), db.modules.clear(), db.topics.clear(), db.subtopics.clear(),
       db.sessions.clear(), db.journal.clear(), db.journalLinks.clear(), db.achievements.clear(), db.milestones.clear(),
       db.goalMilestones.clear(), db.trackEstimates.clear(), db.settings.clear(), db.skipLogs.clear(),
+      db.leetcodeProblems.clear(), db.csReviewItems.clear(),
     ]);
     if (data.tracks?.length) await db.tracks.bulkAdd(data.tracks);
     if (data.modules?.length) await db.modules.bulkAdd(data.modules);
@@ -145,5 +214,7 @@ export async function importAllData(data: Awaited<ReturnType<typeof exportAllDat
     if (data.trackEstimates?.length) await db.trackEstimates.bulkAdd(data.trackEstimates);
     if (data.settings?.length) await db.settings.bulkAdd(data.settings);
     if (data.skipLogs?.length) await db.skipLogs.bulkAdd(data.skipLogs);
+    if (data.leetcodeProblems?.length) await db.leetcodeProblems.bulkAdd(data.leetcodeProblems);
+    if (data.csReviewItems?.length) await db.csReviewItems.bulkAdd(data.csReviewItems);
   });
 }

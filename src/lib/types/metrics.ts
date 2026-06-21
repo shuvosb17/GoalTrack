@@ -57,6 +57,53 @@ export interface LeetCodeStats {
 
 export type LeetCodeDifficulty = "easy" | "medium" | "hard";
 
+export type LeetcodeTag = "BD-CORE" | "BD-CP" | "MAANG" | "BD-ADV";
+
+export type LeetcodeTier =
+  | "foundation"
+  | "strong"
+  | "competitive"
+  | "useful"
+  | "specialist";
+
+export interface LeetcodePatternMeta {
+  name: string;
+  tier: LeetcodeTier;
+  importance: 1 | 2 | 3 | 4;
+  tags: LeetcodeTag[];
+}
+
+export interface LeetcodeSampleProblem {
+  title: string;
+  url: string;
+  difficulty: LeetCodeDifficulty;
+}
+
+export interface LeetcodeProblem {
+  id: string;
+  pattern: string;
+  title: string;
+  url?: string;
+  difficulty: LeetCodeDifficulty;
+  done: boolean;
+  isCore: boolean;
+  notes?: string;
+  order: number;
+  doneAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CsReviewItem {
+  id: string;
+  category: "OOP" | "DBMS" | "DS";
+  title: string;
+  done: boolean;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /** A single dated problem-solve event, used for the per-week problems chart. */
 export interface LeetCodeSolveEntry {
   date: string; // yyyy-MM-dd

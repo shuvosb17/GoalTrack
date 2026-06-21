@@ -6,13 +6,35 @@ import type {
   TieredGoal,
   LeetCodeStats,
   LeetCodeSolveEntry,
+  LeetCodeDifficulty,
+  LeetcodeTag,
+  LeetcodeTier,
+  LeetcodePatternMeta,
+  LeetcodeSampleProblem,
+  LeetcodeProblem,
+  CsReviewItem,
   TrackSettings,
   TopicCompletionMeta,
   PinnedNextItem,
   SessionQualityRating,
 } from "./types/metrics";
 
-export type { TieredGoal, LeetCodeStats, LeetCodeSolveEntry, TrackSettings, TopicCompletionMeta, PinnedNextItem, SessionQualityRating };
+export type {
+  TieredGoal,
+  LeetCodeStats,
+  LeetCodeSolveEntry,
+  LeetCodeDifficulty,
+  LeetcodeTag,
+  LeetcodeTier,
+  LeetcodePatternMeta,
+  LeetcodeSampleProblem,
+  LeetcodeProblem,
+  CsReviewItem,
+  TrackSettings,
+  TopicCompletionMeta,
+  PinnedNextItem,
+  SessionQualityRating,
+};
 
 export interface Track {
   id: string;

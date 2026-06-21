@@ -1,73 +1,378 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Plus, Minus } from "lucide-react";
+import { useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Check, ChevronDown, ExternalLink, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useSettings } from "@/hooks/use-data";
-import { addLeetCodeProblem, removeLeetCodeProblem } from "@/lib/crud";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLeetcodeProblems, useCsReviewItems } from "@/hooks/use-data";
+import {
+  toggleLeetcodeProblem,
+  addLeetcodeProblem,
+  deleteLeetcodeProblem,
+  toggleCsReviewItem,
+} from "@/lib/crud";
+import {
+  LEETCODE_TAG_LABELS,
+  LEETCODE_TIER_LABELS,
+  LEETCODE_TIER_ORDER,
+  filterPatternsByTag,
+  groupPatternsByTier,
+  type LeetcodeTagFilter,
+  type LeetcodePatternDefinition,
+} from "@/lib/leetcode-patterns";
+import {
+  computeWeightedReadiness,
+  computeCsReadiness,
+  computeCombinedReadiness,
+  computeTierReadiness,
+  computeCumulativeSolvedData,
+  getProblemsForPattern,
+} from "@/lib/leetcode-readiness";
+import { LeetcodeReadinessCharts } from "@/components/tracks/leetcode-readiness-charts";
+import type { LeetcodeProblem, LeetcodeTag } from "@/lib/types";
 import type { LeetCodeDifficulty } from "@/lib/types/metrics";
+import { cn } from "@/lib/utils";
 
-const DIFFICULTIES: { key: LeetCodeDifficulty; label: string; color: string }[] = [
-  { key: "easy", label: "Easy", color: "#97C459" },
-  { key: "medium", label: "Medium", color: "#FAC775" },
-  { key: "hard", label: "Hard", color: "#f87171" },
-];
+const ACCENT = "#534AB7";
+const TAG_FILTERS: LeetcodeTagFilter[] = ["all", "BD-CORE", "BD-CP", "MAANG", "BD-ADV"];
+
+const DIFFICULTY_COLORS: Record<LeetCodeDifficulty, string> = {
+  easy: "#97C459",
+  medium: "#FAC775",
+  hard: "#f87171",
+};
+
+function ImportancePill({ level }: { level: number }) {
+  return (
+    <span
+      className="rounded px-1.5 py-px text-[10px] font-semibold tabular-nums"
+      style={{ background: `${ACCENT}33`, color: ACCENT }}
+    >
+      P{level}
+    </span>
+  );
+}
+
+function TagChip({ tag }: { tag: LeetcodeTag }) {
+  return (
+    <span className="rounded bg-white/[0.06] px-1.5 py-px text-[10px] text-muted-foreground">
+      {LEETCODE_TAG_LABELS[tag]}
+    </span>
+  );
+}
+
+function PatternCard({ pattern, problems }: { pattern: LeetcodePatternDefinition; problems: LeetcodeProblem[] }) {
+  const [expanded, setExpanded] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const patternProblems = getProblemsForPattern(problems, pattern.name);
+  const done = patternProblems.filter((p) => p.done).length;
+  const total = patternProblems.length;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+  async function handleAdd() {
+    const title = newTitle.trim();
+    if (!title) return;
+    await addLeetcodeProblem({ pattern: pattern.name, title, difficulty: "medium" });
+    setNewTitle("");
+    setAdding(false);
+  }
+
+  return (
+    <div className="rounded-lg border-[0.5px] border-white/[0.08] bg-white/[0.02] overflow-hidden">
+      <button
+        type="button"
+        className="flex w-full items-start gap-2 p-3 text-left hover:bg-white/[0.02]"
+        onClick={() => setExpanded((e) => !e)}
+      >
+        <ChevronDown
+          className={cn("mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform", expanded && "rotate-180")}
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-sm font-medium">{pattern.name}</span>
+            <ImportancePill level={pattern.importance} />
+            {pattern.tags.map((t) => (
+              <TagChip key={t} tag={t} />
+            ))}
+          </div>
+          <div className="mt-2 flex items-center gap-2">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+              <div
+                className="h-full rounded-full transition-all"
+                style={{ width: `${pct}%`, background: ACCENT }}
+              />
+            </div>
+            <span className="text-[11px] tabular-nums text-muted-foreground">
+              {done}/{total}
+            </span>
+          </div>
+        </div>
+      </button>
+
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <ul className="space-y-0.5 border-t border-white/[0.06] px-3 py-2">
+              {patternProblems.map((problem) => (
+                <li key={problem.id} className="group flex items-center gap-2 rounded-md px-1 py-1 hover:bg-white/[0.03]">
+                  <button
+                    type="button"
+                    onClick={() => toggleLeetcodeProblem(problem.id)}
+                    className={cn(
+                      "flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors",
+                      problem.done
+                        ? "border-transparent text-white"
+                        : "border-white/20 bg-transparent hover:border-white/40"
+                    )}
+                    style={problem.done ? { background: ACCENT } : undefined}
+                    aria-label={problem.done ? "Mark unsolved" : "Mark solved"}
+                  >
+                    {problem.done && <Check className="h-2.5 w-2.5" />}
+                  </button>
+                  {problem.url ? (
+                    <a
+                      href={problem.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex min-w-0 flex-1 items-center gap-1 text-sm hover:underline"
+                      style={{ color: problem.done ? "var(--muted-foreground)" : undefined }}
+                    >
+                      <span className={cn("truncate", problem.done && "line-through opacity-60")}>
+                        {problem.title}
+                      </span>
+                      <ExternalLink className="h-3 w-3 shrink-0 opacity-40" />
+                    </a>
+                  ) : (
+                    <span
+                      className={cn("min-w-0 flex-1 truncate text-sm", problem.done && "line-through opacity-60 text-muted-foreground")}
+                    >
+                      {problem.title}
+                    </span>
+                  )}
+                  <span
+                    className="shrink-0 text-[10px] font-medium uppercase"
+                    style={{ color: DIFFICULTY_COLORS[problem.difficulty] }}
+                  >
+                    {problem.difficulty[0]}
+                  </span>
+                  {!problem.isCore && (
+                    <button
+                      type="button"
+                      onClick={() => deleteLeetcodeProblem(problem.id)}
+                      className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-400 transition-opacity"
+                      aria-label="Delete custom problem"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <div className="border-t border-white/[0.06] px-3 py-2">
+              {adding ? (
+                <div className="flex gap-2">
+                  <Input
+                    value={newTitle}
+                    onChange={(e) => setNewTitle(e.target.value)}
+                    placeholder="Custom problem title"
+                    className="h-8 text-sm"
+                    onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+                  />
+                  <Button size="sm" className="h-8" style={{ background: ACCENT }} onClick={handleAdd}>
+                    Add
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-8" onClick={() => setAdding(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 gap-1 text-xs text-muted-foreground"
+                  onClick={() => setAdding(true)}
+                >
+                  <Plus className="h-3 w-3" /> Add problem
+                </Button>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 export function LeetCodePanel() {
-  const settings = useSettings();
-  const stats = settings?.leetCodeStats ?? { easy: 0, medium: 0, hard: 0 };
-  const total = stats.easy + stats.medium + stats.hard;
+  const problems = useLeetcodeProblems();
+  const csItems = useCsReviewItems();
+  const [tagFilter, setTagFilter] = useState<LeetcodeTagFilter>("all");
+
+  const filteredPatterns = useMemo(() => filterPatternsByTag(tagFilter), [tagFilter]);
+  const grouped = useMemo(() => groupPatternsByTier(filteredPatterns), [filteredPatterns]);
+
+  const dsaReadiness = useMemo(
+    () => computeWeightedReadiness(problems, tagFilter),
+    [problems, tagFilter]
+  );
+  const csReadiness = useMemo(() => computeCsReadiness(csItems), [csItems]);
+  const combinedReadiness = useMemo(
+    () => computeCombinedReadiness(problems, csItems, tagFilter),
+    [problems, csItems, tagFilter]
+  );
+  const tierData = useMemo(() => computeTierReadiness(problems, tagFilter), [problems, tagFilter]);
+  const cumulativeData = useMemo(() => computeCumulativeSolvedData(problems), [problems]);
+
+  const csByCategory = useMemo(() => {
+    const cats = ["OOP", "DBMS", "DS"] as const;
+    return cats.map((cat) => ({
+      category: cat,
+      items: csItems.filter((i) => i.category === cat),
+    }));
+  }, [csItems]);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="glass-card rounded-xl p-4"
+      className="glass-card space-y-5 rounded-xl p-4 sm:p-5"
     >
-      <div className="mb-3 flex items-center justify-between">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h3 className="text-sm font-medium">LeetCode Problems</h3>
-          <p className="text-xs text-muted-foreground">
-            {total} solved{stats.lastSolvedDate ? ` · last ${stats.lastSolvedDate}` : ""}
+          <h3 className="text-base font-semibold">Pattern Practice</h3>
+          <p className="mt-0.5 text-xs text-muted-foreground max-w-lg">
+            BD-first interview prep — Brain Station 23, Therap, Cefalo, bKash &amp; peers. MAANG as stretch target.
           </p>
         </div>
-        <span
-          className="rounded px-1.5 py-px text-[11px] font-medium tabular-nums"
-          style={{ background: "rgba(124,92,252,0.15)", color: "#c4b5fd" }}
-        >
-          {stats.easy}E · {stats.medium}M · {stats.hard}H
-        </span>
-      </div>
-      <div className="grid grid-cols-3 gap-2">
-        {DIFFICULTIES.map((d) => (
-          <div
-            key={d.key}
-            className="flex flex-col items-center gap-1.5 rounded-lg border-[0.5px] border-white/[0.08] bg-white/[0.02] p-2.5"
-          >
-            <span className="text-[11px] font-medium" style={{ color: d.color }}>{d.label}</span>
-            <span className="metric-value text-xl tabular-nums">{stats[d.key]}</span>
-            <div className="flex items-center gap-1">
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-6 w-6"
-                onClick={() => removeLeetCodeProblem(d.key)}
-                aria-label={`Remove ${d.label}`}
-              >
-                <Minus className="h-3 w-3" />
-              </Button>
-              <Button
-                size="sm"
-                className="h-6 gap-1 px-2 text-[11px]"
-                style={{ background: d.color, color: "#0a0a0c" }}
-                onClick={() => addLeetCodeProblem(d.key)}
-              >
-                <Plus className="h-3 w-3" /> Add
-              </Button>
+        <div className="flex flex-wrap gap-3">
+          <div className="text-center">
+            <div className="metric-value text-3xl tabular-nums" style={{ color: ACCENT }}>
+              {dsaReadiness.score}%
             </div>
+            <p className="text-[11px] text-muted-foreground">DSA readiness</p>
+            <p className="text-[10px] tabular-nums text-muted-foreground">
+              {dsaReadiness.done}/{dsaReadiness.total} solved
+            </p>
           </div>
-        ))}
+          <div className="text-center">
+            <div className="metric-value text-2xl tabular-nums">{csReadiness.score}%</div>
+            <p className="text-[11px] text-muted-foreground">CS theory</p>
+            <p className="text-[10px] tabular-nums text-muted-foreground">
+              {csReadiness.done}/{csReadiness.total}
+            </p>
+          </div>
+          <div className="text-center">
+            <div className="metric-value text-2xl tabular-nums">{combinedReadiness.score}%</div>
+            <p className="text-[11px] text-muted-foreground">Combined</p>
+          </div>
+        </div>
       </div>
+
+      <LeetcodeReadinessCharts tierData={tierData} cumulativeData={cumulativeData} />
+
+      {/* Tag tabs */}
+      <Tabs value={tagFilter} onValueChange={(v) => setTagFilter(v as LeetcodeTagFilter)}>
+        <TabsList className="h-auto flex-wrap justify-start gap-1">
+          {TAG_FILTERS.map((tag) => (
+            <TabsTrigger key={tag} value={tag} className="text-xs">
+              {tag === "all" ? "All" : LEETCODE_TAG_LABELS[tag]}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+
+      {/* Pattern grid by tier */}
+      <div className="space-y-6">
+        {LEETCODE_TIER_ORDER.map((tier) => {
+          const tierPatterns = grouped[tier];
+          if (tierPatterns.length === 0) return null;
+          return (
+            <section key={tier}>
+              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {LEETCODE_TIER_LABELS[tier]}
+              </h4>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {tierPatterns.map((pattern) => (
+                  <PatternCard key={pattern.name} pattern={pattern} problems={problems} />
+                ))}
+              </div>
+            </section>
+          );
+        })}
+      </div>
+
+      {/* CS Fundamentals */}
+      <section className="rounded-xl border border-violet-500/20 bg-violet-500/[0.04] p-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h4 className="text-sm font-semibold text-violet-200">CS Fundamentals</h4>
+            <p className="text-xs text-muted-foreground">
+              Theory checklist — front-loaded MCQ screens at many BD companies
+            </p>
+          </div>
+          <div className="text-right">
+            <span className="metric-value text-xl tabular-nums" style={{ color: ACCENT }}>
+              {csReadiness.score}%
+            </span>
+            <p className="text-[10px] tabular-nums text-muted-foreground">
+              {csReadiness.done}/{csReadiness.total} reviewed
+            </p>
+          </div>
+        </div>
+        <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+          <div
+            className="h-full rounded-full transition-all"
+            style={{
+              width: `${csReadiness.score}%`,
+              background: ACCENT,
+            }}
+          />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {csByCategory.map(({ category, items }) => (
+            <div key={category}>
+              <h5 className="mb-2 text-xs font-medium text-violet-300/80">{category}</h5>
+              <ul className="space-y-1">
+                {items.map((item) => (
+                  <li key={item.id} className="flex items-center gap-2 rounded-md px-1 py-1 hover:bg-white/[0.03]">
+                    <button
+                      type="button"
+                      onClick={() => toggleCsReviewItem(item.id)}
+                      className={cn(
+                        "flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors",
+                        item.done
+                          ? "border-transparent text-white"
+                          : "border-white/20 bg-transparent hover:border-white/40"
+                      )}
+                      style={item.done ? { background: ACCENT } : undefined}
+                      aria-label={item.done ? "Mark unreviewed" : "Mark reviewed"}
+                    >
+                      {item.done && <Check className="h-2.5 w-2.5" />}
+                    </button>
+                    <span
+                      className={cn(
+                        "text-sm",
+                        item.done && "line-through opacity-60 text-muted-foreground"
+                      )}
+                    >
+                      {item.title}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </section>
     </motion.div>
   );
 }

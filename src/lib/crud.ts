@@ -1,6 +1,6 @@
 import { v4 as uuid } from "uuid";
 import { db } from "./db";
-import type { Module, Topic, Subtopic, ProgressStatus, Difficulty } from "./types";
+import type { Module, Topic, Subtopic, ProgressStatus, Difficulty, LeetcodeProblem } from "./types";
 import { nowISO, todayISO, parseLocalDate } from "./utils";
 import { computeNextReviewDate } from "./metrics";
 import { isTopicComplete } from "./in-progress";
@@ -363,6 +363,74 @@ export async function removeLeetCodeProblem(difficulty: "easy" | "medium" | "har
     leetCodeStats: { ...stats, [difficulty]: Math.max(0, (stats[difficulty] ?? 0) - 1) },
     leetCodeLog: log,
   });
+}
+
+export async function toggleLeetcodeProblem(id: string) {
+  const problem = await db.leetcodeProblems.get(id);
+  if (!problem) return;
+
+  const nextDone = !problem.done;
+  const updates = {
+    done: nextDone,
+    doneAt: nextDone ? todayISO() : undefined,
+    updatedAt: nowISO(),
+  };
+
+  await db.leetcodeProblems.update(id, updates);
+
+  if (nextDone && !problem.done) {
+    await addLeetCodeProblem(problem.difficulty);
+  } else if (!nextDone && problem.done) {
+    await removeLeetCodeProblem(problem.difficulty);
+  }
+}
+
+export async function addLeetcodeProblem(input: {
+  pattern: string;
+  title: string;
+  url?: string;
+  difficulty: "easy" | "medium" | "hard";
+  notes?: string;
+}) {
+  const existing = await db.leetcodeProblems.where("pattern").equals(input.pattern).toArray();
+  const now = nowISO();
+  const problem = {
+    id: uuid(),
+    pattern: input.pattern,
+    title: input.title,
+    url: input.url,
+    difficulty: input.difficulty,
+    done: false,
+    isCore: false,
+    notes: input.notes,
+    order: existing.length > 0 ? Math.max(...existing.map((p) => p.order)) + 1 : 0,
+    createdAt: now,
+    updatedAt: now,
+  };
+  await db.leetcodeProblems.add(problem);
+  return problem;
+}
+
+export async function updateLeetcodeProblem(
+  id: string,
+  patch: Partial<Pick<LeetcodeProblem, "title" | "url" | "difficulty" | "notes" | "pattern">>
+) {
+  await db.leetcodeProblems.update(id, { ...patch, updatedAt: nowISO() });
+}
+
+export async function deleteLeetcodeProblem(id: string) {
+  const problem = await db.leetcodeProblems.get(id);
+  if (!problem) return;
+  if (problem.done) {
+    await removeLeetCodeProblem(problem.difficulty);
+  }
+  await db.leetcodeProblems.delete(id);
+}
+
+export async function toggleCsReviewItem(id: string) {
+  const item = await db.csReviewItems.get(id);
+  if (!item) return;
+  await db.csReviewItems.update(id, { done: !item.done, updatedAt: nowISO() });
 }
 
 export async function updateSubtopicDueDate(id: string, dueDate: string) {

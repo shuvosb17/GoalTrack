@@ -85,3 +85,11 @@ export function useSettings() {
 export function useSkipLogs() {
   return useLiveQuery(() => db.skipLogs.toArray(), []) ?? [];
 }
+
+export function useLeetcodeProblems() {
+  return useLiveQuery(() => db.leetcodeProblems.orderBy("order").toArray(), []) ?? [];
+}
+
+export function useCsReviewItems() {
+  return useLiveQuery(() => db.csReviewItems.orderBy("order").toArray(), []) ?? [];
+}

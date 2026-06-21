@@ -8,7 +8,7 @@ import { SkipReasonPrompt } from "@/components/dashboard/skip-reason-prompt";
 import { AchievementChecker } from "@/components/providers/achievement-checker";
 import { AutoBackupProvider } from "@/components/providers/auto-backup";
 import { ConfidencePromptProvider } from "@/components/providers/confidence-prompt-provider";
-import { seedDatabase } from "@/lib/seed";
+import { seedDatabase, ensureLeetcodePrep } from "@/lib/seed";
 import { repairMisattributedSessions } from "@/lib/session-repair";
 import { useAppStore } from "@/stores/app-store";
 import { Logo } from "./logo";
@@ -18,6 +18,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     seedDatabase()
+      .then(() => ensureLeetcodePrep())
       .then(() => repairMisattributedSessions())
       .then(() => setInitialized(true));
   }, [setInitialized]);
