@@ -1,6 +1,7 @@
 import type {
   LeetcodePatternMeta,
   LeetcodeSampleProblem,
+  LeetCodeDifficulty,
   LeetcodeTag,
   LeetcodeTier,
 } from "./types/metrics";
@@ -38,6 +39,11 @@ export const LEETCODE_TIER_ORDER: LeetcodeTier[] = [
   "specialist",
 ];
 
+function p(title: string, slug: string, difficulty: LeetCodeDifficulty): LeetcodeSampleProblem {
+  return { title, url: `https://leetcode.com/problems/${slug}/`, difficulty };
+}
+
+/** Curated sheet: Blind 75 + NeetCode 150 overlap, weighted for BD tech interviews. */
 export const LEETCODE_PATTERNS: LeetcodePatternDefinition[] = [
   {
     name: "Arrays & Hashing",
@@ -46,9 +52,14 @@ export const LEETCODE_PATTERNS: LeetcodePatternDefinition[] = [
     tags: ["BD-CORE", "MAANG"],
     isCore: true,
     sampleProblems: [
-      { title: "Two Sum", url: "https://leetcode.com/problems/two-sum/", difficulty: "easy" },
-      { title: "Group Anagrams", url: "https://leetcode.com/problems/group-anagrams/", difficulty: "medium" },
-      { title: "Product of Array Except Self", url: "https://leetcode.com/problems/product-of-array-except-self/", difficulty: "medium" },
+      p("Two Sum", "two-sum", "easy"),
+      p("Contains Duplicate", "contains-duplicate", "easy"),
+      p("Valid Anagram", "valid-anagram", "easy"),
+      p("Group Anagrams", "group-anagrams", "medium"),
+      p("Top K Frequent Elements", "top-k-frequent-elements", "medium"),
+      p("Product of Array Except Self", "product-of-array-except-self", "medium"),
+      p("Longest Consecutive Sequence", "longest-consecutive-sequence", "medium"),
+      p("Encode and Decode Strings", "encode-and-decode-strings", "medium"),
     ],
   },
   {
@@ -58,8 +69,11 @@ export const LEETCODE_PATTERNS: LeetcodePatternDefinition[] = [
     tags: ["BD-CORE", "MAANG"],
     isCore: true,
     sampleProblems: [
-      { title: "3Sum", url: "https://leetcode.com/problems/3sum/", difficulty: "medium" },
-      { title: "Container With Most Water", url: "https://leetcode.com/problems/container-with-most-water/", difficulty: "medium" },
+      p("Valid Palindrome", "valid-palindrome", "easy"),
+      p("Two Sum II - Input Array Is Sorted", "two-sum-ii-input-array-is-sorted", "medium"),
+      p("3Sum", "3sum", "medium"),
+      p("Container With Most Water", "container-with-most-water", "medium"),
+      p("Trapping Rain Water", "trapping-rain-water", "hard"),
     ],
   },
   {
@@ -69,8 +83,12 @@ export const LEETCODE_PATTERNS: LeetcodePatternDefinition[] = [
     tags: ["BD-CORE", "MAANG"],
     isCore: true,
     sampleProblems: [
-      { title: "Longest Substring Without Repeating Characters", url: "https://leetcode.com/problems/longest-substring-without-repeating-characters/", difficulty: "medium" },
-      { title: "Minimum Window Substring", url: "https://leetcode.com/problems/minimum-window-substring/", difficulty: "hard" },
+      p("Best Time to Buy and Sell Stock", "best-time-to-buy-and-sell-stock", "easy"),
+      p("Longest Substring Without Repeating Characters", "longest-substring-without-repeating-characters", "medium"),
+      p("Longest Repeating Character Replacement", "longest-repeating-character-replacement", "medium"),
+      p("Permutation in String", "permutation-in-string", "medium"),
+      p("Minimum Window Substring", "minimum-window-substring", "hard"),
+      p("Sliding Window Maximum", "sliding-window-maximum", "hard"),
     ],
   },
   {
@@ -80,7 +98,12 @@ export const LEETCODE_PATTERNS: LeetcodePatternDefinition[] = [
     tags: ["BD-CORE", "MAANG"],
     isCore: true,
     sampleProblems: [
-      { title: "Search in Rotated Sorted Array", url: "https://leetcode.com/problems/search-in-rotated-sorted-array/", difficulty: "medium" },
+      p("Binary Search", "binary-search", "easy"),
+      p("Search a 2D Matrix", "search-a-2d-matrix", "medium"),
+      p("Search in Rotated Sorted Array", "search-in-rotated-sorted-array", "medium"),
+      p("Find Minimum in Rotated Sorted Array", "find-minimum-in-rotated-sorted-array", "medium"),
+      p("Koko Eating Bananas", "koko-eating-bananas", "medium"),
+      p("Median of Two Sorted Arrays", "median-of-two-sorted-arrays", "hard"),
     ],
   },
   {
@@ -90,9 +113,18 @@ export const LEETCODE_PATTERNS: LeetcodePatternDefinition[] = [
     tags: ["BD-CORE", "MAANG"],
     isCore: true,
     sampleProblems: [
-      { title: "Binary Tree Level Order Traversal", url: "https://leetcode.com/problems/binary-tree-level-order-traversal/", difficulty: "medium" },
-      { title: "Validate Binary Search Tree", url: "https://leetcode.com/problems/validate-binary-search-tree/", difficulty: "medium" },
-      { title: "Lowest Common Ancestor of a Binary Tree", url: "https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-tree/", difficulty: "medium" },
+      p("Maximum Depth of Binary Tree", "maximum-depth-of-binary-tree", "easy"),
+      p("Same Tree", "same-tree", "easy"),
+      p("Invert Binary Tree", "invert-binary-tree", "easy"),
+      p("Subtree of Another Tree", "subtree-of-another-tree", "easy"),
+      p("Binary Tree Level Order Traversal", "binary-tree-level-order-traversal", "medium"),
+      p("Validate Binary Search Tree", "validate-binary-search-tree", "medium"),
+      p("Kth Smallest Element in a BST", "kth-smallest-element-in-a-bst", "medium"),
+      p("Construct Binary Tree from Preorder and Inorder Traversal", "construct-binary-tree-from-preorder-and-inorder-traversal", "medium"),
+      p("Binary Tree Maximum Path Sum", "binary-tree-maximum-path-sum", "hard"),
+      p("Lowest Common Ancestor of a Binary Tree", "lowest-common-ancestor-of-a-binary-tree", "medium"),
+      p("Diameter of Binary Tree", "diameter-of-binary-tree", "easy"),
+      p("Balanced Binary Tree", "balanced-binary-tree", "easy"),
     ],
   },
   {
@@ -102,8 +134,13 @@ export const LEETCODE_PATTERNS: LeetcodePatternDefinition[] = [
     tags: ["BD-CORE", "MAANG"],
     isCore: true,
     sampleProblems: [
-      { title: "Number of Islands", url: "https://leetcode.com/problems/number-of-islands/", difficulty: "medium" },
-      { title: "Course Schedule", url: "https://leetcode.com/problems/course-schedule/", difficulty: "medium" },
+      p("Number of Islands", "number-of-islands", "medium"),
+      p("Clone Graph", "clone-graph", "medium"),
+      p("Course Schedule", "course-schedule", "medium"),
+      p("Pacific Atlantic Water Flow", "pacific-atlantic-water-flow", "medium"),
+      p("Rotting Oranges", "rotting-oranges", "medium"),
+      p("Walls and Gates", "walls-and-gates", "medium"),
+      p("Max Area of Island", "max-area-of-island", "medium"),
     ],
   },
   {
@@ -113,10 +150,15 @@ export const LEETCODE_PATTERNS: LeetcodePatternDefinition[] = [
     tags: ["BD-CORE", "MAANG", "BD-CP"],
     isCore: true,
     sampleProblems: [
-      { title: "Climbing Stairs", url: "https://leetcode.com/problems/climbing-stairs/", difficulty: "easy" },
-      { title: "House Robber", url: "https://leetcode.com/problems/house-robber/", difficulty: "medium" },
-      { title: "Coin Change", url: "https://leetcode.com/problems/coin-change/", difficulty: "medium" },
-      { title: "Unique Paths", url: "https://leetcode.com/problems/unique-paths/", difficulty: "medium" },
+      p("Climbing Stairs", "climbing-stairs", "easy"),
+      p("Min Cost Climbing Stairs", "min-cost-climbing-stairs", "easy"),
+      p("House Robber", "house-robber", "medium"),
+      p("House Robber II", "house-robber-ii", "medium"),
+      p("Coin Change", "coin-change", "medium"),
+      p("Unique Paths", "unique-paths", "medium"),
+      p("Longest Palindromic Substring", "longest-palindromic-substring", "medium"),
+      p("Word Break", "word-break", "medium"),
+      p("Decode Ways", "decode-ways", "medium"),
     ],
   },
   {
@@ -126,8 +168,12 @@ export const LEETCODE_PATTERNS: LeetcodePatternDefinition[] = [
     tags: ["BD-CORE", "MAANG"],
     isCore: true,
     sampleProblems: [
-      { title: "Valid Parentheses", url: "https://leetcode.com/problems/valid-parentheses/", difficulty: "easy" },
-      { title: "Daily Temperatures", url: "https://leetcode.com/problems/daily-temperatures/", difficulty: "medium" },
+      p("Valid Parentheses", "valid-parentheses", "easy"),
+      p("Min Stack", "min-stack", "medium"),
+      p("Evaluate Reverse Polish Notation", "evaluate-reverse-polish-notation", "medium"),
+      p("Daily Temperatures", "daily-temperatures", "medium"),
+      p("Largest Rectangle in Histogram", "largest-rectangle-in-histogram", "hard"),
+      p("Car Fleet", "car-fleet", "medium"),
     ],
   },
   {
@@ -137,9 +183,14 @@ export const LEETCODE_PATTERNS: LeetcodePatternDefinition[] = [
     tags: ["BD-CORE", "MAANG"],
     isCore: true,
     sampleProblems: [
-      { title: "Reverse Linked List", url: "https://leetcode.com/problems/reverse-linked-list/", difficulty: "easy" },
-      { title: "Merge Two Sorted Lists", url: "https://leetcode.com/problems/merge-two-sorted-lists/", difficulty: "easy" },
-      { title: "Linked List Cycle", url: "https://leetcode.com/problems/linked-list-cycle/", difficulty: "easy" },
+      p("Reverse Linked List", "reverse-linked-list", "easy"),
+      p("Merge Two Sorted Lists", "merge-two-sorted-lists", "easy"),
+      p("Linked List Cycle", "linked-list-cycle", "easy"),
+      p("Reorder List", "reorder-list", "medium"),
+      p("Remove Nth Node From End of List", "remove-nth-node-from-end-of-list", "medium"),
+      p("Copy List with Random Pointer", "copy-list-with-random-pointer", "medium"),
+      p("Add Two Numbers", "add-two-numbers", "medium"),
+      p("Find the Duplicate Number", "find-the-duplicate-number", "medium"),
     ],
   },
   {
@@ -149,8 +200,12 @@ export const LEETCODE_PATTERNS: LeetcodePatternDefinition[] = [
     tags: ["BD-CORE", "MAANG"],
     isCore: true,
     sampleProblems: [
-      { title: "Kth Largest Element in an Array", url: "https://leetcode.com/problems/kth-largest-element-in-an-array/", difficulty: "medium" },
-      { title: "Top K Frequent Elements", url: "https://leetcode.com/problems/top-k-frequent-elements/", difficulty: "medium" },
+      p("Kth Largest Element in an Array", "kth-largest-element-in-an-array", "medium"),
+      p("Last Stone Weight", "last-stone-weight", "easy"),
+      p("K Closest Points to Origin", "k-closest-points-to-origin", "medium"),
+      p("Task Scheduler", "task-scheduler", "medium"),
+      p("Find Median from Data Stream", "find-median-from-data-stream", "hard"),
+      p("Merge k Sorted Lists", "merge-k-sorted-lists", "hard"),
     ],
   },
   {
@@ -160,9 +215,14 @@ export const LEETCODE_PATTERNS: LeetcodePatternDefinition[] = [
     tags: ["BD-CORE", "MAANG"],
     isCore: true,
     sampleProblems: [
-      { title: "Subsets", url: "https://leetcode.com/problems/subsets/", difficulty: "medium" },
-      { title: "Permutations", url: "https://leetcode.com/problems/permutations/", difficulty: "medium" },
-      { title: "Combination Sum", url: "https://leetcode.com/problems/combination-sum/", difficulty: "medium" },
+      p("Subsets", "subsets", "medium"),
+      p("Subsets II", "subsets-ii", "medium"),
+      p("Permutations", "permutations", "medium"),
+      p("Combination Sum", "combination-sum", "medium"),
+      p("Combination Sum II", "combination-sum-ii", "medium"),
+      p("Word Search", "word-search", "medium"),
+      p("Letter Combinations of a Phone Number", "letter-combinations-of-a-phone-number", "medium"),
+      p("Palindrome Partitioning", "palindrome-partitioning", "medium"),
     ],
   },
   {
@@ -172,8 +232,10 @@ export const LEETCODE_PATTERNS: LeetcodePatternDefinition[] = [
     tags: ["BD-CP"],
     isCore: true,
     sampleProblems: [
-      { title: "Network Delay Time", url: "https://leetcode.com/problems/network-delay-time/", difficulty: "medium" },
-      { title: "Cheapest Flights Within K Stops", url: "https://leetcode.com/problems/cheapest-flights-within-k-stops/", difficulty: "medium" },
+      p("Network Delay Time", "network-delay-time", "medium"),
+      p("Cheapest Flights Within K Stops", "cheapest-flights-within-k-stops", "medium"),
+      p("Path With Minimum Effort", "path-with-minimum-effort", "medium"),
+      p("Swim in Rising Water", "swim-in-rising-water", "hard"),
     ],
   },
   {
@@ -183,9 +245,14 @@ export const LEETCODE_PATTERNS: LeetcodePatternDefinition[] = [
     tags: ["BD-CP"],
     isCore: true,
     sampleProblems: [
-      { title: "Jump Game", url: "https://leetcode.com/problems/jump-game/", difficulty: "medium" },
-      { title: "Gas Station", url: "https://leetcode.com/problems/gas-station/", difficulty: "medium" },
-      { title: "Merge Intervals", url: "https://leetcode.com/problems/merge-intervals/", difficulty: "medium" },
+      p("Maximum Subarray", "maximum-subarray", "medium"),
+      p("Jump Game", "jump-game", "medium"),
+      p("Jump Game II", "jump-game-ii", "medium"),
+      p("Gas Station", "gas-station", "medium"),
+      p("Merge Intervals", "merge-intervals", "medium"),
+      p("Non-overlapping Intervals", "non-overlapping-intervals", "medium"),
+      p("Hand of Straights", "hand-of-straights", "medium"),
+      p("Partition Labels", "partition-labels", "medium"),
     ],
   },
   {
@@ -195,9 +262,13 @@ export const LEETCODE_PATTERNS: LeetcodePatternDefinition[] = [
     tags: ["BD-CP"],
     isCore: true,
     sampleProblems: [
-      { title: "Greatest Common Divisor of Strings", url: "https://leetcode.com/problems/greatest-common-divisor-of-strings/", difficulty: "easy" },
-      { title: "Count Primes", url: "https://leetcode.com/problems/count-primes/", difficulty: "medium" },
-      { title: "Pow(x, n)", url: "https://leetcode.com/problems/powx-n/", difficulty: "medium" },
+      p("Plus One", "plus-one", "easy"),
+      p("Happy Number", "happy-number", "easy"),
+      p("Greatest Common Divisor of Strings", "greatest-common-divisor-of-strings", "easy"),
+      p("Count Primes", "count-primes", "medium"),
+      p("Pow(x, n)", "powx-n", "medium"),
+      p("Multiply Strings", "multiply-strings", "medium"),
+      p("Reverse Integer", "reverse-integer", "medium"),
     ],
   },
   {
@@ -207,10 +278,14 @@ export const LEETCODE_PATTERNS: LeetcodePatternDefinition[] = [
     tags: ["BD-CP"],
     isCore: true,
     sampleProblems: [
-      { title: "Longest Increasing Subsequence", url: "https://leetcode.com/problems/longest-increasing-subsequence/", difficulty: "medium" },
-      { title: "Longest Common Subsequence", url: "https://leetcode.com/problems/longest-common-subsequence/", difficulty: "medium" },
-      { title: "Partition Equal Subset Sum", url: "https://leetcode.com/problems/partition-equal-subset-sum/", difficulty: "medium" },
-      { title: "Edit Distance", url: "https://leetcode.com/problems/edit-distance/", difficulty: "medium" },
+      p("Longest Increasing Subsequence", "longest-increasing-subsequence", "medium"),
+      p("Longest Common Subsequence", "longest-common-subsequence", "medium"),
+      p("Partition Equal Subset Sum", "partition-equal-subset-sum", "medium"),
+      p("Target Sum", "target-sum", "medium"),
+      p("Coin Change II", "coin-change-ii", "medium"),
+      p("Edit Distance", "edit-distance", "medium"),
+      p("Distinct Subsequences", "distinct-subsequences", "hard"),
+      p("Best Time to Buy and Sell Stock with Cooldown", "best-time-to-buy-and-sell-stock-with-cooldown", "medium"),
     ],
   },
   {
@@ -220,8 +295,12 @@ export const LEETCODE_PATTERNS: LeetcodePatternDefinition[] = [
     tags: ["BD-CP", "MAANG"],
     isCore: true,
     sampleProblems: [
-      { title: "Single Number", url: "https://leetcode.com/problems/single-number/", difficulty: "easy" },
-      { title: "Number of 1 Bits", url: "https://leetcode.com/problems/number-of-1-bits/", difficulty: "easy" },
+      p("Single Number", "single-number", "easy"),
+      p("Number of 1 Bits", "number-of-1-bits", "easy"),
+      p("Counting Bits", "counting-bits", "easy"),
+      p("Reverse Bits", "reverse-bits", "easy"),
+      p("Missing Number", "missing-number", "easy"),
+      p("Sum of Two Integers", "sum-of-two-integers", "medium"),
     ],
   },
   {
@@ -231,8 +310,11 @@ export const LEETCODE_PATTERNS: LeetcodePatternDefinition[] = [
     tags: ["BD-CORE", "MAANG"],
     isCore: true,
     sampleProblems: [
-      { title: "Course Schedule II", url: "https://leetcode.com/problems/course-schedule-ii/", difficulty: "medium" },
-      { title: "Redundant Connection", url: "https://leetcode.com/problems/redundant-connection/", difficulty: "medium" },
+      p("Course Schedule II", "course-schedule-ii", "medium"),
+      p("Redundant Connection", "redundant-connection", "medium"),
+      p("Accounts Merge", "accounts-merge", "medium"),
+      p("Graph Valid Tree", "graph-valid-tree", "medium"),
+      p("Number of Connected Components in an Undirected Graph", "number-of-connected-components-in-an-undirected-graph", "medium"),
     ],
   },
   {
@@ -242,8 +324,9 @@ export const LEETCODE_PATTERNS: LeetcodePatternDefinition[] = [
     tags: ["MAANG", "BD-ADV"],
     isCore: true,
     sampleProblems: [
-      { title: "Implement Trie (Prefix Tree)", url: "https://leetcode.com/problems/implement-trie-prefix-tree/", difficulty: "medium" },
-      { title: "Word Search II", url: "https://leetcode.com/problems/word-search-ii/", difficulty: "hard" },
+      p("Implement Trie (Prefix Tree)", "implement-trie-prefix-tree", "medium"),
+      p("Design Add and Search Words Data Structure", "design-add-and-search-words-data-structure", "medium"),
+      p("Word Search II", "word-search-ii", "hard"),
     ],
   },
   {
@@ -253,9 +336,10 @@ export const LEETCODE_PATTERNS: LeetcodePatternDefinition[] = [
     tags: ["BD-ADV"],
     isCore: true,
     sampleProblems: [
-      { title: "Longest Palindromic Substring", url: "https://leetcode.com/problems/longest-palindromic-substring/", difficulty: "medium" },
-      { title: "Find the Index of the First Occurrence in a String", url: "https://leetcode.com/problems/find-the-index-of-the-first-occurrence-in-a-string/", difficulty: "easy" },
-      { title: "Palindromic Substrings", url: "https://leetcode.com/problems/palindromic-substrings/", difficulty: "medium" },
+      p("Find the Index of the First Occurrence in a String", "find-the-index-of-the-first-occurrence-in-a-string", "easy"),
+      p("Palindromic Substrings", "palindromic-substrings", "medium"),
+      p("Valid Parentheses String", "valid-parentheses-string", "medium"),
+      p("Repeated DNA Sequences", "repeated-dna-sequences", "medium"),
     ],
   },
   {
@@ -265,24 +349,36 @@ export const LEETCODE_PATTERNS: LeetcodePatternDefinition[] = [
     tags: ["BD-ADV"],
     isCore: true,
     sampleProblems: [
-      { title: "Range Sum Query - Mutable", url: "https://leetcode.com/problems/range-sum-query-mutable/", difficulty: "medium" },
+      p("Range Sum Query - Immutable", "range-sum-query-immutable", "easy"),
+      p("Range Sum Query - Mutable", "range-sum-query-mutable", "medium"),
+      p("Range Sum Query 2D - Immutable", "range-sum-query-2d-immutable", "medium"),
     ],
   },
 ];
 
 export const CS_FUNDAMENTALS: CsFundamentalDefinition[] = [
-  { category: "OOP", title: "Encapsulation" },
-  { category: "OOP", title: "Inheritance" },
-  { category: "OOP", title: "Polymorphism" },
-  { category: "OOP", title: "Abstraction" },
-  { category: "DBMS", title: "Normalization" },
-  { category: "DBMS", title: "Joins" },
-  { category: "DBMS", title: "Indexing" },
-  { category: "DBMS", title: "ACID" },
-  { category: "DBMS", title: "Transactions" },
-  { category: "DS", title: "Big-O of common operations" },
-  { category: "DS", title: "Hashing" },
-  { category: "DS", title: "Tree & heap properties" },
+  { category: "OOP", title: "Encapsulation — data hiding and access modifiers" },
+  { category: "OOP", title: "Inheritance — IS-A relationships and code reuse" },
+  { category: "OOP", title: "Polymorphism — runtime vs compile-time" },
+  { category: "OOP", title: "Abstraction — interfaces vs abstract classes" },
+  { category: "OOP", title: "Composition vs inheritance — when to use each" },
+  { category: "OOP", title: "Method overloading vs overriding" },
+  { category: "OOP", title: "SOLID principles (SRP, OCP, LSP, ISP, DIP)" },
+  { category: "DBMS", title: "Normalization — 1NF, 2NF, 3NF, BCNF" },
+  { category: "DBMS", title: "SQL joins — INNER, LEFT, RIGHT, FULL" },
+  { category: "DBMS", title: "Indexing — B-tree, hash, composite indexes" },
+  { category: "DBMS", title: "ACID properties and isolation levels" },
+  { category: "DBMS", title: "Transactions — commit, rollback, deadlocks" },
+  { category: "DBMS", title: "Primary, foreign, and composite keys" },
+  { category: "DBMS", title: "GROUP BY, HAVING, and aggregate functions" },
+  { category: "DBMS", title: "Subqueries vs joins — when to use each" },
+  { category: "DS", title: "Big-O of array, hash map, heap, tree operations" },
+  { category: "DS", title: "Hashing — collision resolution, load factor" },
+  { category: "DS", title: "Tree properties — BST invariants, heap ordering" },
+  { category: "DS", title: "Array vs linked list — tradeoffs" },
+  { category: "DS", title: "Stack vs queue — use cases" },
+  { category: "DS", title: "BFS vs DFS — when to use each" },
+  { category: "DS", title: "Sorting algorithms — time/space complexity" },
 ];
 
 export type LeetcodeTagFilter = LeetcodeTag | "all";
@@ -324,4 +420,13 @@ export function groupPatternsByTier(
   }
 
   return grouped;
+}
+
+/** Stable key for deduplicating seeded core problems. */
+export function coreProblemKey(pattern: string, title: string): string {
+  return `${pattern}::${title.trim().toLowerCase()}`;
+}
+
+export function coreCsItemKey(category: string, title: string): string {
+  return `${category}::${title.trim().toLowerCase()}`;
 }

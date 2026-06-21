@@ -3,7 +3,7 @@ import { db } from "./db";
 import type { Track, Module, Topic, Subtopic, Achievement, AppSettings, LeetcodeProblem, CsReviewItem } from "./types";
 import { DEFAULT_TIERED_GOAL } from "./types/metrics";
 import { nowISO } from "./utils";
-import { CS_FUNDAMENTALS, LEETCODE_PATTERNS } from "./leetcode-patterns";
+import { CS_FUNDAMENTALS, LEETCODE_PATTERNS, coreProblemKey, coreCsItemKey } from "./leetcode-patterns";
 
 const ACHIEVEMENTS: Omit<Achievement, "id">[] = [
   { key: "first_session", title: "First Study Session", description: "Complete your first learning session", icon: "🎯" },
@@ -118,46 +118,54 @@ export async function seedDatabase(): Promise<void> {
 }
 
 export async function ensureLeetcodePrep(): Promise<void> {
-  const [problemCount, csCount] = await Promise.all([
-    db.leetcodeProblems.count(),
-    db.csReviewItems.count(),
+  const [existingProblems, existingCs] = await Promise.all([
+    db.leetcodeProblems.toArray(),
+    db.csReviewItems.toArray(),
   ]);
 
   const now = nowISO();
-  const toInsert: LeetcodeProblem[] = [];
-  let order = 0;
+  const problemKeys = new Set(existingProblems.map((p) => coreProblemKey(p.pattern, p.title)));
+  const csKeys = new Set(existingCs.map((c) => coreCsItemKey(c.category, c.title)));
 
-  if (problemCount === 0) {
-    for (const pattern of LEETCODE_PATTERNS) {
-      for (const sample of pattern.sampleProblems) {
-        toInsert.push({
-          id: uuid(),
-          pattern: pattern.name,
-          title: sample.title,
-          url: sample.url,
-          difficulty: sample.difficulty,
-          done: false,
-          isCore: true,
-          order: order++,
-          createdAt: now,
-          updatedAt: now,
-        });
-      }
+  let nextOrder = existingProblems.reduce((max, p) => Math.max(max, p.order), -1) + 1;
+  const toInsert: LeetcodeProblem[] = [];
+
+  for (const pattern of LEETCODE_PATTERNS) {
+    for (const sample of pattern.sampleProblems) {
+      const key = coreProblemKey(pattern.name, sample.title);
+      if (problemKeys.has(key)) continue;
+      problemKeys.add(key);
+      toInsert.push({
+        id: uuid(),
+        pattern: pattern.name,
+        title: sample.title,
+        url: sample.url,
+        difficulty: sample.difficulty,
+        done: false,
+        isCore: true,
+        order: nextOrder++,
+        createdAt: now,
+        updatedAt: now,
+      });
     }
   }
 
-  const csToInsert: CsReviewItem[] =
-    csCount === 0
-      ? CS_FUNDAMENTALS.map((item, idx) => ({
-          id: uuid(),
-          category: item.category,
-          title: item.title,
-          done: false,
-          order: idx,
-          createdAt: now,
-          updatedAt: now,
-        }))
-      : [];
+  let csOrder = existingCs.reduce((max, c) => Math.max(max, c.order), -1) + 1;
+  const csToInsert: CsReviewItem[] = [];
+  for (const item of CS_FUNDAMENTALS) {
+    const key = coreCsItemKey(item.category, item.title);
+    if (csKeys.has(key)) continue;
+    csKeys.add(key);
+    csToInsert.push({
+      id: uuid(),
+      category: item.category,
+      title: item.title,
+      done: false,
+      order: csOrder++,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
 
   if (toInsert.length === 0 && csToInsert.length === 0) return;
 

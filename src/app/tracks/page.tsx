@@ -61,7 +61,7 @@ function TracksContent() {
 
       {(() => {
         const lc = tracks.find((t) => t.name === "LeetCode");
-        return lc && (!selectedTrack || selectedTrack === lc.id) ? <LeetCodePanel /> : null;
+        return lc && selectedTrack === lc.id ? <LeetCodePanel /> : null;
       })()}
 
       <HierarchyTree
