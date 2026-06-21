@@ -33,16 +33,9 @@ function TracksContent() {
   const isLeetcodeView = leetcodeTrack != null && selectedTrack === leetcodeTrack.id;
 
   const hierarchyTracks = useMemo(() => {
-    if (isLeetcodeView) return [];
     if (selectedTrack) return tracks.filter((t) => t.id === selectedTrack);
-    if (leetcodeTrack) return tracks.filter((t) => t.id !== leetcodeTrack.id);
     return tracks;
-  }, [tracks, selectedTrack, leetcodeTrack, isLeetcodeView]);
-
-  const leetcodeHierarchyTracks = useMemo(() => {
-    if (!isLeetcodeView || !leetcodeTrack) return [];
-    return [leetcodeTrack];
-  }, [isLeetcodeView, leetcodeTrack]);
+  }, [tracks, selectedTrack]);
 
   useEffect(() => {
     if (reviewDueCount === 0) return;
@@ -86,18 +79,6 @@ function TracksContent() {
         </TabsList>
       </Tabs>
 
-      {leetcodeHierarchyTracks.length > 0 && (
-        <HierarchyTree
-          tracks={leetcodeHierarchyTracks}
-          modules={modules.filter((m) => !m.archived && m.trackId === leetcodeTrack?.id)}
-          topics={topics.filter((t) => !t.archived && t.trackId === leetcodeTrack?.id)}
-          subtopics={subtopics}
-          selectedTrackId={leetcodeTrack?.id}
-        />
-      )}
-
-      {isLeetcodeView && <LeetCodePanel />}
-
       {hierarchyTracks.length > 0 && (
         <HierarchyTree
           tracks={hierarchyTracks}
@@ -108,10 +89,9 @@ function TracksContent() {
         />
       )}
 
-      <TrackEstimationPanel
-        filterTrackId={selectedTrack}
-        excludeTrackId={!selectedTrack ? leetcodeTrack?.id : undefined}
-      />
+      <TrackEstimationPanel filterTrackId={selectedTrack} />
+
+      {isLeetcodeView && <LeetCodePanel />}
     </div>
   );
 }
