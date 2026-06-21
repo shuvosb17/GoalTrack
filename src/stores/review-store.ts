@@ -10,16 +10,32 @@ export interface RevisionProgress {
   startedAt: number;
 }
 
-interface ReviewStore {
+export interface ReviewBackupState {
   queue: ReviewCatalogItem[];
   progress: RevisionProgress | null;
+}
 
+interface ReviewStore extends ReviewBackupState {
   addToQueue: (item: ReviewCatalogItem) => void;
   removeFromQueue: (id: string) => void;
   refreshQueueFromCatalog: (catalog: ReviewCatalogItem[]) => void;
+  syncDueReviewsToQueue: (dueItems: ReviewCatalogItem[]) => void;
+  restoreFromBackup: (state: ReviewBackupState) => void;
   startSession: (itemId: string) => void;
   setProgress: (progress: RevisionProgress) => void;
   finishSession: () => void;
+}
+
+export function getReviewStateForBackup(): ReviewBackupState {
+  const { queue, progress } = useReviewStore.getState();
+  return { queue, progress };
+}
+
+export function restoreReviewStateFromBackup(state: Partial<ReviewBackupState>) {
+  useReviewStore.getState().restoreFromBackup({
+    queue: state.queue ?? [],
+    progress: state.progress ?? null,
+  });
 }
 
 export const useReviewStore = create<ReviewStore>()(
@@ -46,6 +62,22 @@ export const useReviewStore = create<ReviewStore>()(
           queue: get().queue
             .map((q) => byId.get(q.id) ?? q)
             .filter((q) => byId.has(q.id)),
+        });
+      },
+
+      syncDueReviewsToQueue: (dueItems) => {
+        if (dueItems.length === 0) return;
+        const { queue } = get();
+        const existing = new Set(queue.map((q) => q.id));
+        const toAdd = dueItems.filter((item) => !existing.has(item.id));
+        if (toAdd.length === 0) return;
+        set({ queue: [...queue, ...toAdd] });
+      },
+
+      restoreFromBackup: (state) => {
+        set({
+          queue: state.queue,
+          progress: state.progress,
         });
       },
 

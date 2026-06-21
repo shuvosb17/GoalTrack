@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { BookOpen, BookmarkCheck } from "lucide-react";
 import { HierarchyTree } from "@/components/tracks/hierarchy-tree";
@@ -10,7 +10,9 @@ import { LeetCodePanel } from "@/components/tracks/leetcode-panel";
 import { useTracks, useAllModules, useAllTopics, useAllSubtopics } from "@/hooks/use-data";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { getTopicsDueForReview } from "@/lib/metrics";
+import { countSpacedReviewDue } from "@/lib/metrics";
+import { buildRevisionCatalog, getDueReviewCatalogItems } from "@/lib/revision-catalog";
+import { useReviewStore } from "@/stores/review-store";
 
 function TracksContent() {
   const searchParams = useSearchParams();
@@ -22,7 +24,32 @@ function TracksContent() {
   const topics = useAllTopics();
   const subtopics = useAllSubtopics();
 
-  const reviewDue = useMemo(() => getTopicsDueForReview(topics), [topics]);
+  const reviewDueCount = useMemo(
+    () => countSpacedReviewDue(topics, subtopics),
+    [topics, subtopics]
+  );
+
+  const leetcodeTrack = useMemo(() => tracks.find((t) => t.name === "LeetCode"), [tracks]);
+  const isLeetcodeView = leetcodeTrack != null && selectedTrack === leetcodeTrack.id;
+
+  const hierarchyTracks = useMemo(() => {
+    if (isLeetcodeView) return [];
+    if (selectedTrack) return tracks.filter((t) => t.id === selectedTrack);
+    if (leetcodeTrack) return tracks.filter((t) => t.id !== leetcodeTrack.id);
+    return tracks;
+  }, [tracks, selectedTrack, leetcodeTrack, isLeetcodeView]);
+
+  const leetcodeHierarchyTracks = useMemo(() => {
+    if (!isLeetcodeView || !leetcodeTrack) return [];
+    return [leetcodeTrack];
+  }, [isLeetcodeView, leetcodeTrack]);
+
+  useEffect(() => {
+    if (reviewDueCount === 0) return;
+    const catalog = buildRevisionCatalog(tracks, modules, topics, subtopics);
+    const dueItems = getDueReviewCatalogItems(catalog, topics, subtopics);
+    useReviewStore.getState().syncDueReviewsToQueue(dueItems);
+  }, [reviewDueCount, tracks, modules, topics, subtopics]);
 
   return (
     <div className="space-y-6">
@@ -33,18 +60,18 @@ function TracksContent() {
         <p className="text-muted-foreground mt-1">Manage your hierarchical learning structure</p>
       </div>
 
-      {reviewDue.length > 0 && (
+      {reviewDueCount > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border-[0.5px] border-violet-500/25 bg-violet-500/[0.06] px-4 py-3">
           <div className="flex items-center gap-2 text-sm">
             <BookmarkCheck className="h-4 w-4 text-violet-400" />
             <span>
-              <span className="font-medium text-violet-200">{reviewDue.length} topic{reviewDue.length === 1 ? "" : "s"}</span>
-              <span className="text-muted-foreground"> due for spaced review — look for the violet badge below</span>
+              <span className="font-medium text-violet-200">{reviewDueCount} item{reviewDueCount === 1 ? "" : "s"}</span>
+              <span className="text-muted-foreground"> due for spaced review — open Review on Status</span>
             </span>
           </div>
-          <Link href="/status">
+          <Link href="/status?tab=review">
             <Button size="sm" variant="outline" className="h-8 border-violet-500/30 text-xs">
-              View on Status
+              Open Review
             </Button>
           </Link>
         </div>
@@ -59,20 +86,32 @@ function TracksContent() {
         </TabsList>
       </Tabs>
 
-      {(() => {
-        const lc = tracks.find((t) => t.name === "LeetCode");
-        return lc && selectedTrack === lc.id ? <LeetCodePanel /> : null;
-      })()}
+      {leetcodeHierarchyTracks.length > 0 && (
+        <HierarchyTree
+          tracks={leetcodeHierarchyTracks}
+          modules={modules.filter((m) => !m.archived && m.trackId === leetcodeTrack?.id)}
+          topics={topics.filter((t) => !t.archived && t.trackId === leetcodeTrack?.id)}
+          subtopics={subtopics}
+          selectedTrackId={leetcodeTrack?.id}
+        />
+      )}
 
-      <HierarchyTree
-        tracks={tracks}
-        modules={modules.filter((m) => !m.archived)}
-        topics={topics.filter((t) => !t.archived)}
-        subtopics={subtopics}
-        selectedTrackId={selectedTrack}
+      {isLeetcodeView && <LeetCodePanel />}
+
+      {hierarchyTracks.length > 0 && (
+        <HierarchyTree
+          tracks={hierarchyTracks}
+          modules={modules.filter((m) => !m.archived)}
+          topics={topics.filter((t) => !t.archived)}
+          subtopics={subtopics}
+          selectedTrackId={selectedTrack}
+        />
+      )}
+
+      <TrackEstimationPanel
+        filterTrackId={selectedTrack}
+        excludeTrackId={!selectedTrack ? leetcodeTrack?.id : undefined}
       />
-
-      <TrackEstimationPanel filterTrackId={selectedTrack} />
     </div>
   );
 }

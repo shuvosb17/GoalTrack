@@ -241,6 +241,27 @@ export function isTopicDueForReview(topic: Topic): boolean {
   );
 }
 
+export function isSubtopicDueForReview(subtopic: Subtopic): boolean {
+  if (!subtopic.completionMeta) return false;
+  if (subtopic.status !== "completed" && subtopic.status !== "mastered") return false;
+  return (
+    subtopic.completionMeta.nextReviewDue <= todayISO() &&
+    subtopic.completionMeta.confidenceRating < 4
+  );
+}
+
+export function getTopicsDueForReview(topics: Topic[]): Topic[] {
+  return topics.filter(isTopicDueForReview);
+}
+
+export function getSubtopicsDueForReview(subtopics: Subtopic[]): Subtopic[] {
+  return subtopics.filter(isSubtopicDueForReview);
+}
+
+export function countSpacedReviewDue(topics: Topic[], subtopics: Subtopic[]): number {
+  return getTopicsDueForReview(topics).length + getSubtopicsDueForReview(subtopics).length;
+}
+
 export function getReviewDueLabel(topic: Topic): string | null {
   if (!topic.completionMeta) return null;
   if (topic.status !== "completed" && topic.status !== "mastered") return null;
@@ -252,10 +273,6 @@ export function getReviewDueLabel(topic: Topic): string | null {
   if (days === 0) return "Review due today";
   if (days <= 2) return `Review in ${days}d`;
   return null;
-}
-
-export function getTopicsDueForReview(topics: Topic[]): Topic[] {
-  return topics.filter(isTopicDueForReview);
 }
 
 export function getQualityWeight(rating?: 1 | 2 | 3): number {

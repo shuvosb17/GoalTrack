@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -29,7 +30,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { updateTopicStatus, updateSubtopicStatus } from "@/lib/crud";
-import { getTopicsDueForReview, isTopicDueForReview } from "@/lib/metrics";
+import { isTopicDueForReview, countSpacedReviewDue } from "@/lib/metrics";
 import { ReviewSessionPanel } from "@/components/status/review-session-panel";
 import { TopicConfidenceDialog } from "@/components/tracks/topic-confidence-dialog";
 
@@ -85,12 +86,22 @@ function StatusChip({
 }
 
 export default function StatusPage() {
+  return (
+    <Suspense fallback={<div className="animate-pulse h-96 glass-card rounded-xl" />}>
+      <StatusContent />
+    </Suspense>
+  );
+}
+
+function StatusContent() {
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab");
   const tracks = useTracks();
   const modules = useAllModules();
   const topics = useAllTopics();
   const subtopics = useAllSubtopics();
   const goalMilestones = useGoalMilestones();
-  const [statusFilter, setStatusFilter] = useState<Filter>("all");
+  const [statusFilter, setStatusFilter] = useState<Filter>(initialTab === "review" ? "review" : "all");
   const [trackFilter, setTrackFilter] = useState("all");
   const [reviewDialog, setReviewDialog] = useState<{ id: string; name: string } | null>(null);
 
@@ -128,7 +139,7 @@ export default function StatusPage() {
     [topics, subtopics, modules, tracks]
   );
 
-  const reviewCount = useMemo(() => getTopicsDueForReview(topics).length, [topics]);
+  const reviewCount = useMemo(() => countSpacedReviewDue(topics, subtopics), [topics, subtopics]);
   const criticalCount = alerts.filter((a) => a.level === "critical").length;
 
   return (

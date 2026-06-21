@@ -17,6 +17,7 @@ import type { Module, Subtopic, Topic, Track } from "@/lib/types";
 import {
   buildRevisionCatalog,
   countCompletedByTrack,
+  getDueReviewCatalogItems,
   getReviewItemHierarchyLabel,
   isRateableReviewItem,
 } from "@/lib/revision-catalog";
@@ -49,6 +50,7 @@ export function ReviewSessionPanel({
   const addToQueue = useReviewStore((s) => s.addToQueue);
   const removeFromQueue = useReviewStore((s) => s.removeFromQueue);
   const refreshQueueFromCatalog = useReviewStore((s) => s.refreshQueueFromCatalog);
+  const syncDueReviewsToQueue = useReviewStore((s) => s.syncDueReviewsToQueue);
   const startSession = useReviewStore((s) => s.startSession);
 
   const [activeTrackId, setActiveTrackId] = useState<string | null>(null);
@@ -68,7 +70,9 @@ export function ReviewSessionPanel({
 
   useEffect(() => {
     refreshQueueFromCatalog(catalog);
-  }, [catalog, refreshQueueFromCatalog]);
+    const dueItems = getDueReviewCatalogItems(catalog, topics, subtopics);
+    syncDueReviewsToQueue(dueItems);
+  }, [catalog, topics, subtopics, refreshQueueFromCatalog, syncDueReviewsToQueue]);
 
   useEffect(() => {
     if (!resumedSession && sessionActive && activeItem) {

@@ -4,6 +4,8 @@ import type { Track, Module, Topic, Subtopic, Achievement, AppSettings, Leetcode
 import { DEFAULT_TIERED_GOAL } from "./types/metrics";
 import { nowISO } from "./utils";
 import { CS_FUNDAMENTALS, LEETCODE_PATTERNS, coreProblemKey, coreCsItemKey } from "./leetcode-patterns";
+import { getReviewStateForBackup, restoreReviewStateFromBackup, useReviewStore } from "@/stores/review-store";
+import { buildRevisionCatalog, getDueReviewCatalogItems } from "./revision-catalog";
 
 const ACHIEVEMENTS: Omit<Achievement, "id">[] = [
   { key: "first_session", title: "First Study Session", description: "Complete your first learning session", icon: "🎯" },
@@ -199,11 +201,14 @@ export async function exportAllData() {
     db.goalMilestones.toArray(), db.trackEstimates.toArray(), db.settings.toArray(), db.skipLogs.toArray(),
     db.leetcodeProblems.toArray(), db.csReviewItems.toArray(), db.prepQuizAttempts.toArray(), db.mockRoundSessions.toArray(),
   ]);
+  const reviewState = typeof window !== "undefined" ? getReviewStateForBackup() : { queue: [], progress: null };
   return {
     version: 1,
     exportedAt: nowISO(),
     tracks, modules, topics, subtopics, sessions, journal, journalLinks, achievements, milestones,
     goalMilestones, trackEstimates, settings, skipLogs, leetcodeProblems, csReviewItems, prepQuizAttempts, mockRoundSessions,
+    reviewQueue: reviewState.queue,
+    reviewProgress: reviewState.progress,
   };
 }
 
@@ -240,4 +245,20 @@ export async function importAllData(data: Awaited<ReturnType<typeof exportAllDat
     if (data.prepQuizAttempts?.length) await db.prepQuizAttempts.bulkAdd(data.prepQuizAttempts);
     if (data.mockRoundSessions?.length) await db.mockRoundSessions.bulkAdd(data.mockRoundSessions);
   });
+  if (typeof window !== "undefined") {
+    restoreReviewStateFromBackup({
+      queue: data.reviewQueue ?? [],
+      progress: data.reviewProgress ?? null,
+    });
+    if (!data.reviewQueue?.length) {
+      const catalog = buildRevisionCatalog(
+        data.tracks ?? [],
+        data.modules ?? [],
+        data.topics ?? [],
+        data.subtopics ?? []
+      );
+      const dueItems = getDueReviewCatalogItems(catalog, data.topics ?? [], data.subtopics ?? []);
+      useReviewStore.getState().syncDueReviewsToQueue(dueItems);
+    }
+  }
 }

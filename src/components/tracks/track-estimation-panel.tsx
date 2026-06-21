@@ -15,9 +15,11 @@ import { cn } from "@/lib/utils";
 
 interface TrackEstimationPanelProps {
   filterTrackId?: string;
+  /** Omit a track from the all-tracks overview (e.g. LeetCode uses its own panel). */
+  excludeTrackId?: string;
 }
 
-export function TrackEstimationPanel({ filterTrackId }: TrackEstimationPanelProps) {
+export function TrackEstimationPanel({ filterTrackId, excludeTrackId }: TrackEstimationPanelProps) {
   const tracks = useTracks();
   const modules = useAllModules();
   const topics = useAllTopics();
@@ -35,7 +37,13 @@ export function TrackEstimationPanel({ filterTrackId }: TrackEstimationPanelProp
     [tracks, estimates, modules, topics, subtopics, sessions]
   );
 
-  const visible = filterTrackId ? stats.filter((s) => s.track.id === filterTrackId) : stats;
+  const visible = useMemo(() => {
+    let list = filterTrackId ? stats.filter((s) => s.track.id === filterTrackId) : stats;
+    if (!filterTrackId && excludeTrackId) {
+      list = list.filter((s) => s.track.id !== excludeTrackId);
+    }
+    return list;
+  }, [stats, filterTrackId, excludeTrackId]);
   const isSingleTrackView = visible.length === 1;
 
   useEffect(() => {

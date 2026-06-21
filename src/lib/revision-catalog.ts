@@ -3,6 +3,10 @@ import { isTopicComplete } from "./in-progress";
 import { getModuleProgress } from "./analytics";
 import { getSubtopicConfidence, getTopicConfidence } from "./confidence-prompt";
 import { isSubtopicDone } from "./utils";
+import {
+  getSubtopicsDueForReview,
+  getTopicsDueForReview,
+} from "./metrics";
 
 export type ReviewItemKind = "topic" | "subtopic" | "module";
 
@@ -124,6 +128,22 @@ export function buildRevisionCatalog(
   }
 
   return items.sort((a, b) => a.confidence - b.confidence || a.name.localeCompare(b.name));
+}
+
+/** Catalog entries matching topics/subtopics due for spaced review. */
+export function getDueReviewCatalogItems(
+  catalog: ReviewCatalogItem[],
+  topics: Topic[],
+  subtopics: Subtopic[]
+): ReviewCatalogItem[] {
+  const dueTopicIds = new Set(getTopicsDueForReview(topics).map((t) => t.id));
+  const dueSubtopicIds = new Set(getSubtopicsDueForReview(subtopics).map((s) => s.id));
+
+  return catalog.filter((item) => {
+    if (item.kind === "topic" && item.topicId) return dueTopicIds.has(item.topicId);
+    if (item.kind === "subtopic" && item.subtopicId) return dueSubtopicIds.has(item.subtopicId);
+    return false;
+  });
 }
 
 export function countCompletedByTrack(
