@@ -29,6 +29,7 @@ export const ACHIEVEMENT_CATEGORIES: Record<string, AchievementCategory> = {
   streak_100: "streaks",
   first_module: "completion",
   first_track: "completion",
+  interview_ready: "completion",
 };
 
 export interface AchievementProgress {
@@ -84,6 +85,10 @@ export function getAchievementProgress(
       return subs.length > 0 && subs.every((s) => s.status === "completed" || s.status === "mastered");
     }).length;
     return { current: done >= 1 ? 1 : 0, target: 1, percent: done >= 1 ? 100 : 0, unit: "track" };
+  }
+  if (key === "interview_ready") {
+    const unlocked = achievement.unlockedAt ? 1 : 0;
+    return { current: unlocked, target: 1, percent: unlocked * 100, unit: "milestone" };
   }
   return { current: 0, target: 1, percent: 0, unit: "" };
 }

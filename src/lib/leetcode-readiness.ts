@@ -188,3 +188,29 @@ export function countProblemsByDifficulty(
 
   return result;
 }
+
+export function pickMockRoundProblems(
+  problems: LeetcodeProblem[],
+  tag: LeetcodeTagFilter,
+  count: number,
+  pattern?: string
+): LeetcodeProblem[] {
+  let pool = problems.filter((p) => {
+    if (pattern) return p.pattern === pattern;
+    return patternInScope(p.pattern, tag);
+  });
+
+  if (!pattern) {
+    pool = pool.filter((p) => p.difficulty === "medium");
+  }
+
+  const notDone = pool.filter((p) => !p.done);
+  const done = pool.filter((p) => p.done);
+  const shuffled = [...notDone, ...done].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, Math.min(count, shuffled.length));
+}
+
+export function isProblemDueForReview(problem: LeetcodeProblem, today = new Date().toISOString().slice(0, 10)): boolean {
+  if (!problem.done || !problem.nextReviewDue) return false;
+  return problem.nextReviewDue <= today;
+}

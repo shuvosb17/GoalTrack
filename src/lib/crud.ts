@@ -5,6 +5,11 @@ import { nowISO, todayISO, parseLocalDate } from "./utils";
 import { computeNextReviewDate } from "./metrics";
 import { isTopicComplete } from "./in-progress";
 import { enqueueConfidencePromptIfNeeded, enqueueConfidencePromptIfNeededForSubtopic } from "./confidence-prompt";
+import { enqueueLeetcodeConfidencePrompt } from "./leetcode-confidence-prompt";
+import { enqueuePrepQuizPrompt } from "./prep-quiz-prompt";
+import { hasPassedQuiz } from "./prep-quiz-crud";
+import { getCsQuizKey } from "./prep-quizzes";
+import { computePatternCompletion } from "./leetcode-readiness";
 import type { TopicCompletionMeta } from "./types/metrics";
 
 function buildCompletionMeta(existing?: TopicCompletionMeta): TopicCompletionMeta {
@@ -369,20 +374,57 @@ export async function toggleLeetcodeProblem(id: string) {
   const problem = await db.leetcodeProblems.get(id);
   if (!problem) return;
 
+  const wasDone = problem.done;
   const nextDone = !problem.done;
-  const updates = {
+  const updates: Partial<LeetcodeProblem> = {
     done: nextDone,
     doneAt: nextDone ? todayISO() : undefined,
     updatedAt: nowISO(),
   };
 
+  if (!nextDone) {
+    updates.confidenceRated = false;
+    updates.confidenceRating = undefined;
+    updates.nextReviewDue = undefined;
+  }
+
   await db.leetcodeProblems.update(id, updates);
 
-  if (nextDone && !problem.done) {
+  if (nextDone && !wasDone) {
     await addLeetCodeProblem(problem.difficulty);
-  } else if (!nextDone && problem.done) {
+
+    if (!problem.confidenceRated) {
+      enqueueLeetcodeConfidencePrompt({
+        problemId: problem.id,
+        problemTitle: problem.title,
+        pattern: problem.pattern,
+      });
+    }
+
+    const allInPattern = await db.leetcodeProblems.where("pattern").equals(problem.pattern).toArray();
+    const completion = computePatternCompletion(allInPattern, problem.pattern);
+    if (completion.total > 0 && completion.done === completion.total) {
+      const passed = await hasPassedQuiz("pattern", problem.pattern);
+      if (!passed) {
+        enqueuePrepQuizPrompt({
+          subjectType: "pattern",
+          subjectKey: problem.pattern,
+          subjectLabel: problem.pattern,
+        });
+      }
+    }
+  } else if (!nextDone && wasDone) {
     await removeLeetCodeProblem(problem.difficulty);
   }
+}
+
+export async function setLeetcodeProblemConfidence(id: string, rating: 1 | 2 | 3 | 4 | 5) {
+  await db.leetcodeProblems.update(id, {
+    confidenceRating: rating,
+    confidenceRated: true,
+    nextReviewDue: computeNextReviewDate(rating),
+    updatedAt: nowISO(),
+  });
 }
 
 export async function addLeetcodeProblem(input: {
@@ -430,7 +472,23 @@ export async function deleteLeetcodeProblem(id: string) {
 export async function toggleCsReviewItem(id: string) {
   const item = await db.csReviewItems.get(id);
   if (!item) return;
-  await db.csReviewItems.update(id, { done: !item.done, updatedAt: nowISO() });
+
+  const wasDone = item.done;
+  const nextDone = !item.done;
+  await db.csReviewItems.update(id, { done: nextDone, updatedAt: nowISO() });
+
+  if (nextDone && !wasDone && !item.quizPassed) {
+    const key = getCsQuizKey(item.category, item.title);
+    const passed = await hasPassedQuiz("cs", key);
+    if (!passed) {
+      enqueuePrepQuizPrompt({
+        subjectType: "cs",
+        subjectKey: key,
+        subjectLabel: item.title,
+        csItemId: item.id,
+      });
+    }
+  }
 }
 
 export async function updateSubtopicDueDate(id: string, dueDate: string) {

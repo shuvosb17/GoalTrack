@@ -14,6 +14,8 @@ import type {
   AppSettings,
   LeetcodeProblem,
   CsReviewItem,
+  PrepQuizAttempt,
+  MockRoundSession,
 } from "./types";
 import type { SkipLog } from "./types/metrics";
 
@@ -33,6 +35,8 @@ export class GrowthOSDatabase extends Dexie {
   skipLogs!: Table<SkipLog>;
   leetcodeProblems!: Table<LeetcodeProblem>;
   csReviewItems!: Table<CsReviewItem>;
+  prepQuizAttempts!: Table<PrepQuizAttempt>;
+  mockRoundSessions!: Table<MockRoundSession>;
 
   constructor() {
     super("GrowthOS");
@@ -118,6 +122,10 @@ export class GrowthOSDatabase extends Dexie {
     this.version(13).stores({
       leetcodeProblems: "id, pattern, difficulty, done, isCore, order",
       csReviewItems: "id, category, done, order",
+    });
+    this.version(14).stores({
+      prepQuizAttempts: "id, subjectType, subjectKey, passed, completedAt",
+      mockRoundSessions: "id, mode, pattern, startedAt, completedAt",
     });
     this.version(7).stores({}).upgrade(async (tx) => {
       const topics = await tx.table("topics").toArray();

@@ -93,3 +93,7 @@ export function useLeetcodeProblems() {
 export function useCsReviewItems() {
   return useLiveQuery(() => db.csReviewItems.orderBy("order").toArray(), []) ?? [];
 }
+
+export function usePrepQuizAttempts() {
+  return useLiveQuery(() => db.prepQuizAttempts.toArray(), []) ?? [];
+}

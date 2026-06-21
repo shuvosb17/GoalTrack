@@ -17,6 +17,7 @@ const ACHIEVEMENTS: Omit<Achievement, "id">[] = [
   { key: "streak_100", title: "Centurion", description: "Maintain a 100-day learning streak", icon: "🌟" },
   { key: "first_module", title: "Module Master", description: "Complete your first module", icon: "📦" },
   { key: "first_track", title: "Track Conqueror", description: "Complete your first learning track", icon: "🚀" },
+  { key: "interview_ready", title: "Interview Ready", description: "BD-CORE readiness 85%+ and all Foundation patterns complete", icon: "🎯" },
 ];
 
 function buildSeedData() {
@@ -175,22 +176,34 @@ export async function ensureLeetcodePrep(): Promise<void> {
   });
 }
 
+export async function ensureInterviewReadyAchievement(): Promise<void> {
+  const existing = await db.achievements.where("key").equals("interview_ready").count();
+  if (existing > 0) return;
+  await db.achievements.add({
+    id: uuid(),
+    key: "interview_ready",
+    title: "Interview Ready",
+    description: "BD-CORE readiness 85%+ and all Foundation patterns complete",
+    icon: "🎯",
+  });
+}
+
 export async function exportAllData() {
   const [
     tracks, modules, topics, subtopics, sessions, journal, journalLinks,
     achievements, milestones, goalMilestones, trackEstimates, settings, skipLogs,
-    leetcodeProblems, csReviewItems,
+    leetcodeProblems, csReviewItems, prepQuizAttempts, mockRoundSessions,
   ] = await Promise.all([
     db.tracks.toArray(), db.modules.toArray(), db.topics.toArray(), db.subtopics.toArray(),
     db.sessions.toArray(), db.journal.toArray(), db.journalLinks.toArray(), db.achievements.toArray(), db.milestones.toArray(),
     db.goalMilestones.toArray(), db.trackEstimates.toArray(), db.settings.toArray(), db.skipLogs.toArray(),
-    db.leetcodeProblems.toArray(), db.csReviewItems.toArray(),
+    db.leetcodeProblems.toArray(), db.csReviewItems.toArray(), db.prepQuizAttempts.toArray(), db.mockRoundSessions.toArray(),
   ]);
   return {
     version: 1,
     exportedAt: nowISO(),
     tracks, modules, topics, subtopics, sessions, journal, journalLinks, achievements, milestones,
-    goalMilestones, trackEstimates, settings, skipLogs, leetcodeProblems, csReviewItems,
+    goalMilestones, trackEstimates, settings, skipLogs, leetcodeProblems, csReviewItems, prepQuizAttempts, mockRoundSessions,
   };
 }
 
@@ -200,14 +213,14 @@ export async function importAllData(data: Awaited<ReturnType<typeof exportAllDat
     [
       db.tracks, db.modules, db.topics, db.subtopics, db.sessions, db.journal, db.journalLinks,
       db.achievements, db.milestones, db.goalMilestones, db.trackEstimates, db.settings, db.skipLogs,
-      db.leetcodeProblems, db.csReviewItems,
+      db.leetcodeProblems, db.csReviewItems, db.prepQuizAttempts, db.mockRoundSessions,
     ],
     async () => {
     await Promise.all([
       db.tracks.clear(), db.modules.clear(), db.topics.clear(), db.subtopics.clear(),
       db.sessions.clear(), db.journal.clear(), db.journalLinks.clear(), db.achievements.clear(), db.milestones.clear(),
       db.goalMilestones.clear(), db.trackEstimates.clear(), db.settings.clear(), db.skipLogs.clear(),
-      db.leetcodeProblems.clear(), db.csReviewItems.clear(),
+      db.leetcodeProblems.clear(), db.csReviewItems.clear(), db.prepQuizAttempts.clear(), db.mockRoundSessions.clear(),
     ]);
     if (data.tracks?.length) await db.tracks.bulkAdd(data.tracks);
     if (data.modules?.length) await db.modules.bulkAdd(data.modules);
@@ -224,5 +237,7 @@ export async function importAllData(data: Awaited<ReturnType<typeof exportAllDat
     if (data.skipLogs?.length) await db.skipLogs.bulkAdd(data.skipLogs);
     if (data.leetcodeProblems?.length) await db.leetcodeProblems.bulkAdd(data.leetcodeProblems);
     if (data.csReviewItems?.length) await db.csReviewItems.bulkAdd(data.csReviewItems);
+    if (data.prepQuizAttempts?.length) await db.prepQuizAttempts.bulkAdd(data.prepQuizAttempts);
+    if (data.mockRoundSessions?.length) await db.mockRoundSessions.bulkAdd(data.mockRoundSessions);
   });
 }

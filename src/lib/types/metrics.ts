@@ -90,6 +90,9 @@ export interface LeetcodeProblem {
   notes?: string;
   order: number;
   doneAt?: string;
+  confidenceRating?: 1 | 2 | 3 | 4 | 5;
+  nextReviewDue?: string;
+  confidenceRated?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -100,8 +103,30 @@ export interface CsReviewItem {
   title: string;
   done: boolean;
   order: number;
+  quizPassed?: boolean;
+  quizBestScore?: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface PrepQuizAttempt {
+  id: string;
+  subjectType: "cs" | "pattern";
+  subjectKey: string;
+  score: number;
+  total: number;
+  passed: boolean;
+  completedAt: string;
+}
+
+export interface MockRoundSession {
+  id: string;
+  mode: "global" | "pattern";
+  pattern?: string;
+  problemIds: string[];
+  durationMinutes: number;
+  startedAt: string;
+  completedAt?: string;
 }
 
 /** A single dated problem-solve event, used for the per-week problems chart. */
