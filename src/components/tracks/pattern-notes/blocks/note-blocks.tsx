@@ -51,7 +51,9 @@ export function CodeBlock({
   return (
     <div className="overflow-hidden rounded-lg border border-white/[0.08]">
       <div className="flex items-center justify-between border-b border-white/[0.06] bg-white/[0.03] px-3 py-1.5">
-        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{language}</span>
+        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+          {language === "cpp" ? "C++" : language}
+        </span>
       </div>
       <pre className="overflow-x-auto p-4 text-[13px] leading-relaxed">
         <code className="font-mono text-foreground/90">{code}</code>
