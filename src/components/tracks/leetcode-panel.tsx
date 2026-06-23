@@ -37,6 +37,7 @@ import { LeetcodeReadinessCharts } from "@/components/tracks/leetcode-readiness-
 import type { LeetcodeProblem, LeetcodeTag } from "@/lib/types";
 import type { LeetCodeDifficulty } from "@/lib/types/metrics";
 import { cn } from "@/lib/utils";
+import { getGuideSlugForPractice } from "@/lib/pattern-notes/catalog";
 
 const ACCENT = "#534AB7";
 const TAG_FILTERS: LeetcodeTagFilter[] = ["all", "BD-CORE", "BD-CP", "MAANG", "BD-ADV"];
@@ -88,10 +89,14 @@ function PatternCard({
   pattern,
   problems,
   patternQuizPassed,
+  highlighted,
+  onReadGuide,
 }: {
   pattern: LeetcodePatternDefinition;
   problems: LeetcodeProblem[];
   patternQuizPassed: boolean;
+  highlighted?: boolean;
+  onReadGuide?: (patternName: string) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
   const [adding, setAdding] = useState(false);
@@ -111,7 +116,13 @@ function PatternCard({
   }
 
   return (
-    <div className="rounded-lg border-[0.5px] border-white/[0.08] bg-white/[0.02] overflow-hidden">
+    <div
+      data-pattern={pattern.name}
+      className={cn(
+        "rounded-lg border-[0.5px] border-white/[0.08] bg-white/[0.02] overflow-hidden transition-colors",
+        highlighted && "ring-2 ring-primary/50"
+      )}
+    >
       <button
         type="button"
         className="flex w-full items-start gap-2 p-3 text-left hover:bg-white/[0.02]"
@@ -129,6 +140,18 @@ function PatternCard({
             ))}
             {isComplete && (
               <QuizBadge passed={patternQuizPassed} pending={!patternQuizPassed} />
+            )}
+            {onReadGuide && getGuideSlugForPractice(pattern.name) && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onReadGuide(pattern.name);
+                }}
+                className="rounded bg-violet-500/15 px-1.5 py-px text-[10px] text-violet-300 hover:bg-violet-500/25"
+              >
+                Read guide
+              </button>
             )}
           </div>
           <div className="mt-2 flex items-center gap-2">
@@ -252,7 +275,13 @@ function PatternCard({
   );
 }
 
-export function LeetCodePanel() {
+export function LeetCodePanel({
+  highlightPattern,
+  onReadGuide,
+}: {
+  highlightPattern?: string | null;
+  onReadGuide?: (patternName: string) => void;
+} = {}) {
   const problems = useLeetcodeProblems();
   const csItems = useCsReviewItems();
   const quizAttempts = usePrepQuizAttempts();
@@ -416,6 +445,8 @@ export function LeetCodePanel() {
                       pattern={pattern}
                       problems={problems}
                       patternQuizPassed={passedPatternKeys.has(pattern.name)}
+                      highlighted={highlightPattern === pattern.name}
+                      onReadGuide={onReadGuide}
                     />
                   ))}
                 </div>

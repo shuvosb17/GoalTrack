@@ -6,7 +6,7 @@ import Link from "next/link";
 import { BookOpen, BookmarkCheck } from "lucide-react";
 import { HierarchyTree } from "@/components/tracks/hierarchy-tree";
 import { TrackEstimationPanel } from "@/components/tracks/track-estimation-panel";
-import { LeetCodePanel } from "@/components/tracks/leetcode-panel";
+import { LeetCodeWorkspace } from "@/components/tracks/leetcode-workspace";
 import { useTracks, useAllModules, useAllTopics, useAllSubtopics } from "@/hooks/use-data";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -91,7 +91,9 @@ function TracksContent() {
 
       <TrackEstimationPanel filterTrackId={selectedTrack} />
 
-      {isLeetcodeView && <LeetCodePanel />}
+      {isLeetcodeView && leetcodeTrack && (
+        <LeetCodeWorkspace leetcodeTrackId={leetcodeTrack.id} />
+      )}
     </div>
   );
 }
