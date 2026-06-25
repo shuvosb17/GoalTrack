@@ -750,7 +750,7 @@ export function generateInsights(
     });
   }
 
-  const dueForReview = getTopicsDueForReview(topics, subtopics, modules);
+  const dueForReview = getTopicsDueForReview(topics);
   if (dueForReview.length >= 3) {
     insights.push({
       id: "review-due",

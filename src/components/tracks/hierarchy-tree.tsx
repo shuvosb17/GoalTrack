@@ -232,7 +232,7 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                         {modTopics.map((topic) => {
                                           const topicSubs = subtopics.filter((s) => s.topicId === topic.id && !s.archived).sort((a, b) => a.order - b.order);
                                           const topicProgress = getTopicProgress(topic, subtopics);
-                                          const reviewDue = isTopicDueForReview(topic, subtopics);
+                                          const reviewDue = isTopicDueForReview(topic);
                                           const reviewLabel = getReviewDueLabel(topic);
 
                                           return (
