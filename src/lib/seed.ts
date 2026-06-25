@@ -295,8 +295,12 @@ export async function importAllData(data: Awaited<ReturnType<typeof exportAllDat
       data.topics ?? [],
       data.subtopics ?? []
     );
-    useReviewStore.getState().refreshQueueFromCatalog(catalog);
-    const dueItems = getDueReviewCatalogItems(catalog, data.topics ?? [], data.subtopics ?? []);
-    useReviewStore.getState().syncDueReviewsToQueue(dueItems);
+    const dueItems = getDueReviewCatalogItems(
+      catalog,
+      data.topics ?? [],
+      data.subtopics ?? [],
+      data.modules ?? []
+    );
+    useReviewStore.getState().reconcileReviewQueue(catalog, dueItems);
   }
 }

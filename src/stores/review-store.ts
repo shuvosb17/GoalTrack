@@ -20,6 +20,7 @@ interface ReviewStore extends ReviewBackupState {
   removeFromQueue: (id: string) => void;
   refreshQueueFromCatalog: (catalog: ReviewCatalogItem[]) => void;
   syncDueReviewsToQueue: (dueItems: ReviewCatalogItem[]) => void;
+  reconcileReviewQueue: (catalog: ReviewCatalogItem[], dueItems: ReviewCatalogItem[]) => void;
   restoreFromBackup: (state: ReviewBackupState) => void;
   startSession: (itemId: string) => void;
   setProgress: (progress: RevisionProgress) => void;
@@ -60,17 +61,35 @@ export const useReviewStore = create<ReviewStore>()(
         const byId = new Map(catalog.map((c) => [c.id, c]));
         set({
           queue: get().queue
-            .map((q) => byId.get(q.id))
-            .filter((q): q is ReviewCatalogItem => q !== undefined),
+            .map((q) => byId.get(q.id) ?? q)
+            .filter((q) => byId.has(q.id)),
         });
       },
 
       syncDueReviewsToQueue: (dueItems) => {
+        if (dueItems.length === 0) return;
         const { queue } = get();
         const existing = new Set(queue.map((q) => q.id));
         const toAdd = dueItems.filter((item) => !existing.has(item.id));
         if (toAdd.length === 0) return;
         set({ queue: [...queue, ...toAdd] });
+      },
+
+      reconcileReviewQueue: (catalog, dueItems) => {
+        const byId = new Map(catalog.map((c) => [c.id, c]));
+        const { queue } = get();
+        const refreshed = queue
+          .map((q) => byId.get(q.id) ?? q)
+          .filter((q) => byId.has(q.id));
+        const existing = new Set(refreshed.map((q) => q.id));
+        const toAdd = dueItems.filter((item) => !existing.has(item.id));
+        const next = toAdd.length > 0 ? [...refreshed, ...toAdd] : refreshed;
+        if (
+          next.length !== queue.length ||
+          next.some((item, i) => item.id !== queue[i]?.id || item.confidence !== queue[i]?.confidence)
+        ) {
+          set({ queue: next });
+        }
       },
 
       restoreFromBackup: (state) => {

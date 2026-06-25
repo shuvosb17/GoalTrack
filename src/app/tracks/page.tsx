@@ -10,7 +10,7 @@ import { LeetCodeWorkspace } from "@/components/tracks/leetcode-workspace";
 import { useTracks, useAllModules, useAllTopics, useAllSubtopics } from "@/hooks/use-data";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { buildRevisionCatalog, countDueReviewItems, getDueReviewCatalogItems } from "@/lib/revision-catalog";
+import { buildReviewDueSnapshot } from "@/lib/revision-catalog";
 import { useReviewStore } from "@/stores/review-store";
 
 function TracksContent() {
@@ -23,18 +23,11 @@ function TracksContent() {
   const topics = useAllTopics();
   const subtopics = useAllSubtopics();
 
-  const reviewDueCount = useMemo(
-    () => countDueReviewItems(tracks, modules, topics, subtopics),
+  const reviewSnapshot = useMemo(
+    () => buildReviewDueSnapshot(tracks, modules, topics, subtopics),
     [tracks, modules, topics, subtopics]
   );
-
-  useEffect(() => {
-    const catalog = buildRevisionCatalog(tracks, modules, topics, subtopics);
-    const dueItems = getDueReviewCatalogItems(catalog, topics, subtopics);
-    const store = useReviewStore.getState();
-    store.refreshQueueFromCatalog(catalog);
-    store.syncDueReviewsToQueue(dueItems);
-  }, [tracks, modules, topics, subtopics]);
+  const reviewDueCount = reviewSnapshot.dueCount;
 
   const leetcodeTrack = useMemo(() => tracks.find((t) => t.name === "LeetCode"), [tracks]);
   const isLeetcodeView = leetcodeTrack != null && selectedTrack === leetcodeTrack.id;
@@ -43,6 +36,12 @@ function TracksContent() {
     if (selectedTrack) return tracks.filter((t) => t.id === selectedTrack);
     return tracks;
   }, [tracks, selectedTrack]);
+
+  useEffect(() => {
+    useReviewStore
+      .getState()
+      .reconcileReviewQueue(reviewSnapshot.catalog, reviewSnapshot.dueItems);
+  }, [reviewSnapshot]);
 
   return (
     <div className="space-y-6">

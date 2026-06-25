@@ -134,10 +134,13 @@ export function buildRevisionCatalog(
 export function getDueReviewCatalogItems(
   catalog: ReviewCatalogItem[],
   topics: Topic[],
-  subtopics: Subtopic[]
+  subtopics: Subtopic[],
+  modules: Module[] = []
 ): ReviewCatalogItem[] {
-  const dueTopicIds = new Set(getTopicsDueForReview(topics).map((t) => t.id));
-  const dueSubtopicIds = new Set(getSubtopicsDueForReview(subtopics).map((s) => s.id));
+  const dueTopicIds = new Set(getTopicsDueForReview(topics, subtopics, modules).map((t) => t.id));
+  const dueSubtopicIds = new Set(
+    getSubtopicsDueForReview(subtopics, topics, modules).map((s) => s.id)
+  );
 
   return catalog.filter((item) => {
     if (item.kind === "topic" && item.topicId) return dueTopicIds.has(item.topicId);
@@ -146,15 +149,15 @@ export function getDueReviewCatalogItems(
   });
 }
 
-/** Due items that can appear in the review queue (matches catalog + spaced-review rules). */
-export function countDueReviewItems(
+export function buildReviewDueSnapshot(
   tracks: Track[],
   modules: Module[],
   topics: Topic[],
   subtopics: Subtopic[]
-): number {
+) {
   const catalog = buildRevisionCatalog(tracks, modules, topics, subtopics);
-  return getDueReviewCatalogItems(catalog, topics, subtopics).length;
+  const dueItems = getDueReviewCatalogItems(catalog, topics, subtopics, modules);
+  return { catalog, dueItems, dueCount: dueItems.length };
 }
 
 export function countCompletedByTrack(

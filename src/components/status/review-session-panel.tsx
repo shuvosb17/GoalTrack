@@ -17,10 +17,9 @@ import type { Module, Subtopic, Topic, Track } from "@/lib/types";
 import {
   buildRevisionCatalog,
   countCompletedByTrack,
-  getDueReviewCatalogItems,
+  buildReviewDueSnapshot,
   getReviewItemHierarchyLabel,
   isRateableReviewItem,
-  type ReviewCatalogItem,
 } from "@/lib/revision-catalog";
 import { ConfidenceDots, ConfidenceLegend } from "@/components/status/confidence-dots";
 import { RevisionQuizDialog } from "@/components/status/revision-quiz-dialog";
@@ -35,60 +34,6 @@ interface ReviewSessionPanelProps {
   subtopics: Subtopic[];
 }
 
-function ReviewItemRow({
-  item,
-  onClick,
-  dimmed,
-  highlight,
-  trailing,
-}: {
-  item: ReviewCatalogItem;
-  onClick?: () => void;
-  dimmed?: boolean;
-  highlight?: boolean;
-  trailing: React.ReactNode;
-}) {
-  const subtitle = getReviewItemHierarchyLabel(item) || item.kind;
-
-  return (
-    <div
-      role={onClick ? "button" : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onClick={onClick}
-      onKeyDown={
-        onClick
-          ? (e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onClick();
-              }
-            }
-          : undefined
-      }
-      className={cn(
-        "group flex items-center gap-3 rounded-lg border-[0.5px] px-2.5 py-2 transition-all duration-200",
-        highlight
-          ? "border-violet-500/25 bg-violet-500/[0.06]"
-          : "border-transparent hover:border-white/[0.08] hover:bg-white/[0.04]",
-        onClick && "cursor-pointer",
-        dimmed && "opacity-50"
-      )}
-    >
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border-[0.5px] border-white/[0.08] bg-white/[0.03]">
-        <LayoutGrid className="h-3.5 w-3.5 text-muted-foreground" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium leading-tight">{item.name}</p>
-        <p className="truncate text-[10px] text-muted-foreground leading-tight">{subtitle}</p>
-      </div>
-      {trailing}
-    </div>
-  );
-}
-
-const actionBtnClass =
-  "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-[0.5px] border-white/[0.1] bg-white/[0.03] text-muted-foreground transition-colors hover:border-white/[0.18] hover:bg-white/[0.06] hover:text-foreground disabled:pointer-events-none disabled:opacity-40";
-
 export function ReviewSessionPanel({
   tracks,
   modules,
@@ -100,12 +45,19 @@ export function ReviewSessionPanel({
     [tracks, modules, topics, subtopics]
   );
 
+  const dueSnapshot = useMemo(
+    () => buildReviewDueSnapshot(tracks, modules, topics, subtopics),
+    [tracks, modules, topics, subtopics]
+  );
+  const dueCount = dueSnapshot.dueCount;
+  const dueIds = useMemo(() => new Set(dueSnapshot.dueItems.map((d) => d.id)), [dueSnapshot.dueItems]);
+
   const queue = useReviewStore((s) => s.queue);
   const progress = useReviewStore((s) => s.progress);
   const addToQueue = useReviewStore((s) => s.addToQueue);
   const removeFromQueue = useReviewStore((s) => s.removeFromQueue);
   const refreshQueueFromCatalog = useReviewStore((s) => s.refreshQueueFromCatalog);
-  const syncDueReviewsToQueue = useReviewStore((s) => s.syncDueReviewsToQueue);
+  const reconcileReviewQueue = useReviewStore((s) => s.reconcileReviewQueue);
   const startSession = useReviewStore((s) => s.startSession);
 
   const [activeTrackId, setActiveTrackId] = useState<string | null>(null);
@@ -125,9 +77,8 @@ export function ReviewSessionPanel({
 
   useEffect(() => {
     refreshQueueFromCatalog(catalog);
-    const dueItems = getDueReviewCatalogItems(catalog, topics, subtopics);
-    syncDueReviewsToQueue(dueItems);
-  }, [catalog, topics, subtopics, refreshQueueFromCatalog, syncDueReviewsToQueue]);
+    reconcileReviewQueue(catalog, dueSnapshot.dueItems);
+  }, [catalog, dueSnapshot.dueItems, refreshQueueFromCatalog, reconcileReviewQueue]);
 
   useEffect(() => {
     if (!resumedSession && sessionActive && activeItem) {
@@ -175,11 +126,6 @@ export function ReviewSessionPanel({
       .sort((a, b) => a.confidence - b.confidence || a.name.localeCompare(b.name));
   }, [catalog, selectedTrackId, search]);
 
-  const dueCount = useMemo(
-    () => getDueReviewCatalogItems(catalog, topics, subtopics).length,
-    [catalog, topics, subtopics]
-  );
-
   const queueIds = useMemo(() => new Set(queue.map((q) => q.id)), [queue]);
 
   const topicCountInTrack = selectedTrackId
@@ -211,9 +157,9 @@ export function ReviewSessionPanel({
                 Pick completed topics you want to revise · low confidence items shown first
               </p>
             </div>
-            <div className="flex items-center gap-3 rounded-lg border-[0.5px] border-white/[0.08] bg-white/[0.02] px-3 py-2">
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border-[0.5px] border-white/[0.08] bg-white/[0.02] px-3 py-2">
               <div className="text-right">
-                <p className="text-lg font-medium tabular-nums leading-none">{dueCount}</p>
+                <p className="text-lg font-medium tabular-nums leading-none text-violet-200">{dueCount}</p>
                 <p className="text-[10px] text-muted-foreground">due now</p>
               </div>
               <div className="h-8 w-px bg-white/[0.08]" />
@@ -221,7 +167,6 @@ export function ReviewSessionPanel({
                 <p className="text-lg font-medium tabular-nums leading-none">{queue.length}</p>
                 <p className="text-[10px] text-muted-foreground">in queue</p>
               </div>
-              <div className="h-8 w-px bg-white/[0.08]" />
               <ListMusic className="h-5 w-5 text-muted-foreground" />
             </div>
           </div>
@@ -267,8 +212,8 @@ export function ReviewSessionPanel({
             })}
           </div>
 
-          <div className="grid min-h-[min(560px,70vh)] gap-6 lg:grid-cols-2 lg:gap-8 lg:items-stretch">
-            <div className="flex min-h-0 flex-col rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.015] p-4">
+          <div className="grid gap-6 lg:grid-cols-2 lg:items-start lg:gap-8">
+            <div className="min-w-0 rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.015] p-4">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm font-medium">
                   {activeTrack?.name ?? "Track"}
@@ -291,7 +236,7 @@ export function ReviewSessionPanel({
                 />
               </div>
 
-              <div className="min-h-0 flex-1 overflow-y-auto pr-0.5 mt-3 space-y-1">
+              <div className="mt-3 max-h-[26rem] space-y-1.5 overflow-y-auto overscroll-contain pr-1">
                 {trackItems.length === 0 ? (
                   <p className="py-8 text-center text-sm text-muted-foreground">
                     {search ? "No topics match your search." : "No completed topics in this track."}
@@ -300,133 +245,173 @@ export function ReviewSessionPanel({
                   trackItems.map((item) => {
                     const inQueue = queueIds.has(item.id);
                     return (
-                      <ReviewItemRow
+                      <div
                         key={item.id}
-                        item={item}
+                        role="button"
+                        tabIndex={0}
                         onClick={() => addToQueue(item)}
-                        dimmed={inQueue}
-                        trailing={
-                          <>
-                            <button
-                              type="button"
-                              title={isRateableReviewItem(item) ? "Rate confidence" : undefined}
-                              disabled={!isRateableReviewItem(item)}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (item.kind === "subtopic" && item.subtopicId) {
-                                  setRateTarget({
-                                    entityType: "subtopic",
-                                    entityId: item.subtopicId,
-                                    name: item.name,
-                                    parentTopicName: item.parentTopicName,
-                                  });
-                                } else if (item.kind === "topic" && item.topicId) {
-                                  setRateTarget({
-                                    entityType: "topic",
-                                    entityId: item.topicId,
-                                    name: item.name,
-                                  });
-                                }
-                              }}
-                              className={cn(
-                                "shrink-0 rounded p-0.5 transition-opacity",
-                                isRateableReviewItem(item) && "cursor-pointer hover:opacity-80"
-                              )}
-                            >
-                              <ConfidenceDots confidence={item.confidence} />
-                            </button>
-                            <button
-                              type="button"
-                              disabled={inQueue}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                addToQueue(item);
-                              }}
-                              className={actionBtnClass}
-                              aria-label={`Add ${item.name} to queue`}
-                            >
-                              <Plus className="h-3.5 w-3.5" />
-                            </button>
-                          </>
-                        }
-                      />
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            addToQueue(item);
+                          }
+                        }}
+                        className={cn(
+                          "group flex items-center gap-3 rounded-lg border-[0.5px] border-transparent px-2.5 py-2.5 transition-all duration-200",
+                          "cursor-pointer hover:border-white/[0.08] hover:bg-white/[0.04]",
+                          inQueue && "opacity-50"
+                        )}
+                      >
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border-[0.5px] border-white/[0.08] bg-white/[0.03]">
+                          <LayoutGrid className="h-3.5 w-3.5 text-muted-foreground" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{item.name}</p>
+                          <p className="truncate text-[10px] text-muted-foreground">
+                            {getReviewItemHierarchyLabel(item) || item.kind}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          title={isRateableReviewItem(item) ? "Rate confidence" : undefined}
+                          disabled={!isRateableReviewItem(item)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (item.kind === "subtopic" && item.subtopicId) {
+                              setRateTarget({
+                                entityType: "subtopic",
+                                entityId: item.subtopicId,
+                                name: item.name,
+                                parentTopicName: item.parentTopicName,
+                              });
+                            } else if (item.kind === "topic" && item.topicId) {
+                              setRateTarget({
+                                entityType: "topic",
+                                entityId: item.topicId,
+                                name: item.name,
+                              });
+                            }
+                          }}
+                          className={cn(
+                            "shrink-0 rounded p-0.5 transition-opacity",
+                            isRateableReviewItem(item) && "cursor-pointer hover:opacity-80"
+                          )}
+                        >
+                          <ConfidenceDots confidence={item.confidence} />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={inQueue}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addToQueue(item);
+                          }}
+                          className={cn(
+                            "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-[0.5px] border-white/[0.1] bg-white/[0.03] text-muted-foreground transition-colors",
+                            "hover:border-white/[0.18] hover:bg-white/[0.06] hover:text-foreground",
+                            "disabled:pointer-events-none disabled:opacity-40"
+                          )}
+                          aria-label={`Add ${item.name} to queue`}
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     );
                   })
                 )}
               </div>
             </div>
 
-            <div className="flex min-h-0 flex-col rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.015] p-4">
+            <div className="min-w-0 rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.015] p-4">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <p className="text-sm font-medium">Review queue</p>
                 <span className="text-xs text-muted-foreground">
-                  {queue.length === 0 ? "empty" : `${queue.length} item${queue.length === 1 ? "" : "s"}`}
+                  {queue.length === 0
+                    ? "empty"
+                    : `${queue.length} item${queue.length === 1 ? "" : "s"}${dueCount > queue.length ? ` · ${dueCount - queue.length} due not queued` : ""}`}
                 </span>
               </div>
 
-              <div className="mt-1 min-h-[2.75rem]">
-                <ConfidenceLegend />
-              </div>
-
-              <div className="mt-4 h-9" aria-hidden />
-
               {queue.length === 0 ? (
-                <div className="flex flex-1 flex-col items-center justify-center py-10 text-center">
-                  <ListMusic className="mb-4 h-12 w-12 text-muted-foreground/20" />
-                  <p className="max-w-[240px] text-sm text-muted-foreground">
+                <div className="py-10 text-center">
+                  <ListMusic className="mx-auto mb-4 h-10 w-10 text-muted-foreground/20" />
+                  <p className="mx-auto max-w-[240px] text-sm text-muted-foreground">
                     {dueCount > 0
-                      ? `${dueCount} item${dueCount === 1 ? "" : "s"} due — they are added to your queue automatically`
+                      ? `${dueCount} item${dueCount === 1 ? " is" : "s are"} due — they will appear here automatically`
                       : "Add topics from any track to build your review session"}
                   </p>
                 </div>
               ) : (
-                <div className="mt-3 flex min-h-0 flex-1 flex-col">
-                  <div className="min-h-0 flex-1 space-y-1 overflow-y-auto pr-0.5">
-                    {queue.map((item) => {
+                <>
+                  <div className="max-h-[26rem] space-y-2 overflow-y-auto overscroll-contain pr-1">
+                    {queue.map((item, i) => {
                       const isActive = item.id === activeItemId;
                       const canStart = !sessionActive || isActive;
+                      const isDue = dueIds.has(item.id);
                       return (
-                        <ReviewItemRow
-                          key={item.id}
-                          item={item}
-                          highlight={isActive}
-                          trailing={
-                            <>
-                              <ConfidenceDots confidence={item.confidence} />
-                              <button
-                                type="button"
-                                disabled={!canStart}
-                                onClick={() => handleStartItem(item.id)}
-                                className={cn(
-                                  actionBtnClass,
-                                  isActive &&
-                                    "border-violet-500/40 bg-violet-500/20 text-violet-200 hover:bg-violet-500/30"
-                                )}
-                                aria-label={isActive ? `Continue ${item.name}` : `Start revision for ${item.name}`}
-                                title={isActive ? "Continue session" : "Start revision session"}
-                              >
-                                <Play className="h-3.5 w-3.5" />
-                              </button>
-                              {!isActive && (
-                                <button
-                                  type="button"
-                                  onClick={() => removeFromQueue(item.id)}
-                                  className={cn(actionBtnClass, "border-transparent hover:border-white/[0.1]")}
-                                  aria-label={`Remove ${item.name}`}
-                                >
-                                  <X className="h-3.5 w-3.5" />
-                                </button>
-                              )}
-                            </>
-                          }
-                        />
+                        <div
+                          key={`${item.id}-${i}`}
+                          className={cn(
+                            "flex items-center gap-2.5 rounded-lg border-[0.5px] px-2.5 py-2",
+                            isActive
+                              ? "border-violet-500/30 bg-violet-500/[0.08]"
+                              : "border-white/[0.08] bg-white/[0.02]"
+                          )}
+                        >
+                          <span className="w-4 shrink-0 text-center text-[11px] tabular-nums text-muted-foreground">
+                            {i + 1}
+                          </span>
+                          <span
+                            className="h-2 w-2 shrink-0 rounded-full"
+                            style={{ background: item.trackColor }}
+                          />
+                          <div className="min-w-0 flex-1 text-left">
+                            <p className="truncate text-sm font-medium">{item.name}</p>
+                            <p className="truncate text-[10px] text-muted-foreground">
+                              {getReviewItemHierarchyLabel(item) ||
+                                `${item.trackName} · ${item.kind}`}
+                            </p>
+                          </div>
+                          {isDue && (
+                            <span className="shrink-0 rounded px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-violet-300/90 bg-violet-500/10">
+                              due
+                            </span>
+                          )}
+                          <ConfidenceDots confidence={item.confidence} />
+                          <button
+                            type="button"
+                            disabled={!canStart}
+                            onClick={() => handleStartItem(item.id)}
+                            className={cn(
+                              "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-[0.5px] transition-colors",
+                              isActive
+                                ? "border-violet-500/40 bg-violet-500/20 text-violet-200 hover:bg-violet-500/30"
+                                : "border-white/[0.1] bg-white/[0.03] text-muted-foreground hover:border-white/[0.18] hover:bg-white/[0.06] hover:text-foreground",
+                              "disabled:pointer-events-none disabled:opacity-40"
+                            )}
+                            aria-label={isActive ? `Continue ${item.name}` : `Start revision for ${item.name}`}
+                            title={isActive ? "Continue session" : "Start revision session"}
+                          >
+                            <Play className="h-3.5 w-3.5" />
+                          </button>
+                          {!isActive && (
+                            <button
+                              type="button"
+                              onClick={() => removeFromQueue(item.id)}
+                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground"
+                              aria-label={`Remove ${item.name}`}
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
-                  <p className="shrink-0 border-t border-white/[0.06] pt-2 text-center text-[10px] text-muted-foreground">
+                  <p className="mt-3 text-left text-[11px] text-muted-foreground">
                     Start each topic individually — time is logged per session
                   </p>
-                </div>
+                </>
               )}
             </div>
           </div>

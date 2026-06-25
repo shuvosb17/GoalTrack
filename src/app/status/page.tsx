@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/select";
 import { updateTopicStatus, updateSubtopicStatus } from "@/lib/crud";
 import { isTopicDueForReview } from "@/lib/metrics";
-import { countDueReviewItems } from "@/lib/revision-catalog";
+import { buildReviewDueSnapshot } from "@/lib/revision-catalog";
 import { ReviewSessionPanel } from "@/components/status/review-session-panel";
 import { TopicConfidenceDialog } from "@/components/tracks/topic-confidence-dialog";
 
@@ -140,10 +140,11 @@ function StatusContent() {
     [topics, subtopics, modules, tracks]
   );
 
-  const reviewCount = useMemo(
-    () => countDueReviewItems(tracks, modules, topics, subtopics),
+  const reviewSnapshot = useMemo(
+    () => buildReviewDueSnapshot(tracks, modules, topics, subtopics),
     [tracks, modules, topics, subtopics]
   );
+  const reviewCount = reviewSnapshot.dueCount;
   const criticalCount = alerts.filter((a) => a.level === "critical").length;
 
   return (
