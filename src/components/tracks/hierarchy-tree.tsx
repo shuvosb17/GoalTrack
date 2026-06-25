@@ -44,6 +44,8 @@ import { useSessions } from "@/hooks/use-data";
 import {
   getSubtopicLoggedMs, getTopicLoggedMs, getModuleLoggedMs, getTrackLoggedMs,
 } from "@/lib/time-log";
+import { InlineCodeText } from "@/components/shared/inline-code-text";
+import { toPlainLearningLabel } from "@/lib/format-learning-text";
 
 interface HierarchyTreeProps {
   tracks: Track[];
@@ -342,10 +344,12 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                               <AnimatePresence>
                                                 {expanded.has(topic.id) && (
                                                   <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }}>
-                                                    <div className="px-4 pb-2 space-y-1">
+                                                    <div className="mt-1 max-h-[min(24rem,calc(2.75rem*8))] space-y-1 overflow-y-auto overscroll-contain pr-1">
                                                       {topicSubs.map((sub) => (
-                                                        <div key={sub.id} className="flex flex-col gap-2 rounded p-2 pl-3 hover:bg-secondary/20 group sm:flex-row sm:items-center sm:pl-6">
-                                                          <div className="flex min-w-0 items-center gap-2">
+                                                        <div
+                                                          key={sub.id}
+                                                          className="group grid grid-cols-1 gap-2 rounded-md border border-transparent px-2 py-1.5 hover:border-white/[0.06] hover:bg-secondary/20 sm:grid-cols-[7.5rem_minmax(0,1fr)_auto] sm:items-start sm:gap-2"
+                                                        >
                                                           <Select value={sub.status} onValueChange={(v) => {
                                                             const status = v as ProgressStatus;
                                                             updateSubtopicStatus(sub.id, status, sub.dueDate ?? todayISO());
@@ -358,7 +362,7 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                               });
                                                             }
                                                           }}>
-                                                            <SelectTrigger className="h-7 w-[130px] text-xs">
+                                                            <SelectTrigger className="h-7 w-full text-xs sm:w-[7.5rem]">
                                                               <SelectValue />
                                                             </SelectTrigger>
                                                             <SelectContent>
@@ -367,9 +371,10 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                               ))}
                                                             </SelectContent>
                                                           </Select>
-                                                          <span className="text-sm flex-1 min-w-0 truncate">{sub.name}</span>
+                                                          <div className="min-w-0 text-left text-sm">
+                                                            <InlineCodeText text={sub.name} className="break-words" />
                                                           </div>
-                                                          <div className="flex flex-wrap items-center gap-2">
+                                                          <div className="flex flex-wrap items-center gap-1.5 sm:justify-end">
                                                           {sub.status === "in_progress" && (() => {
                                                             const due = getSubtopicDueDate(sub, topic);
                                                             if (!due) return null;
@@ -396,10 +401,13 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                             onValueChange={(v) => updateSubtopicDifficulty(sub.id, v as Difficulty)}
                                                           >
                                                             <SelectTrigger
-                                                              className="h-7 w-[88px] text-[10px] border-border/50"
+                                                              className="h-7 w-[3.25rem] shrink-0 px-1.5 text-[10px] border-border/50"
                                                               style={{ color: DIFFICULTY_COLORS[sub.difficulty] }}
+                                                              title={DIFFICULTY_LABELS[sub.difficulty]}
                                                             >
-                                                              <SelectValue />
+                                                              <SelectValue>
+                                                                {DIFFICULTY_LABELS[sub.difficulty].slice(0, 3)}
+                                                              </SelectValue>
                                                             </SelectTrigger>
                                                             <SelectContent>
                                                               {Object.entries(DIFFICULTY_LABELS).map(([k, v]) => (
@@ -411,7 +419,7 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                           </Select>
                                                           <TimerControls
                                                             path={{ trackId: track.id, moduleId: mod.id, topicId: topic.id, subtopicId: sub.id }}
-                                                            label={`${topic.name} → ${sub.name}`}
+                                                            label={`${topic.name} → ${toPlainLearningLabel(sub.name)}`}
                                                             compact
                                                             loggedMs={getSubtopicLoggedMs(sub.id, sessions)}
                                                             allowManual

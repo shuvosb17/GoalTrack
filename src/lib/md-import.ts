@@ -114,7 +114,10 @@ export function parseMarkdownForTrack(content: string): ParsedModule[] {
 }
 
 function cleanMdText(text: string): string {
-  return text.replace(/\*\*/g, "").replace(/\*/g, "").replace(/`/g, "").trim();
+  return text
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\*([^*]+)\*/g, "$1")
+    .trim();
 }
 
 export function previewMdImport(content: string, mode: "module" | "track"): MdParseResult {
