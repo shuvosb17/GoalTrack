@@ -20,6 +20,7 @@ import {
   getDueReviewCatalogItems,
   getReviewItemHierarchyLabel,
   isRateableReviewItem,
+  type ReviewCatalogItem,
 } from "@/lib/revision-catalog";
 import { ConfidenceDots, ConfidenceLegend } from "@/components/status/confidence-dots";
 import { RevisionQuizDialog } from "@/components/status/revision-quiz-dialog";
@@ -33,6 +34,60 @@ interface ReviewSessionPanelProps {
   topics: Topic[];
   subtopics: Subtopic[];
 }
+
+function ReviewItemRow({
+  item,
+  onClick,
+  dimmed,
+  highlight,
+  trailing,
+}: {
+  item: ReviewCatalogItem;
+  onClick?: () => void;
+  dimmed?: boolean;
+  highlight?: boolean;
+  trailing: React.ReactNode;
+}) {
+  const subtitle = getReviewItemHierarchyLabel(item) || item.kind;
+
+  return (
+    <div
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
+      className={cn(
+        "group flex items-center gap-3 rounded-lg border-[0.5px] px-2.5 py-2 transition-all duration-200",
+        highlight
+          ? "border-violet-500/25 bg-violet-500/[0.06]"
+          : "border-transparent hover:border-white/[0.08] hover:bg-white/[0.04]",
+        onClick && "cursor-pointer",
+        dimmed && "opacity-50"
+      )}
+    >
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border-[0.5px] border-white/[0.08] bg-white/[0.03]">
+        <LayoutGrid className="h-3.5 w-3.5 text-muted-foreground" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium leading-tight">{item.name}</p>
+        <p className="truncate text-[10px] text-muted-foreground leading-tight">{subtitle}</p>
+      </div>
+      {trailing}
+    </div>
+  );
+}
+
+const actionBtnClass =
+  "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-[0.5px] border-white/[0.1] bg-white/[0.03] text-muted-foreground transition-colors hover:border-white/[0.18] hover:bg-white/[0.06] hover:text-foreground disabled:pointer-events-none disabled:opacity-40";
 
 export function ReviewSessionPanel({
   tracks,
@@ -236,7 +291,7 @@ export function ReviewSessionPanel({
                 />
               </div>
 
-              <div className="min-h-0 flex-1 overflow-y-auto pr-0.5 mt-3 space-y-1.5">
+              <div className="min-h-0 flex-1 overflow-y-auto pr-0.5 mt-3 space-y-1">
                 {trackItems.length === 0 ? (
                   <p className="py-8 text-center text-sm text-muted-foreground">
                     {search ? "No topics match your search." : "No completed topics in this track."}
@@ -245,77 +300,56 @@ export function ReviewSessionPanel({
                   trackItems.map((item) => {
                     const inQueue = queueIds.has(item.id);
                     return (
-                      <div
+                      <ReviewItemRow
                         key={item.id}
-                        role="button"
-                        tabIndex={0}
+                        item={item}
                         onClick={() => addToQueue(item)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            addToQueue(item);
-                          }
-                        }}
-                        className={cn(
-                          "group flex items-center gap-3 rounded-lg border-[0.5px] border-transparent px-2.5 py-2.5 transition-all duration-200",
-                          "cursor-pointer hover:border-white/[0.08] hover:bg-white/[0.04]",
-                          inQueue && "opacity-50"
-                        )}
-                      >
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border-[0.5px] border-white/[0.08] bg-white/[0.03]">
-                          <LayoutGrid className="h-3.5 w-3.5 text-muted-foreground" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">{item.name}</p>
-                          <p className="truncate text-[10px] text-muted-foreground">
-                            {getReviewItemHierarchyLabel(item) || item.kind}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          title={isRateableReviewItem(item) ? "Rate confidence" : undefined}
-                          disabled={!isRateableReviewItem(item)}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (item.kind === "subtopic" && item.subtopicId) {
-                              setRateTarget({
-                                entityType: "subtopic",
-                                entityId: item.subtopicId,
-                                name: item.name,
-                                parentTopicName: item.parentTopicName,
-                              });
-                            } else if (item.kind === "topic" && item.topicId) {
-                              setRateTarget({
-                                entityType: "topic",
-                                entityId: item.topicId,
-                                name: item.name,
-                              });
-                            }
-                          }}
-                          className={cn(
-                            "shrink-0 rounded p-0.5 transition-opacity",
-                            isRateableReviewItem(item) && "cursor-pointer hover:opacity-80"
-                          )}
-                        >
-                          <ConfidenceDots confidence={item.confidence} />
-                        </button>
-                        <button
-                          type="button"
-                          disabled={inQueue}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            addToQueue(item);
-                          }}
-                          className={cn(
-                            "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-[0.5px] border-white/[0.1] bg-white/[0.03] text-muted-foreground transition-colors",
-                            "hover:border-white/[0.18] hover:bg-white/[0.06] hover:text-foreground",
-                            "disabled:pointer-events-none disabled:opacity-40"
-                          )}
-                          aria-label={`Add ${item.name} to queue`}
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
+                        dimmed={inQueue}
+                        trailing={
+                          <>
+                            <button
+                              type="button"
+                              title={isRateableReviewItem(item) ? "Rate confidence" : undefined}
+                              disabled={!isRateableReviewItem(item)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (item.kind === "subtopic" && item.subtopicId) {
+                                  setRateTarget({
+                                    entityType: "subtopic",
+                                    entityId: item.subtopicId,
+                                    name: item.name,
+                                    parentTopicName: item.parentTopicName,
+                                  });
+                                } else if (item.kind === "topic" && item.topicId) {
+                                  setRateTarget({
+                                    entityType: "topic",
+                                    entityId: item.topicId,
+                                    name: item.name,
+                                  });
+                                }
+                              }}
+                              className={cn(
+                                "shrink-0 rounded p-0.5 transition-opacity",
+                                isRateableReviewItem(item) && "cursor-pointer hover:opacity-80"
+                              )}
+                            >
+                              <ConfidenceDots confidence={item.confidence} />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={inQueue}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                addToQueue(item);
+                              }}
+                              className={actionBtnClass}
+                              aria-label={`Add ${item.name} to queue`}
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                            </button>
+                          </>
+                        }
+                      />
                     );
                   })
                 )}
@@ -330,6 +364,12 @@ export function ReviewSessionPanel({
                 </span>
               </div>
 
+              <div className="mt-1 min-h-[2.75rem]">
+                <ConfidenceLegend />
+              </div>
+
+              <div className="mt-4 h-9" aria-hidden />
+
               {queue.length === 0 ? (
                 <div className="flex flex-1 flex-col items-center justify-center py-10 text-center">
                   <ListMusic className="mb-4 h-12 w-12 text-muted-foreground/20" />
@@ -340,70 +380,53 @@ export function ReviewSessionPanel({
                   </p>
                 </div>
               ) : (
-                <>
-                <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-0.5">
-                  {queue.map((item, i) => {
-                    const isActive = item.id === activeItemId;
-                    const canStart = !sessionActive || isActive;
-                    return (
-                    <div
-                      key={`${item.id}-${i}`}
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg border-[0.5px] px-3 py-2.5",
-                        isActive
-                          ? "border-violet-500/30 bg-violet-500/[0.08]"
-                          : "border-white/[0.08] bg-white/[0.02]"
-                      )}
-                    >
-                      <span className="w-4 shrink-0 text-center text-[11px] tabular-nums text-muted-foreground">
-                        {i + 1}
-                      </span>
-                      <span
-                        className="h-2 w-2 shrink-0 rounded-full"
-                        style={{ background: item.trackColor }}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">{item.name}</p>
-                        <p className="truncate text-[10px] text-muted-foreground">
-                          {getReviewItemHierarchyLabel(item) ||
-                            `${item.trackName} · ${item.kind}`}
-                        </p>
-                      </div>
-                      <ConfidenceDots confidence={item.confidence} />
-                      <button
-                        type="button"
-                        disabled={!canStart}
-                        onClick={() => handleStartItem(item.id)}
-                        className={cn(
-                          "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-[0.5px] transition-colors",
-                          isActive
-                            ? "border-violet-500/40 bg-violet-500/20 text-violet-200 hover:bg-violet-500/30"
-                            : "border-white/[0.1] bg-white/[0.03] text-muted-foreground hover:border-white/[0.18] hover:bg-white/[0.06] hover:text-foreground",
-                          "disabled:pointer-events-none disabled:opacity-40"
-                        )}
-                        aria-label={isActive ? `Continue ${item.name}` : `Start revision for ${item.name}`}
-                        title={isActive ? "Continue session" : "Start revision session"}
-                      >
-                        <Play className="h-3.5 w-3.5" />
-                      </button>
-                      {!isActive && (
-                        <button
-                          type="button"
-                          onClick={() => removeFromQueue(item.id)}
-                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground"
-                          aria-label={`Remove ${item.name}`}
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                    </div>
-                    );
-                  })}
+                <div className="mt-3 flex min-h-0 flex-1 flex-col">
+                  <div className="min-h-0 flex-1 space-y-1 overflow-y-auto pr-0.5">
+                    {queue.map((item) => {
+                      const isActive = item.id === activeItemId;
+                      const canStart = !sessionActive || isActive;
+                      return (
+                        <ReviewItemRow
+                          key={item.id}
+                          item={item}
+                          highlight={isActive}
+                          trailing={
+                            <>
+                              <ConfidenceDots confidence={item.confidence} />
+                              <button
+                                type="button"
+                                disabled={!canStart}
+                                onClick={() => handleStartItem(item.id)}
+                                className={cn(
+                                  actionBtnClass,
+                                  isActive &&
+                                    "border-violet-500/40 bg-violet-500/20 text-violet-200 hover:bg-violet-500/30"
+                                )}
+                                aria-label={isActive ? `Continue ${item.name}` : `Start revision for ${item.name}`}
+                                title={isActive ? "Continue session" : "Start revision session"}
+                              >
+                                <Play className="h-3.5 w-3.5" />
+                              </button>
+                              {!isActive && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeFromQueue(item.id)}
+                                  className={cn(actionBtnClass, "border-transparent hover:border-white/[0.1]")}
+                                  aria-label={`Remove ${item.name}`}
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                            </>
+                          }
+                        />
+                      );
+                    })}
+                  </div>
+                  <p className="shrink-0 border-t border-white/[0.06] pt-2 text-center text-[10px] text-muted-foreground">
+                    Start each topic individually — time is logged per session
+                  </p>
                 </div>
-                <p className="shrink-0 pt-3 text-center text-[11px] text-muted-foreground">
-                  Start each topic individually — time is logged per session
-                </p>
-                </>
               )}
             </div>
           </div>
