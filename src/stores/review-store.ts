@@ -60,13 +60,12 @@ export const useReviewStore = create<ReviewStore>()(
         const byId = new Map(catalog.map((c) => [c.id, c]));
         set({
           queue: get().queue
-            .map((q) => byId.get(q.id) ?? q)
-            .filter((q) => byId.has(q.id)),
+            .map((q) => byId.get(q.id))
+            .filter((q): q is ReviewCatalogItem => q !== undefined),
         });
       },
 
       syncDueReviewsToQueue: (dueItems) => {
-        if (dueItems.length === 0) return;
         const { queue } = get();
         const existing = new Set(queue.map((q) => q.id));
         const toAdd = dueItems.filter((item) => !existing.has(item.id));

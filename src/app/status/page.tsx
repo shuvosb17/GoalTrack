@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/select";
 import { updateTopicStatus, updateSubtopicStatus } from "@/lib/crud";
 import { isTopicDueForReview } from "@/lib/metrics";
-import { countDueReviewCatalogItems } from "@/lib/revision-catalog";
+import { countDueReviewItems } from "@/lib/revision-catalog";
 import { ReviewSessionPanel } from "@/components/status/review-session-panel";
 import { TopicConfidenceDialog } from "@/components/tracks/topic-confidence-dialog";
 
@@ -141,7 +141,7 @@ function StatusContent() {
   );
 
   const reviewCount = useMemo(
-    () => countDueReviewCatalogItems(tracks, modules, topics, subtopics),
+    () => countDueReviewItems(tracks, modules, topics, subtopics),
     [tracks, modules, topics, subtopics]
   );
   const criticalCount = alerts.filter((a) => a.level === "critical").length;
@@ -423,7 +423,7 @@ function StatusContent() {
                                 </Badge>
                               </Link>
                             ))}
-                            {isTopicDueForReview(entry.topic, subtopics) && (
+                            {isTopicDueForReview(entry.topic) && (
                               <Badge variant="outline" className="gap-1 border-violet-500/30 text-[10px] text-violet-300">
                                 <BookmarkCheck className="h-3 w-3" /> Review due
                               </Badge>
@@ -532,7 +532,7 @@ function StatusContent() {
                                 ))}
                               </SelectContent>
                             </Select>
-                            {isTopicDueForReview(entry.topic, subtopics) && (
+                            {isTopicDueForReview(entry.topic) && (
                               <Button
                                 size="sm"
                                 variant="outline"

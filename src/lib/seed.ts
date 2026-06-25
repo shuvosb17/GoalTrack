@@ -296,12 +296,7 @@ export async function importAllData(data: Awaited<ReturnType<typeof exportAllDat
       data.subtopics ?? []
     );
     useReviewStore.getState().refreshQueueFromCatalog(catalog);
-    const dueItems = getDueReviewCatalogItems(
-      catalog,
-      data.topics ?? [],
-      data.subtopics ?? [],
-      data.modules ?? []
-    );
+    const dueItems = getDueReviewCatalogItems(catalog, data.topics ?? [], data.subtopics ?? []);
     useReviewStore.getState().syncDueReviewsToQueue(dueItems);
   }
 }
