@@ -4,8 +4,9 @@ import { useMemo, useState } from "react";
 import { v4 as uuid } from "uuid";
 import { format, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import {
-  Plus, Lightbulb, AlertCircle, Star, ArrowRight, Clock, Trash2, Pencil,
+  Plus, Lightbulb, AlertCircle, Star, ArrowRight, Clock, Trash2, Pencil, BookMarked,
 } from "lucide-react";
 import { IconNotebook, IconBulb } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
@@ -200,6 +201,24 @@ export default function JournalPage() {
           </div>
         </div>
       )}
+
+      <Link
+        href="/journal/go-backend"
+        className="group flex flex-wrap items-center justify-between gap-4 rounded-xl border border-violet-500/25 bg-violet-500/[0.06] px-4 py-4 transition-colors hover:bg-violet-500/[0.09]"
+      >
+        <div className="flex min-w-0 items-start gap-3">
+          <BookMarked className="mt-0.5 h-5 w-5 shrink-0 text-violet-400" />
+          <div>
+            <p className="font-medium text-violet-100">Go Backend Resource Library</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              410 curated links across Modules 0–23 — search by module, topic, or subtopic.
+            </p>
+          </div>
+        </div>
+        <Button size="sm" variant="outline" className="shrink-0 border-violet-500/30">
+          Open library
+        </Button>
+      </Link>
 
       <ResourceLinksPanel
         tracks={tracks}
