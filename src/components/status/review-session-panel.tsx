@@ -216,8 +216,8 @@ export function ReviewSessionPanel({
             })}
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-2 lg:items-stretch lg:gap-8">
-            <div className="flex min-h-[min(520px,70vh)] flex-col rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.015] p-4">
+          <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
+            <div className="rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.015] p-4">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm font-medium">
                   {activeTrack?.name ?? "Track"}
@@ -240,7 +240,7 @@ export function ReviewSessionPanel({
                 />
               </div>
 
-              <div className="mt-3 min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-0.5">
+              <div className="mt-3 max-h-[26rem] space-y-1.5 overflow-y-auto pr-0.5">
                 {trackItems.length === 0 ? (
                   <p className="py-8 text-center text-sm text-muted-foreground">
                     {search ? "No topics match your search." : "No completed topics in this track."}
@@ -326,7 +326,7 @@ export function ReviewSessionPanel({
               </div>
             </div>
 
-            <div className="flex min-h-[min(520px,70vh)] flex-col rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.015] p-4">
+            <div className="rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.015] p-4">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <p className="text-sm font-medium">Review queue</p>
                 <span className="text-xs text-muted-foreground">
@@ -335,14 +335,14 @@ export function ReviewSessionPanel({
               </div>
 
               {queue.length === 0 ? (
-                <div className="flex flex-1 flex-col items-center justify-center py-10 text-center">
+                <div className="flex flex-col items-center justify-center py-10 text-center">
                   <ListMusic className="mb-4 h-12 w-12 text-muted-foreground/20" />
                   <p className="max-w-[240px] text-sm text-muted-foreground">
                     Add topics from any track to build your review session
                   </p>
                 </div>
               ) : (
-                <div className="mb-4 min-h-0 flex-1 space-y-2 overflow-y-auto pr-0.5">
+                <div className="max-h-[26rem] space-y-2 overflow-y-auto pr-0.5">
                   {queue.map((item, i) => {
                     const isActive = item.id === activeItemId;
                     const canStart = !sessionActive || isActive;
@@ -404,7 +404,7 @@ export function ReviewSessionPanel({
               )}
 
               {queue.length > 0 && (
-                <p className="shrink-0 pt-3 text-center text-[11px] text-muted-foreground">
+                <p className="pt-3 text-center text-[11px] text-muted-foreground">
                   Start each topic individually — time is logged per session
                 </p>
               )}
