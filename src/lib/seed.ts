@@ -6,6 +6,9 @@ import { nowISO } from "./utils";
 import { CS_FUNDAMENTALS, LEETCODE_PATTERNS, coreProblemKey, coreCsItemKey } from "./leetcode-patterns";
 import { getReviewStateForBackup, restoreReviewStateFromBackup, useReviewStore } from "@/stores/review-store";
 import { buildRevisionCatalog, getDueReviewCatalogItems } from "./revision-catalog";
+import { GO_BACKEND_PATH, GO_BACKEND_PATH_MARKER } from "./go-backend-path";
+import { importMdIntoModule } from "./md-import";
+import { archiveModule } from "./crud";
 
 const ACHIEVEMENTS: Omit<Achievement, "id">[] = [
   { key: "first_session", title: "First Study Session", description: "Complete your first learning session", icon: "🎯" },
@@ -176,6 +179,42 @@ export async function ensureLeetcodePrep(): Promise<void> {
     if (toInsert.length > 0) await db.leetcodeProblems.bulkAdd(toInsert);
     if (csToInsert.length > 0) await db.csReviewItems.bulkAdd(csToInsert);
   });
+}
+
+export async function ensureGoBackendPath(): Promise<void> {
+  const devTrack = await db.tracks.filter((t) => t.name === "Development").first();
+  if (!devTrack) return;
+
+  const existingModules = await db.modules.where("trackId").equals(devTrack.id).toArray();
+
+  for (const mod of existingModules) {
+    if (/mastering\s+aws/i.test(mod.name) && !mod.archived) {
+      await archiveModule(mod.id);
+    }
+  }
+
+  const hasMarker = existingModules.some((m) => m.name === GO_BACKEND_PATH_MARKER);
+  if (hasMarker) return;
+
+  let moduleOrder = existingModules.reduce((max, m) => Math.max(max, m.order), -1) + 1;
+  for (const mod of GO_BACKEND_PATH) {
+    const moduleId = uuid();
+    const now = nowISO();
+    await db.modules.add({
+      id: moduleId,
+      trackId: devTrack.id,
+      name: mod.name,
+      order: moduleOrder++,
+      archived: false,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await importMdIntoModule(
+      devTrack.id,
+      moduleId,
+      mod.topics.map((t) => ({ name: t.name, subtopics: t.subtopics }))
+    );
+  }
 }
 
 export async function ensureInterviewReadyAchievement(): Promise<void> {

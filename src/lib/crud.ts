@@ -525,6 +525,29 @@ export async function archiveItem(
   await table.update(id, { archived: true, updatedAt: nowISO() });
 }
 
+export async function unarchiveItem(
+  table: { update: (id: string, changes: { archived: boolean; updatedAt: string }) => Promise<number> },
+  id: string
+) {
+  await table.update(id, { archived: false, updatedAt: nowISO() });
+}
+
+export async function archiveModule(id: string) {
+  await archiveItem(db.modules, id);
+}
+
+export async function unarchiveModule(id: string) {
+  await unarchiveItem(db.modules, id);
+}
+
+export async function archiveTopic(id: string) {
+  await archiveItem(db.topics, id);
+}
+
+export async function unarchiveTopic(id: string) {
+  await unarchiveItem(db.topics, id);
+}
+
 export async function deleteItem(table: { delete: (id: string) => Promise<void> }, id: string) {
   await table.delete(id);
 }
@@ -533,6 +556,13 @@ export async function archiveSubtopic(id: string) {
   const sub = await db.subtopics.get(id);
   if (!sub) return;
   await archiveItem(db.subtopics, id);
+  await syncTopicStatusFromSubtopics(sub.topicId);
+}
+
+export async function unarchiveSubtopic(id: string) {
+  const sub = await db.subtopics.get(id);
+  if (!sub) return;
+  await unarchiveItem(db.subtopics, id);
   await syncTopicStatusFromSubtopics(sub.topicId);
 }
 

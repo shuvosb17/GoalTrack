@@ -82,8 +82,8 @@ function TracksContent() {
       {hierarchyTracks.length > 0 && (
         <HierarchyTree
           tracks={hierarchyTracks}
-          modules={modules.filter((m) => !m.archived)}
-          topics={topics.filter((t) => !t.archived)}
+          modules={modules}
+          topics={topics}
           subtopics={subtopics}
           selectedTrackId={selectedTrack}
         />

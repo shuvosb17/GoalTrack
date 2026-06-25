@@ -155,12 +155,26 @@ export function getModuleProgress(moduleId: string, topics: Topic[], subtopics: 
   };
 }
 
+export function getActiveTrackTopics(
+  trackId: string,
+  topics: Topic[],
+  modules: Module[] = []
+): Topic[] {
+  const archivedModuleIds = new Set(
+    modules.filter((m) => m.trackId === trackId && m.archived).map((m) => m.id)
+  );
+  return topics.filter(
+    (t) => t.trackId === trackId && !t.archived && !archivedModuleIds.has(t.moduleId)
+  );
+}
+
 export function getTrackProgress(
   trackId: string,
   topics: Topic[],
-  subtopics: Subtopic[]
+  subtopics: Subtopic[],
+  modules: Module[] = []
 ) {
-  const trackTopics = topics.filter((t) => t.trackId === trackId && !t.archived);
+  const trackTopics = getActiveTrackTopics(trackId, topics, modules);
 
   const inProgress = trackTopics.filter((t) => {
     const subs = subtopics.filter((s) => s.topicId === t.id && !s.archived);
@@ -196,9 +210,10 @@ export function getTrackProgress(
 export function getTrackRemainingCount(
   trackId: string,
   topics: Topic[],
-  subtopics: Subtopic[]
+  subtopics: Subtopic[],
+  modules: Module[] = []
 ): number {
-  const trackTopics = topics.filter((t) => t.trackId === trackId && !t.archived);
+  const trackTopics = getActiveTrackTopics(trackId, topics, modules);
   let remaining = 0;
 
   for (const topic of trackTopics) {

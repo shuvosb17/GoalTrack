@@ -97,12 +97,12 @@ export default function DashboardPage() {
   const trackStats = useMemo(() => {
     const healthMap = new Map(trackHealth.map((h) => [h.trackId, h]));
     return tracks.map((track) => {
-      const progress = getTrackProgress(track.id, topics, subtopics);
+      const progress = getTrackProgress(track.id, topics, subtopics, modules);
       const today = todayISO();
       const hours = sessions
         .filter((s) => s.trackId === track.id && s.date === today)
         .reduce((sum, s) => sum + s.duration, 0) / 3600000;
-      const remaining = getTrackRemainingCount(track.id, topics, subtopics);
+      const remaining = getTrackRemainingCount(track.id, topics, subtopics, modules);
       const inProgress = subtopics.find((s) => s.trackId === track.id && s.status === "in_progress");
       const focusTopic = inProgress ? topics.find((t) => t.id === inProgress.topicId)?.name : undefined;
       const trackDates = sessions.filter((s) => s.trackId === track.id).map((s) => s.date);

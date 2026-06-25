@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronRight, ChevronDown, Plus, GripVertical,
-  Archive, Copy, Trash2, Pencil, BookmarkCheck,
+  Archive, ArchiveRestore, Copy, Trash2, Pencil, BookmarkCheck,
 } from "lucide-react";
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent,
@@ -31,6 +31,7 @@ import {
   updateSubtopicDueDate,
   updateTopicDifficulty, updateSubtopicDifficulty,
   renameModule, renameTopic, deleteModule, deleteTopic,
+  archiveModule, unarchiveModule, archiveTopic, unarchiveTopic,
   archiveSubtopic, deleteSubtopic, duplicateSubtopic, reorderItems,
 } from "@/lib/crud";
 import { isTopicDueForReview, getReviewDueLabel } from "@/lib/metrics";
@@ -80,10 +81,20 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
   const [editDialog, setEditDialog] = useState<{ type: "module" | "topic"; id: string; name: string; difficulty?: Difficulty } | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<{ type: "module" | "topic"; id: string; name: string } | null>(null);
   const [confidenceDialog, setConfidenceDialog] = useState<{ id: string; name: string; mode: TopicConfidenceMode } | null>(null);
+  const [archivedOpen, setArchivedOpen] = useState<Set<string>>(new Set());
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+
+  const toggleArchived = (trackId: string) => {
+    setArchivedOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(trackId)) next.delete(trackId);
+      else next.add(trackId);
+      return next;
+    });
+  };
 
   const filteredTracks = selectedTrackId ? tracks.filter((t) => t.id === selectedTrackId) : tracks;
 
@@ -138,8 +149,13 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
   return (
     <div className="space-y-4">
       {filteredTracks.map((track) => {
-        const trackModules = modules.filter((m) => m.trackId === track.id).sort((a, b) => a.order - b.order);
-        const trackProgress = getTrackProgress(track.id, topics, subtopics).percentage;
+        const trackModulesAll = modules.filter((m) => m.trackId === track.id).sort((a, b) => a.order - b.order);
+        const activeModules = trackModulesAll.filter((m) => !m.archived);
+        const archivedModules = trackModulesAll.filter((m) => m.archived);
+        const archivedTopicCount = topics.filter(
+          (t) => t.trackId === track.id && t.archived && !archivedModules.some((m) => m.id === t.moduleId)
+        ).length;
+        const trackProgress = getTrackProgress(track.id, topics, subtopics, modules).percentage;
 
         return (
           <div key={track.id} className="glass-card rounded-xl overflow-hidden">
@@ -171,10 +187,12 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
               {expanded.has(track.id) && (
                 <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden">
                   <div className="px-4 pb-4 space-y-2 border-t border-border/50 pt-3">
-                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleDragEnd(e, trackModules, db.modules)}>
-                      <SortableContext items={trackModules.map((m) => m.id)} strategy={verticalListSortingStrategy}>
-                        {trackModules.map((mod) => {
-                          const modTopics = topics.filter((t) => t.moduleId === mod.id).sort((a, b) => a.order - b.order);
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleDragEnd(e, activeModules, db.modules)}>
+                      <SortableContext items={activeModules.map((m) => m.id)} strategy={verticalListSortingStrategy}>
+                        {activeModules.map((mod) => {
+                          const modTopicsAll = topics.filter((t) => t.moduleId === mod.id).sort((a, b) => a.order - b.order);
+                          const modTopics = modTopicsAll.filter((t) => !t.archived);
+                          const archivedModTopics = modTopicsAll.filter((t) => t.archived);
                           const modProgress = getModuleProgress(mod.id, topics, subtopics);
 
                           return (
@@ -194,6 +212,9 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                   <div className="flex gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
                                     <Button size="icon" variant="ghost" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); setEditDialog({ type: "module", id: mod.id, name: mod.name }); }}>
                                       <Pencil className="h-3 w-3" />
+                                    </Button>
+                                    <Button size="icon" variant="ghost" className="h-6 w-6" title="Archive module" onClick={(e) => { e.stopPropagation(); void archiveModule(mod.id); }}>
+                                      <Archive className="h-3 w-3" />
                                     </Button>
                                     <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteDialog({ type: "module", id: mod.id, name: mod.name }); }}>
                                       <Trash2 className="h-3 w-3" />
@@ -306,6 +327,9 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                   <Button size="icon" variant="ghost" className="h-5 w-5" onClick={(e) => { e.stopPropagation(); setEditDialog({ type: "topic", id: topic.id, name: topic.name, difficulty: topic.difficulty }); }}>
                                                     <Pencil className="h-3 w-3" />
                                                   </Button>
+                                                  <Button size="icon" variant="ghost" className="h-5 w-5" title="Archive topic" onClick={(e) => { e.stopPropagation(); void archiveTopic(topic.id); }}>
+                                                    <Archive className="h-3 w-3" />
+                                                  </Button>
                                                   <Button size="icon" variant="ghost" className="h-5 w-5 text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteDialog({ type: "topic", id: topic.id, name: topic.name }); }}>
                                                     <Trash2 className="h-3 w-3" />
                                                   </Button>
@@ -407,6 +431,36 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                             </div>
                                           );
                                         })}
+                                        {archivedModTopics.length > 0 && (
+                                          <div className="mt-2 rounded-md border border-dashed border-border/40 p-2">
+                                            <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                                              Archived topics
+                                            </p>
+                                            {archivedModTopics.map((topic) => (
+                                              <div
+                                                key={topic.id}
+                                                className="flex flex-wrap items-center gap-2 rounded px-2 py-1.5 text-sm text-muted-foreground hover:bg-secondary/20"
+                                              >
+                                                <span className="min-w-0 flex-1 truncate">{topic.name}</span>
+                                                <TimerControls
+                                                  path={{ trackId: track.id, moduleId: mod.id, topicId: topic.id }}
+                                                  label={`${mod.name} → ${topic.name}`}
+                                                  compact
+                                                  loggedMs={getTopicLoggedMs(topic.id, subtopics, sessions)}
+                                                />
+                                                <Button
+                                                  size="icon"
+                                                  variant="ghost"
+                                                  className="h-6 w-6"
+                                                  title="Restore topic"
+                                                  onClick={() => void unarchiveTopic(topic.id)}
+                                                >
+                                                  <ArchiveRestore className="h-3 w-3" />
+                                                </Button>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
                                       </div>
                                     </motion.div>
                                   )}
@@ -417,6 +471,53 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                         })}
                       </SortableContext>
                     </DndContext>
+                    {(archivedModules.length > 0 || archivedTopicCount > 0) && (
+                      <div className="mt-3 border-t border-border/50 pt-2">
+                        <button
+                          type="button"
+                          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-secondary/30"
+                          onClick={() => toggleArchived(track.id)}
+                        >
+                          {archivedOpen.has(track.id) ? (
+                            <ChevronDown className="h-3 w-3" />
+                          ) : (
+                            <ChevronRight className="h-3 w-3" />
+                          )}
+                          <Archive className="h-3 w-3" />
+                          <span>
+                            Archived ({archivedModules.length + archivedTopicCount})
+                          </span>
+                        </button>
+                        {archivedOpen.has(track.id) && (
+                          <div className="mt-2 space-y-2">
+                            {archivedModules.map((mod) => (
+                              <div
+                                key={mod.id}
+                                className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-border/40 bg-secondary/10 px-3 py-2"
+                              >
+                                <span className="min-w-0 flex-1 text-sm text-muted-foreground">{mod.name}</span>
+                                <span className="text-[10px] text-muted-foreground">excluded from progress</span>
+                                <TimerControls
+                                  path={{ trackId: track.id, moduleId: mod.id }}
+                                  label={`${track.name} → ${mod.name}`}
+                                  compact
+                                  loggedMs={getModuleLoggedMs(mod.id, topics, subtopics, sessions)}
+                                />
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7"
+                                  title="Restore module"
+                                  onClick={() => void unarchiveModule(mod.id)}
+                                >
+                                  <ArchiveRestore className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               )}

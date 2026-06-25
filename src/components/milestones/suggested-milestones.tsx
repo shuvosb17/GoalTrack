@@ -33,7 +33,7 @@ export function SuggestedMilestones({ tracks, modules, topics, subtopics }: Sugg
       .map((track) => {
         const trackModules = modules.filter((m) => m.trackId === track.id && !m.archived);
         const trackTopics = topics.filter((t) => trackModules.some((m) => m.id === t.moduleId) && !t.archived);
-        const pct = getTrackProgress(track.id, trackTopics, subtopics).percentage;
+        const pct = getTrackProgress(track.id, trackTopics, subtopics, modules).percentage;
         const months = suggestDeadlineMonths(pct);
         const deadline = format(addMonths(parseLocalDate(todayISO()), months), "MMM yyyy");
         const nextTarget = Math.min(100, pct + Math.max(15, Math.round((100 - pct) / 3)));

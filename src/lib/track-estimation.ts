@@ -125,7 +125,7 @@ export function buildTrackEstimation(
   const start = parseLocalDate(startDate);
   const end = parseLocalDate(endDate);
 
-  const currentProgress = getTrackProgress(track.id, topics, subtopics).percentage;
+  const currentProgress = getTrackProgress(track.id, topics, subtopics, modules).percentage;
 
   const trackSessions = sessions.filter((s) => s.trackId === track.id && s.date >= startDate);
   const hoursInvested = trackSessions.reduce((sum, s) => sum + s.duration, 0) / 3600000;

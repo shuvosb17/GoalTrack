@@ -39,10 +39,10 @@ export function getModuleLoggedMs(
   sessions: LearningSession[]
 ): number {
   const topicIds = new Set(
-    topics.filter((t) => t.moduleId === moduleId && !t.archived).map((t) => t.id)
+    topics.filter((t) => t.moduleId === moduleId).map((t) => t.id)
   );
   const subIds = new Set(
-    subtopics.filter((s) => s.moduleId === moduleId && !s.archived).map((s) => s.id)
+    subtopics.filter((s) => s.moduleId === moduleId).map((s) => s.id)
   );
   return sessions
     .filter((s) => {

@@ -93,7 +93,7 @@ export function GoalMilestoneDialog({
   };
 
   const liveProgress = hierarchy.trackId
-    ? resolveGoalProgress(scopeInput, topics, subtopics)
+    ? resolveGoalProgress(scopeInput, topics, subtopics, modules)
     : 0;
 
   const scopeLabel = hierarchy.trackId
