@@ -232,7 +232,10 @@ export function computeNextReviewDate(confidence: 1 | 2 | 3 | 4 | 5, fromDate?: 
   return format(addDays(base, confidence * 3), "yyyy-MM-dd");
 }
 
-export function isTopicDueForReview(topic: Topic): boolean {
+export function isTopicDueForReview(topic: Topic, subtopics: Subtopic[] = []): boolean {
+  if (topic.archived) return false;
+  const hasActiveSubs = subtopics.some((s) => s.topicId === topic.id && !s.archived);
+  if (hasActiveSubs) return false;
   if (!topic.completionMeta) return false;
   if (topic.status !== "completed" && topic.status !== "mastered") return false;
   return (
@@ -242,6 +245,7 @@ export function isTopicDueForReview(topic: Topic): boolean {
 }
 
 export function isSubtopicDueForReview(subtopic: Subtopic): boolean {
+  if (subtopic.archived) return false;
   if (!subtopic.completionMeta) return false;
   if (subtopic.status !== "completed" && subtopic.status !== "mastered") return false;
   return (
@@ -250,16 +254,44 @@ export function isSubtopicDueForReview(subtopic: Subtopic): boolean {
   );
 }
 
-export function getTopicsDueForReview(topics: Topic[]): Topic[] {
-  return topics.filter(isTopicDueForReview);
+export function getTopicsDueForReview(
+  topics: Topic[],
+  subtopics: Subtopic[] = [],
+  modules: Module[] = []
+): Topic[] {
+  const archivedModuleIds = new Set(modules.filter((m) => m.archived).map((m) => m.id));
+  return topics.filter((topic) => {
+    if (topic.archived) return false;
+    if (topic.moduleId && archivedModuleIds.has(topic.moduleId)) return false;
+    return isTopicDueForReview(topic, subtopics);
+  });
 }
 
-export function getSubtopicsDueForReview(subtopics: Subtopic[]): Subtopic[] {
-  return subtopics.filter(isSubtopicDueForReview);
+export function getSubtopicsDueForReview(
+  subtopics: Subtopic[],
+  topics: Topic[] = [],
+  modules: Module[] = []
+): Subtopic[] {
+  const topicById = new Map(topics.map((t) => [t.id, t]));
+  const archivedModuleIds = new Set(modules.filter((m) => m.archived).map((m) => m.id));
+  return subtopics.filter((sub) => {
+    if (!isSubtopicDueForReview(sub)) return false;
+    const topic = topicById.get(sub.topicId);
+    if (!topic || topic.archived) return false;
+    if (topic.moduleId && archivedModuleIds.has(topic.moduleId)) return false;
+    return true;
+  });
 }
 
-export function countSpacedReviewDue(topics: Topic[], subtopics: Subtopic[]): number {
-  return getTopicsDueForReview(topics).length + getSubtopicsDueForReview(subtopics).length;
+export function countSpacedReviewDue(
+  topics: Topic[],
+  subtopics: Subtopic[],
+  modules: Module[] = []
+): number {
+  return (
+    getTopicsDueForReview(topics, subtopics, modules).length +
+    getSubtopicsDueForReview(subtopics, topics, modules).length
+  );
 }
 
 export function getReviewDueLabel(topic: Topic): string | null {

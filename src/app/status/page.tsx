@@ -30,7 +30,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { updateTopicStatus, updateSubtopicStatus } from "@/lib/crud";
-import { isTopicDueForReview, countSpacedReviewDue } from "@/lib/metrics";
+import { isTopicDueForReview } from "@/lib/metrics";
+import { countDueReviewCatalogItems } from "@/lib/revision-catalog";
 import { ReviewSessionPanel } from "@/components/status/review-session-panel";
 import { TopicConfidenceDialog } from "@/components/tracks/topic-confidence-dialog";
 
@@ -139,7 +140,10 @@ function StatusContent() {
     [topics, subtopics, modules, tracks]
   );
 
-  const reviewCount = useMemo(() => countSpacedReviewDue(topics, subtopics), [topics, subtopics]);
+  const reviewCount = useMemo(
+    () => countDueReviewCatalogItems(tracks, modules, topics, subtopics),
+    [tracks, modules, topics, subtopics]
+  );
   const criticalCount = alerts.filter((a) => a.level === "critical").length;
 
   return (
@@ -419,7 +423,7 @@ function StatusContent() {
                                 </Badge>
                               </Link>
                             ))}
-                            {isTopicDueForReview(entry.topic) && (
+                            {isTopicDueForReview(entry.topic, subtopics) && (
                               <Badge variant="outline" className="gap-1 border-violet-500/30 text-[10px] text-violet-300">
                                 <BookmarkCheck className="h-3 w-3" /> Review due
                               </Badge>
@@ -528,7 +532,7 @@ function StatusContent() {
                                 ))}
                               </SelectContent>
                             </Select>
-                            {isTopicDueForReview(entry.topic) && (
+                            {isTopicDueForReview(entry.topic, subtopics) && (
                               <Button
                                 size="sm"
                                 variant="outline"

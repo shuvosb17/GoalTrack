@@ -68,11 +68,16 @@ export function ReviewSessionPanel({
   const sessionActive = activeItemId !== null;
   const activeItem = sessionActive ? queue.find((q) => q.id === activeItemId) : undefined;
 
+  const dueCount = useMemo(
+    () => getDueReviewCatalogItems(catalog, topics, subtopics, modules).length,
+    [catalog, topics, subtopics, modules]
+  );
+
   useEffect(() => {
     refreshQueueFromCatalog(catalog);
-    const dueItems = getDueReviewCatalogItems(catalog, topics, subtopics);
+    const dueItems = getDueReviewCatalogItems(catalog, topics, subtopics, modules);
     syncDueReviewsToQueue(dueItems);
-  }, [catalog, topics, subtopics, refreshQueueFromCatalog, syncDueReviewsToQueue]);
+  }, [catalog, topics, subtopics, modules, refreshQueueFromCatalog, syncDueReviewsToQueue]);
 
   useEffect(() => {
     if (!resumedSession && sessionActive && activeItem) {
@@ -156,6 +161,15 @@ export function ReviewSessionPanel({
                 <p className="text-lg font-medium tabular-nums leading-none">{queue.length}</p>
                 <p className="text-[10px] text-muted-foreground">in queue</p>
               </div>
+              {dueCount > 0 && (
+                <>
+                  <div className="h-8 w-px bg-white/[0.08]" />
+                  <div className="text-right">
+                    <p className="text-lg font-medium tabular-nums leading-none text-violet-300">{dueCount}</p>
+                    <p className="text-[10px] text-muted-foreground">due now</p>
+                  </div>
+                </>
+              )}
               <div className="h-8 w-px bg-white/[0.08]" />
               <ListMusic className="h-5 w-5 text-muted-foreground" />
             </div>
@@ -202,8 +216,8 @@ export function ReviewSessionPanel({
             })}
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
-            <div className="min-w-0 rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.015] p-4">
+          <div className="grid gap-6 lg:grid-cols-2 lg:items-stretch lg:gap-8">
+            <div className="flex min-h-[min(520px,70vh)] flex-col rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.015] p-4">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm font-medium">
                   {activeTrack?.name ?? "Track"}
@@ -226,7 +240,7 @@ export function ReviewSessionPanel({
                 />
               </div>
 
-              <div className="mt-3 max-h-[420px] space-y-1.5 overflow-y-auto pr-0.5">
+              <div className="mt-3 min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-0.5">
                 {trackItems.length === 0 ? (
                   <p className="py-8 text-center text-sm text-muted-foreground">
                     {search ? "No topics match your search." : "No completed topics in this track."}
@@ -312,7 +326,7 @@ export function ReviewSessionPanel({
               </div>
             </div>
 
-            <div className="flex min-h-[320px] flex-col rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.015] p-4 lg:min-h-0">
+            <div className="flex min-h-[min(520px,70vh)] flex-col rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.015] p-4">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <p className="text-sm font-medium">Review queue</p>
                 <span className="text-xs text-muted-foreground">
@@ -328,7 +342,7 @@ export function ReviewSessionPanel({
                   </p>
                 </div>
               ) : (
-                <div className="mb-4 max-h-[340px] flex-1 space-y-2 overflow-y-auto pr-0.5">
+                <div className="mb-4 min-h-0 flex-1 space-y-2 overflow-y-auto pr-0.5">
                   {queue.map((item, i) => {
                     const isActive = item.id === activeItemId;
                     const canStart = !sessionActive || isActive;
@@ -390,7 +404,7 @@ export function ReviewSessionPanel({
               )}
 
               {queue.length > 0 && (
-                <p className="mt-auto text-center text-[11px] text-muted-foreground">
+                <p className="shrink-0 pt-3 text-center text-[11px] text-muted-foreground">
                   Start each topic individually — time is logged per session
                 </p>
               )}

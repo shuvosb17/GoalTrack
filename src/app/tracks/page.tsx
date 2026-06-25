@@ -10,8 +10,7 @@ import { LeetCodeWorkspace } from "@/components/tracks/leetcode-workspace";
 import { useTracks, useAllModules, useAllTopics, useAllSubtopics } from "@/hooks/use-data";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { countSpacedReviewDue } from "@/lib/metrics";
-import { buildRevisionCatalog, getDueReviewCatalogItems } from "@/lib/revision-catalog";
+import { countDueReviewCatalogItems, buildRevisionCatalog, getDueReviewCatalogItems } from "@/lib/revision-catalog";
 import { useReviewStore } from "@/stores/review-store";
 
 function TracksContent() {
@@ -25,8 +24,8 @@ function TracksContent() {
   const subtopics = useAllSubtopics();
 
   const reviewDueCount = useMemo(
-    () => countSpacedReviewDue(topics, subtopics),
-    [topics, subtopics]
+    () => countDueReviewCatalogItems(tracks, modules, topics, subtopics),
+    [tracks, modules, topics, subtopics]
   );
 
   const leetcodeTrack = useMemo(() => tracks.find((t) => t.name === "LeetCode"), [tracks]);
@@ -38,11 +37,11 @@ function TracksContent() {
   }, [tracks, selectedTrack]);
 
   useEffect(() => {
-    if (reviewDueCount === 0) return;
     const catalog = buildRevisionCatalog(tracks, modules, topics, subtopics);
-    const dueItems = getDueReviewCatalogItems(catalog, topics, subtopics);
+    useReviewStore.getState().refreshQueueFromCatalog(catalog);
+    const dueItems = getDueReviewCatalogItems(catalog, topics, subtopics, modules);
     useReviewStore.getState().syncDueReviewsToQueue(dueItems);
-  }, [reviewDueCount, tracks, modules, topics, subtopics]);
+  }, [tracks, modules, topics, subtopics]);
 
   return (
     <div className="space-y-6">

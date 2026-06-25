@@ -289,15 +289,19 @@ export async function importAllData(data: Awaited<ReturnType<typeof exportAllDat
       queue: data.reviewQueue ?? [],
       progress: data.reviewProgress ?? null,
     });
-    if (!data.reviewQueue?.length) {
-      const catalog = buildRevisionCatalog(
-        data.tracks ?? [],
-        data.modules ?? [],
-        data.topics ?? [],
-        data.subtopics ?? []
-      );
-      const dueItems = getDueReviewCatalogItems(catalog, data.topics ?? [], data.subtopics ?? []);
-      useReviewStore.getState().syncDueReviewsToQueue(dueItems);
-    }
+    const catalog = buildRevisionCatalog(
+      data.tracks ?? [],
+      data.modules ?? [],
+      data.topics ?? [],
+      data.subtopics ?? []
+    );
+    useReviewStore.getState().refreshQueueFromCatalog(catalog);
+    const dueItems = getDueReviewCatalogItems(
+      catalog,
+      data.topics ?? [],
+      data.subtopics ?? [],
+      data.modules ?? []
+    );
+    useReviewStore.getState().syncDueReviewsToQueue(dueItems);
   }
 }
