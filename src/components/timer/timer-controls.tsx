@@ -18,9 +18,18 @@ interface TimerControlsProps {
   compact?: boolean;
   loggedMs?: number;
   allowManual?: boolean;
+  /** Hide the logged-hours label (shown elsewhere in the row). */
+  hideLogged?: boolean;
 }
 
-export function TimerControls({ path, label, compact, loggedMs = 0, allowManual = false }: TimerControlsProps) {
+export function TimerControls({
+  path,
+  label,
+  compact,
+  loggedMs = 0,
+  allowManual = false,
+  hideLogged = false,
+}: TimerControlsProps) {
   const store = useTimerStore();
   const { isRunning, isPaused, trackId, moduleId, topicId, subtopicId, tick, start, pause, resume, stop, getElapsedMs } = store;
   void tick;
@@ -57,25 +66,49 @@ export function TimerControls({ path, label, compact, loggedMs = 0, allowManual 
 
   const loggedLabel = loggedMs > 0 ? formatHoursShort(loggedMs) : null;
 
+  const compactIconClass = hideLogged
+    ? "flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
+    : "";
+
   if (compact) {
     return (
       <>
-        <div className="flex items-center gap-1 shrink-0">
-          {loggedLabel && (
+        <div className="flex items-center gap-0.5 shrink-0">
+          {!hideLogged && loggedLabel && (
             <span className="min-w-[2.5rem] text-sm font-semibold font-mono text-foreground tabular-nums" title="Total logged time">
               {loggedLabel}
             </span>
           )}
           {isActive ? (
             <>
-              <span className="text-sm font-mono font-semibold text-primary tabular-nums">{formatDuration(elapsed)}</span>
+              <span className="text-xs font-mono font-semibold text-primary tabular-nums">{formatDuration(elapsed)}</span>
               {isPaused ? (
-                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={resume}><Play className="h-3 w-3" /></Button>
+                hideLogged ? (
+                  <button type="button" className={compactIconClass} onClick={resume} aria-label="Resume timer">
+                    <Play className="h-4 w-4" />
+                  </button>
+                ) : (
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={resume}><Play className="h-3 w-3" /></Button>
+                )
+              ) : hideLogged ? (
+                <button type="button" className={compactIconClass} onClick={pause} aria-label="Pause timer">
+                  <Pause className="h-4 w-4" />
+                </button>
               ) : (
                 <Button size="icon" variant="ghost" className="h-6 w-6" onClick={pause}><Pause className="h-3 w-3" /></Button>
               )}
-              <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={() => stop()}><Square className="h-3 w-3" /></Button>
+              {hideLogged ? (
+                <button type="button" className={`${compactIconClass} hover:text-destructive`} onClick={() => stop()} aria-label="Stop timer">
+                  <Square className="h-4 w-4" />
+                </button>
+              ) : (
+                <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={() => stop()}><Square className="h-3 w-3" /></Button>
+              )}
             </>
+          ) : hideLogged ? (
+            <button type="button" className={compactIconClass} onClick={handleStart} aria-label="Start timer">
+              <Play className="h-4 w-4" />
+            </button>
           ) : (
             <Button size="icon" variant="ghost" className="h-6 w-6" onClick={handleStart}>
               <Play className="h-3 w-3" />

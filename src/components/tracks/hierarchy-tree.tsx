@@ -47,6 +47,8 @@ import {
 import { InlineCodeText } from "@/components/shared/inline-code-text";
 import { toPlainLearningLabel } from "@/lib/format-learning-text";
 import { GO_BACKEND_PROJECT_TOPIC_PREFIX } from "@/lib/go-backend-projects";
+import { TrackRow } from "@/components/tracks/track-row";
+import { getTrackLast7DayHours } from "@/lib/track-sparkline";
 
 interface HierarchyTreeProps {
   tracks: Track[];
@@ -150,7 +152,7 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-0">
       {filteredTracks.map((track) => {
         const trackModulesAll = modules.filter((m) => m.trackId === track.id).sort((a, b) => a.order - b.order);
         const activeModules = trackModulesAll.filter((m) => !m.archived);
@@ -160,36 +162,24 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
         ).length;
         const trackProgress = getTrackProgress(track.id, topics, subtopics, modules).percentage;
 
+        const sparklineValues = getTrackLast7DayHours(track.id, sessions);
+
         return (
-          <div key={track.id} className="glass-card rounded-xl overflow-hidden">
-            <div
-              className="flex flex-wrap items-center gap-2 p-3 cursor-pointer hover:bg-secondary/30 transition-colors sm:gap-3 sm:p-4"
-              onClick={() => toggle(track.id)}
-            >
-              <span className="text-xl">{track.icon}</span>
-              <div className="min-w-0 flex-1 basis-[calc(100%-3rem)] sm:basis-auto">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="font-semibold truncate">{track.name}</h3>
-                  <Badge variant="outline">{trackProgress}%</Badge>
-                </div>
-                <Progress value={trackProgress} className="h-1 mt-2" />
-              </div>
-              <TimerControls
-                path={{ trackId: track.id }}
-                label={track.name}
-                compact
-                loggedMs={getTrackLoggedMs(track.id, sessions)}
-              />
-              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setDialog({ type: "module", trackId: track.id }); }}>
-                <Plus className="h-4 w-4" />
-              </Button>
-              {expanded.has(track.id) ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-            </div>
+          <div key={track.id} className="mb-2.5 overflow-hidden">
+            <TrackRow
+              track={track}
+              progressPercent={trackProgress}
+              loggedMs={getTrackLoggedMs(track.id, sessions)}
+              sparklineValues={sparklineValues}
+              expanded={expanded.has(track.id)}
+              onToggle={() => toggle(track.id)}
+              onAddModule={() => setDialog({ type: "module", trackId: track.id })}
+            />
 
             <AnimatePresence>
               {expanded.has(track.id) && (
                 <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden">
-                  <div className="px-4 pb-4 space-y-2 border-t border-border/50 pt-3">
+                  <div className="space-y-2 border-t border-border/40 px-[18px] pb-4 pt-3">
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleDragEnd(e, activeModules, db.modules)}>
                       <SortableContext items={activeModules.map((m) => m.id)} strategy={verticalListSortingStrategy}>
                         {activeModules.map((mod) => {
