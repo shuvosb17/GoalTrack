@@ -5,32 +5,29 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  AlertTriangle, Clock, CheckCircle2, Loader2, Sparkles, Circle,
-  ChevronRight, Flag, BookmarkCheck,
+  AlertTriangle, CheckCircle2, Loader2, Sparkles, Circle,
+  ChevronRight, BookmarkCheck,
 } from "lucide-react";
 import { IconActivity, IconAlertTriangle, IconCalendarEvent } from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SectionHeading } from "@/components/shared/section-heading";
-import { TimerControls } from "@/components/timer/timer-controls";
 import {
   useTracks, useAllModules, useAllTopics, useAllSubtopics, useGoalMilestones,
 } from "@/hooks/use-data";
-import { getActiveGoalsForTopic } from "@/lib/goal-milestones";
 import {
   getStatusTimeline, getGlobalStatusCounts, getUrgencyAlerts,
-  getTodaySnapshot, ALL_STATUSES, formatDeadline,
+  getTodaySnapshot, ALL_STATUSES,
 } from "@/lib/status";
 import { cn, STATUS_LABELS, STATUS_COLORS } from "@/lib/utils";
 import type { ProgressStatus } from "@/lib/types";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { StatusTimelineCard } from "@/components/status/status-timeline-card";
 import { updateTopicStatus, updateSubtopicStatus } from "@/lib/crud";
-import { isTopicDueForReview } from "@/lib/metrics";
 import { buildReviewDueSnapshot } from "@/lib/revision-catalog";
 import { ReviewSessionPanel } from "@/components/status/review-session-panel";
 import { TopicConfidenceDialog } from "@/components/tracks/topic-confidence-dialog";
@@ -49,18 +46,6 @@ const ALERT_STYLES = {
   warning: { bar: "#f59e0b", bg: "bg-amber-500/[0.06]", border: "border-amber-500/20", text: "text-amber-400" },
   info: { bar: "#3b82f6", bg: "bg-blue-500/[0.06]", border: "border-blue-500/20", text: "text-blue-400" },
 } as const;
-
-/** Pulsing bar for items actively in progress — not a completion percentage. */
-function ActiveProgressBar({ color = "#f59e0b" }: { color?: string }) {
-  return (
-    <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
-      <div
-        className="absolute inset-y-0 left-0 w-2/5 rounded-full opacity-80 animate-pulse"
-        style={{ background: color }}
-      />
-    </div>
-  );
-}
 
 type Filter = ProgressStatus | "all" | "review";
 
@@ -146,6 +131,17 @@ function StatusContent() {
   );
   const reviewCount = reviewSnapshot.dueCount;
   const criticalCount = alerts.filter((a) => a.level === "critical").length;
+
+  const handleEntryStatusChange = (
+    entry: { focalSubtopic?: { id: string; dueDate?: string }; topic: { id: string } },
+    next: ProgressStatus
+  ) => {
+    if (entry.focalSubtopic) {
+      updateSubtopicStatus(entry.focalSubtopic.id, next, entry.focalSubtopic.dueDate);
+    } else {
+      updateTopicStatus(entry.topic.id, next);
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -360,233 +356,27 @@ function StatusContent() {
               <div className="absolute -left-[calc(2rem+0.3125rem)] top-7 h-2.5 w-2.5 rounded-full border-2 border-background bg-violet-500 shadow-md shadow-violet-500/40" />
 
               <div className="overflow-hidden rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.02]">
-                <div className="border-b border-white/[0.06] px-5 py-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <h3 className="font-semibold">{day.label}</h3>
-                        <p className="text-[11px] text-muted-foreground">{day.date}</p>
-                      </div>
-                      <span className="rounded-full border-[0.5px] border-white/[0.08] bg-white/[0.03] px-2 py-0.5 text-[10px] text-muted-foreground">
-                        {day.relativeLabel}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {ALL_STATUSES.map((status) =>
-                        day.counts[status] > 0 ? (
-                          <StatusChip key={status} status={status} count={day.counts[status]} />
-                        ) : null
-                      )}
-                    </div>
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] px-5 py-3.5">
+                  <h3 className="text-sm font-semibold">{day.label}</h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    {ALL_STATUSES.map((status) =>
+                      day.counts[status] > 0 ? (
+                        <StatusChip key={status} status={status} count={day.counts[status]} />
+                      ) : null
+                    )}
                   </div>
                 </div>
 
                 <div className="space-y-2.5 p-4">
-                  {day.topics.map((entry) => {
-                    const status = entry.displayStatus;
-                    const StatusIcon = STATUS_ICONS[status];
-                    const breadcrumb = entry.focalSubtopic
-                      ? `${entry.trackName} → ${entry.moduleName} → ${entry.topic.name}`
-                      : `${entry.trackName} → ${entry.moduleName}`;
-                    return (
-                      <div
-                        key={`${entry.topic.id}-${entry.focalSubtopic?.id ?? "topic"}`}
-                        className={cn(
-                          "flex items-start gap-4 rounded-xl border-[0.5px] border-white/[0.06] bg-white/[0.02] p-4",
-                          entry.isOverdue && "ring-1 ring-red-500/30"
-                        )}
-                        style={{ borderLeftWidth: 3, borderLeftColor: STATUS_COLORS[status] }}
-                      >
-                        <span className="shrink-0 text-xl">{entry.trackIcon}</span>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h4 className="font-semibold">{entry.displayName}</h4>
-                            <Badge
-                              variant="outline"
-                              className="gap-1 border-[0.5px] text-[10px]"
-                              style={{ borderColor: `${STATUS_COLORS[status]}44`, color: STATUS_COLORS[status] }}
-                            >
-                              <StatusIcon className="h-3 w-3" />
-                              {STATUS_LABELS[status]}
-                            </Badge>
-                            {entry.isOverdue && (
-                              <Badge variant="destructive" className="gap-1 text-[10px]">
-                                <AlertTriangle className="h-3 w-3" /> Overdue
-                              </Badge>
-                            )}
-                            {entry.isDueSoon && !entry.isOverdue && status === "in_progress" && (
-                              <Badge variant="warning" className="text-[10px]">Due Soon</Badge>
-                            )}
-                            {getActiveGoalsForTopic(entry.topic, goalMilestones).map((goal) => (
-                              <Link key={goal.id} href="/milestones">
-                                <Badge variant="outline" className="gap-1 text-[10px] hover:bg-secondary/50">
-                                  <Flag className="h-3 w-3" /> {goal.title}
-                                </Badge>
-                              </Link>
-                            ))}
-                            {isTopicDueForReview(entry.topic) && (
-                              <Badge variant="outline" className="gap-1 border-violet-500/30 text-[10px] text-violet-300">
-                                <BookmarkCheck className="h-3 w-3" /> Review due
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="mt-0.5 text-xs text-muted-foreground">{breadcrumb}</p>
-
-                          <div className="mb-2 mt-3 space-y-2">
-                            {entry.focalSubtopic && (
-                              <div>
-                                <div className="mb-1 flex items-center justify-between text-[10px] font-medium uppercase tracking-wider text-muted-foreground/80">
-                                  <span>Subtopic</span>
-                                  {entry.focalSubtopic.status === "in_progress" ? (
-                                    <span style={{ color: STATUS_COLORS.in_progress }}>Working on it</span>
-                                  ) : (
-                                    <span
-                                      className="tabular-nums"
-                                      style={{ color: STATUS_COLORS[entry.displayStatus] }}
-                                    >
-                                      {entry.subtopicProgress}%
-                                    </span>
-                                  )}
-                                </div>
-                                {entry.focalSubtopic.status === "in_progress" ? (
-                                  <ActiveProgressBar color={STATUS_COLORS.in_progress} />
-                                ) : (
-                                  <Progress
-                                    value={100}
-                                    className="h-1.5"
-                                    indicatorClassName={
-                                      entry.displayStatus === "mastered" ? "bg-violet-500" : "bg-blue-500"
-                                    }
-                                  />
-                                )}
-                              </div>
-                            )}
-                            <div>
-                              <div className={cn(
-                                "mb-1 flex items-center justify-between text-[10px] font-medium uppercase tracking-wider",
-                                entry.focalSubtopic ? "text-red-400/90" : "text-muted-foreground/80"
-                              )}>
-                                <span>
-                                  {entry.focalSubtopic ? `Topic · ${entry.topic.name}` : "Topic"}
-                                  {entry.subtopicsTotal > 0 && (
-                                    <span className={cn(
-                                      "ml-1 normal-case tracking-normal",
-                                      entry.focalSubtopic ? "text-red-400/60" : "text-muted-foreground/60"
-                                    )}>
-                                      ({entry.subtopicsDone}/{entry.subtopicsTotal} done)
-                                    </span>
-                                  )}
-                                </span>
-                                <span className={cn(
-                                  "tabular-nums",
-                                  entry.focalSubtopic ? "text-red-400" : "text-foreground"
-                                )}>
-                                  {entry.topicProgress}%
-                                </span>
-                              </div>
-                              <Progress
-                                value={entry.topicProgress}
-                                className="h-1.5"
-                                indicatorClassName={entry.focalSubtopic ? "bg-red-500" : "bg-primary"}
-                              />
-                            </div>
-                          </div>
-                          <div className="flex flex-wrap items-center gap-3">
-                            {status === "in_progress" && (
-                              <span className={cn(
-                                "flex items-center gap-1 text-xs",
-                                entry.isOverdue ? "text-red-400" : "text-muted-foreground"
-                              )}>
-                                <Clock className="h-3 w-3" />
-                                {formatDeadline(entry.daysRemaining, entry.dueDate)}
-                              </span>
-                            )}
-                            <TimerControls
-                              path={{
-                                trackId: entry.trackId,
-                                moduleId: entry.moduleId,
-                                topicId: entry.topic.id,
-                                subtopicId: entry.focalSubtopic?.id,
-                              }}
-                              label={
-                                entry.focalSubtopic
-                                  ? `${entry.topic.name} → ${entry.focalSubtopic.name}`
-                                  : `${entry.moduleName} → ${entry.topic.name}`
-                              }
-                              compact
-                            />
-                            <Select
-                              value={entry.focalSubtopic?.status ?? status}
-                              onValueChange={(v) => {
-                                const next = v as ProgressStatus;
-                                if (entry.focalSubtopic) {
-                                  updateSubtopicStatus(entry.focalSubtopic.id, next, entry.focalSubtopic.dueDate);
-                                } else {
-                                  updateTopicStatus(entry.topic.id, next);
-                                }
-                              }}
-                            >
-                              <SelectTrigger className="h-7 w-[130px] text-xs"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                {ALL_STATUSES.map((s) => (
-                                  <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            {isTopicDueForReview(entry.topic) && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 gap-1 border-violet-500/30 px-2 text-[10px] text-violet-300"
-                                onClick={() => setReviewDialog({ id: entry.topic.id, name: entry.topic.name })}
-                              >
-                                <BookmarkCheck className="h-3 w-3" /> Review
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                        <Link
-                          href={`/tracks?track=${entry.trackId}&topic=${entry.topic.id}`}
-                          className="shrink-0 text-right transition-opacity hover:opacity-80"
-                        >
-                          {entry.focalSubtopic?.status === "in_progress" ? (
-                            <>
-                              <p className="text-sm font-medium" style={{ color: STATUS_COLORS.in_progress }}>
-                                Active
-                              </p>
-                              <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60">
-                                {entry.subtopicsTotal > 0
-                                  ? `${entry.subtopicsDone}/${entry.subtopicsTotal} topic`
-                                  : "In progress"}
-                              </p>
-                            </>
-                          ) : entry.focalSubtopic ? (
-                            <>
-                              <p
-                                className="metric-value text-xl tabular-nums"
-                                style={{ color: STATUS_COLORS[entry.displayStatus] }}
-                              >
-                                {entry.subtopicProgress}%
-                              </p>
-                              <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60">
-                                Subtopic
-                              </p>
-                            </>
-                          ) : (
-                            <>
-                              <p className="metric-value text-xl tabular-nums" style={{ color: entry.trackColor }}>
-                                {entry.progress}%
-                              </p>
-                              <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60">
-                                Topic
-                              </p>
-                            </>
-                          )}
-                          <ChevronRight className="ml-auto mt-1 h-4 w-4 text-muted-foreground" />
-                        </Link>
-                      </div>
-                    );
-                  })}
+                  {day.topics.map((entry) => (
+                    <StatusTimelineCard
+                      key={`${entry.topic.id}-${entry.focalSubtopic?.id ?? "topic"}`}
+                      entry={entry}
+                      goalMilestones={goalMilestones}
+                      onReview={(id, name) => setReviewDialog({ id, name })}
+                      onStatusChange={handleEntryStatusChange}
+                    />
+                  ))}
                 </div>
               </div>
             </motion.div>
