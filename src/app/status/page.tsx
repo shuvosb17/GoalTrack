@@ -3,17 +3,15 @@
 import { useMemo, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
-  AlertTriangle, CheckCircle2, Loader2, Sparkles, Circle,
-  ChevronRight, BookmarkCheck,
+  CheckCircle2, Loader2, Sparkles, Circle,
+  BookmarkCheck,
 } from "lucide-react";
-import { IconActivity, IconAlertTriangle, IconCalendarEvent } from "@tabler/icons-react";
+import { IconActivity, IconCalendarEvent } from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SectionHeading } from "@/components/shared/section-heading";
 import {
   useTracks, useAllModules, useAllTopics, useAllSubtopics, useGoalMilestones,
 } from "@/hooks/use-data";
@@ -29,6 +27,7 @@ import {
 import { StatusTimelineCard } from "@/components/status/status-timeline-card";
 import { updateTopicStatus, updateSubtopicStatus } from "@/lib/crud";
 import { buildReviewDueSnapshot } from "@/lib/revision-catalog";
+import { NeedsAttentionPanel } from "@/components/status/needs-attention-panel";
 import { ReviewSessionPanel } from "@/components/status/review-session-panel";
 import { TopicConfidenceDialog } from "@/components/tracks/topic-confidence-dialog";
 
@@ -40,12 +39,6 @@ const STATUS_ICONS: Record<ProgressStatus, typeof Circle> = {
 };
 
 const PULSE_STATUSES: ProgressStatus[] = ["in_progress", "completed", "mastered"];
-
-const ALERT_STYLES = {
-  critical: { bar: "#ef4444", bg: "bg-red-500/[0.06]", border: "border-red-500/20", text: "text-red-400" },
-  warning: { bar: "#f59e0b", bg: "bg-amber-500/[0.06]", border: "border-amber-500/20", text: "text-amber-400" },
-  info: { bar: "#3b82f6", bg: "bg-blue-500/[0.06]", border: "border-blue-500/20", text: "text-blue-400" },
-} as const;
 
 type Filter = ProgressStatus | "all" | "review";
 
@@ -236,59 +229,13 @@ function StatusContent() {
         })}
       </div>
 
-      {/* Needs attention */}
-      <AnimatePresence>
-        {alerts.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
-            <Card className="border-[0.5px] border-white/[0.08]">
-              <CardContent className="pt-6">
-                <div className="mb-4 flex flex-wrap items-center gap-2">
-                  <SectionHeading icon={IconAlertTriangle} className="mb-0 flex-1 border-0 pb-0">
-                    Needs attention
-                  </SectionHeading>
-                  {criticalCount > 0 && (
-                    <Badge variant="destructive" className="text-[10px]">{criticalCount} critical</Badge>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  {alerts.slice(0, 6).map((alert, i) => {
-                    const style = ALERT_STYLES[alert.level];
-                    return (
-                      <motion.div
-                        key={alert.id}
-                        initial={{ opacity: 0, x: -8 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.04 }}
-                      >
-                        <Link
-                          href={`/tracks?track=${topics.find((t) => t.id === alert.topicId)?.trackId ?? ""}&topic=${alert.topicId}`}
-                          className={cn(
-                            "flex items-center gap-3 rounded-lg border-[0.5px] p-3 text-sm transition-colors hover:bg-white/[0.04]",
-                            style.bg,
-                            style.border
-                          )}
-                        >
-                          <div className="w-0.5 self-stretch rounded-full shrink-0" style={{ background: style.bar }} />
-                          <AlertTriangle className={cn("h-4 w-4 shrink-0", style.text)} />
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate font-medium">{alert.subtopicName ?? alert.topicName}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {alert.subtopicName
-                                ? `${alert.trackName} → ${alert.topicName} · ${alert.message}`
-                                : `${alert.trackName} · ${alert.message}`}
-                            </p>
-                          </div>
-                          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
-                        </Link>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <NeedsAttentionPanel
+        alerts={alerts}
+        topics={topics}
+        modules={modules}
+        subtopics={subtopics}
+        criticalCount={criticalCount}
+      />
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
