@@ -27,7 +27,7 @@ interface StatusSummaryHeaderProps {
   counts: Record<ProgressStatus, number>;
   statusFilter: ProgressStatus | "all" | "review";
   onStatusFilter: (status: ProgressStatus | "all") => void;
-  topicsAddedThisWeek: number;
+  statusActivityThisWeek: number;
 }
 
 function pct(count: number, total: number): number {
@@ -38,7 +38,7 @@ export function StatusSummaryHeader({
   counts,
   statusFilter,
   onStatusFilter,
-  topicsAddedThisWeek,
+  statusActivityThisWeek,
 }: StatusSummaryHeaderProps) {
   const totalItems =
     counts.not_started +
@@ -106,13 +106,14 @@ export function StatusSummaryHeader({
             <span className="text-[11px] text-muted-foreground">
               {totalItems} total items
             </span>
-            {topicsAddedThisWeek > 0 && (
+            {statusActivityThisWeek > 0 && (
               <span
                 className="inline-flex items-center gap-1 text-[11px] font-medium"
                 style={{ color: TREND_GREEN }}
+                title="Status updates in the last 7 days"
               >
                 <TrendingUp className="h-3.5 w-3.5" />
-                +{topicsAddedThisWeek} this week
+                +{statusActivityThisWeek} updated this week
               </span>
             )}
           </div>

@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/select";
 import { StatusSummaryHeader } from "@/components/status/status-summary-header";
 import { StatusTimelineCard } from "@/components/status/status-timeline-card";
-import { countTopicsAddedSince } from "@/lib/status-summary";
+import { countStatusActivitySince } from "@/lib/status-summary";
 import { updateTopicStatus, updateSubtopicStatus } from "@/lib/crud";
 import { buildReviewDueSnapshot } from "@/lib/revision-catalog";
 import { NeedsAttentionPanel } from "@/components/status/needs-attention-panel";
@@ -85,7 +85,10 @@ function StatusContent() {
   const [reviewDialog, setReviewDialog] = useState<{ id: string; name: string } | null>(null);
 
   const globalCounts = useMemo(() => getGlobalStatusCounts(topics, subtopics), [topics, subtopics]);
-  const topicsAddedThisWeek = useMemo(() => countTopicsAddedSince(topics, 7), [topics]);
+  const statusActivityThisWeek = useMemo(
+    () => countStatusActivitySince(topics, subtopics, modules, tracks, 7),
+    [topics, subtopics, modules, tracks]
+  );
   const alerts = useMemo(
     () => getUrgencyAlerts(topics, subtopics, modules, tracks),
     [topics, subtopics, modules, tracks]
@@ -133,7 +136,7 @@ function StatusContent() {
         counts={globalCounts}
         statusFilter={statusFilter}
         onStatusFilter={(status) => setStatusFilter(status)}
-        topicsAddedThisWeek={topicsAddedThisWeek}
+        statusActivityThisWeek={statusActivityThisWeek}
       />
 
       <NeedsAttentionPanel
