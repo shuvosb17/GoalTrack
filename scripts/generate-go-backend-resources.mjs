@@ -18,7 +18,7 @@ const L = (title, url, type, source) => ({ title, url, type, source });
 /** Topic-level curated bundles (moduleIndex-topicIndex) */
 const TOPIC_BUNDLES = {
   "0-0": [
-    L("Processes & threads (OS)", "https://developer.mozilla.org/en-US/docs/Glossary/Process", "doc", "MDN"),
+    L("Process (computing)", "https://en.wikipedia.org/wiki/Process_(computing)", "doc", "Wikipedia"),
     L("How computers work (video)", "https://www.youtube.com/watch?v=EKWnGsjeIe8", "video", "Crash Course"),
   ],
   "0-1": [
@@ -119,7 +119,7 @@ const TOPIC_BUNDLES = {
   ],
   "4-4": [
     L("chi router", "https://go-chi.io/", "doc", "go-chi"),
-    L("Gin framework docs", "https://gin-gonic.com/docs/", "doc", "Gin"),
+    L("Gin framework docs", "https://gin-gonic.com/en/docs/", "doc", "Gin"),
   ],
   "4-5": [
     L("encoding/json", "https://pkg.go.dev/encoding/json", "doc", "pkg.go.dev"),
@@ -163,14 +163,14 @@ const TOPIC_BUNDLES = {
   ],
   "7-0": [
     L("Linux filesystem hierarchy", "https://refspecs.linuxfoundation.org/FHS_3.0/fhs/index.html", "doc", "FHS"),
-    L("Linux permissions", "https://ubuntu.com/tutorials/file-permissions", "doc", "Ubuntu"),
+    L("File-system permissions", "https://en.wikipedia.org/wiki/File-system_permissions", "doc", "Wikipedia"),
   ],
   "7-1": [
-    L("Linux processes", "https://www.redhat.com/sysadmin/linux-process-management", "blog", "Red Hat"),
+    L("Manage Linux processes (ps/kill/nice)", "https://www.digitalocean.com/community/tutorials/how-to-use-ps-kill-and-nice-to-manage-processes-in-linux", "doc", "DigitalOcean"),
     L("File descriptors explained", "https://www.youtube.com/watch?v=6UZF3G0xP64", "video", "YouTube"),
   ],
   "7-2": [
-    L("systemd for developers", "https://www.digitalocean.com/community/tutorials/how-to-use-systemctl", "doc", "DigitalOcean"),
+    L("Manage systemd services", "https://www.digitalocean.com/community/tutorials/how-to-use-systemctl-to-manage-systemd-services-and-units", "doc", "DigitalOcean"),
     L("cron guide", "https://crontab.guru/", "doc", "crontab.guru"),
   ],
   "7-3": [
@@ -187,7 +187,7 @@ const TOPIC_BUNDLES = {
   ],
   "7-6": [
     L("tar manual", "https://man7.org/linux/man-pages/man1/tar.1.html", "doc", "man7"),
-    L("Archiving guide", "https://www.redhat.com/sysadmin/backup-restore-compress", "blog", "Red Hat"),
+    L("Create & extract tar archives", "https://linuxize.com/post/how-to-create-and-extract-archives-using-the-tar-command-in-linux/", "doc", "Linuxize"),
   ],
   "7-7": [
     L("Bash scripting tutorial", "https://www.shellscript.sh/", "doc", "shellscript.sh"),
@@ -315,7 +315,7 @@ const TOPIC_BUNDLES = {
   ],
   "16-3": [
     L("System design primer", "https://github.com/donnemartin/system-design-primer", "doc", "GitHub"),
-    L("URL shortener design", "https://www.educative.io/blog/url-shortening-system-design", "blog", "Educative"),
+    L("System design (URL shortener)", "https://github.com/karanpratapsingh/system-design", "doc", "GitHub"),
   ],
   "17-0": [
     L("OpenAI API docs", "https://platform.openai.com/docs/api-reference", "doc", "OpenAI"),
@@ -338,15 +338,15 @@ const TOPIC_BUNDLES = {
     L("AI feature patterns", "https://martinfowler.com/articles/gen-ai-patterns/", "blog", "Martin Fowler"),
   ],
   "18-0": [
-    L("How to read code", "https://www.maartengrootendorst.com/blog/2022/11/16/how-to-read-code/", "blog", "Maarten Grootendorst"),
-    L("Reading Go source", "https://go.dev/doc/contribute#reading_code", "doc", "go.dev"),
+    L("Build-your-own-x (learn by reading)", "https://github.com/codecrafters-io/build-your-own-x", "doc", "GitHub"),
+    L("Reading Go source", "https://go.dev/doc/contribute", "doc", "go.dev"),
   ],
   "18-1": [
     L("Go stdlib source", "https://cs.opensource.google/go/go/+/master:src/", "doc", "Google Source"),
     L("chi source code", "https://github.com/go-chi/chi", "doc", "GitHub"),
   ],
   "18-2": [
-    L("Learning journal tips", "https://www.coursera.org/articles/learning-journal", "blog", "Coursera"),
+    L("Feynman learning technique", "https://fs.blog/feynman-technique/", "blog", "Farnam Street"),
     L("Zettelkasten method", "https://zettelkasten.de/introduction/", "blog", "Zettelkasten"),
   ],
   "19-0": [
@@ -362,7 +362,7 @@ const TOPIC_BUNDLES = {
     L("Architecture decision records", "https://adr.github.io/", "doc", "ADR"),
   ],
   "19-3": [
-    L("Remote work communication", "https://www.atlassian.com/blog/teamwork/remote-communication", "blog", "Atlassian"),
+    L("Effective remote communication", "https://about.gitlab.com/company/culture/all-remote/effective-communication/", "doc", "GitLab"),
     L("Giving technical demos", "https://speaking.io/", "blog", "speaking.io"),
   ],
   "20-0": [
@@ -386,24 +386,24 @@ const TOPIC_BUNDLES = {
     L("Open source metrics", "https://opensource.guide/metrics/", "doc", "Open Source Guide"),
   ],
   "22-0": [
-    L("Trade-off driven design", "https://www.infoq.com/articles/architecture-tradeoffs/", "blog", "InfoQ"),
-    L("Thinking in systems", "https://fs.blog/mental-models/", "blog", "Farnam Street"),
+    L("Software architecture guide", "https://martinfowler.com/architecture/", "blog", "Martin Fowler"),
+    L("Mental models", "https://fs.blog/mental-models/", "blog", "Farnam Street"),
   ],
   "22-1": [
-    L("JWT vs sessions", "https://stackoverflow.com/questions/43452896/authentication-jwt-usage-vs-session", "blog", "Stack Overflow"),
-    L("Postgres vs MySQL", "https://www.prisma.io/dataguide/postgresql/postgresql-vs-mysql", "doc", "Prisma"),
+    L("JSON Web Token (JWT)", "https://en.wikipedia.org/wiki/JSON_Web_Token", "doc", "Wikipedia"),
+    L("SQLite vs MySQL vs PostgreSQL", "https://www.digitalocean.com/community/tutorials/sqlite-vs-mysql-vs-postgresql-a-comparison-of-relational-database-management-systems", "doc", "DigitalOcean"),
   ],
   "22-2": [
     L("ADRs in practice", "https://github.com/joelparkerhenderson/architecture-decision-record", "doc", "GitHub"),
     L("Documenting decisions", "https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions", "blog", "Cognitect"),
   ],
   "23-0": [
-    L("Backend resume guide", "https://www.freecodecamp.org/news/how-to-write-a-developer-resume/", "blog", "freeCodeCamp"),
+    L("Developer resume examples", "https://github.com/resumejob/awesome-resume", "doc", "GitHub"),
     L("GitHub profile README", "https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-github-profile/customizing-your-profile/managing-your-profile-readme", "doc", "GitHub"),
   ],
   "23-1": [
-    L("Dev.to writing tips", "https://dev.to/aabbhhaavv/writing-technical-articles-1h5f", "blog", "Dev.to"),
-    L("Building in public", "https://www.indiehackers.com/post/building-in-public-101-1a5f3c8e5e", "blog", "Indie Hackers"),
+    L("Technical writing (overview)", "https://developers.google.com/tech-writing/overview", "course", "Google"),
+    L("Building in public", "https://www.indiehackers.com/", "blog", "Indie Hackers"),
   ],
   "23-2": [
     L("Remote job boards", "https://remoteok.com/", "doc", "RemoteOK"),
@@ -423,10 +423,10 @@ const PATTERNS = [
   { re: /push|pull|fetch|remote/i, links: [L("Working with remotes", "https://git-scm.com/book/en/v2/Git-Basics-Working-with-Remotes", "doc", "Git SCM")] },
   { re: /pull request|merge conflict/i, links: [L("GitHub flow", "https://docs.github.com/en/get-started/using-github/github-flow", "doc", "GitHub")] },
   { re: /pwd|`ls`|`\bcd\b`/i, links: [L("Navigation commands", "https://ubuntu.com/tutorials/command-line-for-beginners#1-overview", "doc", "Ubuntu")] },
-  { re: /mkdir|touch|cp|mv|rm/i, links: [L("File operations", "https://linuxjourney.com/lesson/file-manipulation", "doc", "Linux Journey")] },
-  { re: /cat|less|head|tail/i, links: [L("Viewing files", "https://linuxjourney.com/lesson/viewing-files", "doc", "Linux Journey")] },
-  { re: /pipe|redirection|`\|`|`>`/i, links: [L("Pipes & redirects", "https://linuxjourney.com/lesson/piping-commands", "doc", "Linux Journey")] },
-  { re: /grep|find/i, links: [L("grep tutorial", "https://www.gnu.org/software/grep/manual/grep.html", "doc", "GNU")] },
+  { re: /mkdir|touch|cp|mv|rm/i, links: [L("Linux command line for beginners", "https://ubuntu.com/tutorials/command-line-for-beginners", "doc", "Ubuntu")] },
+  { re: /cat|less|head|tail/i, links: [L("View files (cat command)", "https://linuxhandbook.com/cat-command/", "doc", "Linux Handbook")] },
+  { re: /pipe|redirection|`\|`|`>`/i, links: [L("Piping & redirection", "https://ryanstutorials.net/linuxtutorial/piping.php", "doc", "Ryan's Tutorials")] },
+  { re: /grep|find/i, links: [L("grep manual", "https://man7.org/linux/man-pages/man1/grep.1.html", "doc", "man7")] },
   { re: /goroutine/i, links: [L("Goroutines", "https://go.dev/tour/concurrency/1", "doc", "A Tour of Go")] },
   { re: /channel/i, links: [L("Channels", "https://go.dev/tour/concurrency/2", "doc", "A Tour of Go")] },
   { re: /context/i, links: [L("context package", "https://pkg.go.dev/context", "doc", "pkg.go.dev")] },
@@ -439,7 +439,7 @@ const PATTERNS = [
   { re: /OWASP|XSS|CSRF|SQL injection/i, links: [L("OWASP cheatsheets", "https://cheatsheetseries.owasp.org/", "doc", "OWASP")] },
   { re: /docker|Dockerfile|compose/i, links: [L("Docker get started", "https://docs.docker.com/get-started/", "doc", "Docker")] },
   { re: /nginx/i, links: [L("nginx docs", "https://nginx.org/en/docs/", "doc", "nginx")] },
-  { re: /systemd|journalctl|cron/i, links: [L("systemd unit files", "https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html", "doc", "systemd")] },
+  { re: /systemd|journalctl|cron/i, links: [L("Understanding systemd units", "https://www.digitalocean.com/community/tutorials/understanding-systemd-units-and-unit-files", "doc", "DigitalOcean")] },
   { re: /ssh|scp|rsync/i, links: [L("SSH manual", "https://man.openbsd.org/ssh.1", "doc", "OpenBSD")] },
   { re: /vim|tmux/i, links: [L("Vim adventures", "https://vim-adventures.com/", "course", "Vim Adventures")] },
   { re: /prometheus|metrics|slog/i, links: [L("Prometheus Go client", "https://prometheus.io/docs/guides/go-application/", "doc", "Prometheus")] },

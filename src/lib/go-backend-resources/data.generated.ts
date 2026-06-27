@@ -4,16 +4,16 @@ import type { GoResourceLink } from "./types";
 export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   "m0-t0-s0": [
     {
-      "title": "File operations",
-      "url": "https://linuxjourney.com/lesson/file-manipulation",
+      "title": "Linux command line for beginners",
+      "url": "https://ubuntu.com/tutorials/command-line-for-beginners",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Ubuntu"
     },
     {
-      "title": "Processes & threads (OS)",
-      "url": "https://developer.mozilla.org/en-US/docs/Glossary/Process",
+      "title": "Process (computing)",
+      "url": "https://en.wikipedia.org/wiki/Process_(computing)",
       "type": "doc",
-      "source": "MDN"
+      "source": "Wikipedia"
     },
     {
       "title": "How computers work (video)",
@@ -24,10 +24,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m0-t0-s1": [
     {
-      "title": "Processes & threads (OS)",
-      "url": "https://developer.mozilla.org/en-US/docs/Glossary/Process",
+      "title": "Process (computing)",
+      "url": "https://en.wikipedia.org/wiki/Process_(computing)",
       "type": "doc",
-      "source": "MDN"
+      "source": "Wikipedia"
     },
     {
       "title": "How computers work (video)",
@@ -44,10 +44,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m0-t0-s2": [
     {
-      "title": "Processes & threads (OS)",
-      "url": "https://developer.mozilla.org/en-US/docs/Glossary/Process",
+      "title": "Process (computing)",
+      "url": "https://en.wikipedia.org/wiki/Process_(computing)",
       "type": "doc",
-      "source": "MDN"
+      "source": "Wikipedia"
     },
     {
       "title": "How computers work (video)",
@@ -64,10 +64,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m0-t0-s3": [
     {
-      "title": "Processes & threads (OS)",
-      "url": "https://developer.mozilla.org/en-US/docs/Glossary/Process",
+      "title": "Process (computing)",
+      "url": "https://en.wikipedia.org/wiki/Process_(computing)",
       "type": "doc",
-      "source": "MDN"
+      "source": "Wikipedia"
     },
     {
       "title": "How computers work (video)",
@@ -104,13 +104,7 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m0-t1-s1": [
     {
-      "title": "File operations",
-      "url": "https://linuxjourney.com/lesson/file-manipulation",
-      "type": "doc",
-      "source": "Linux Journey"
-    },
-    {
-      "title": "Linux command line basics",
+      "title": "Linux command line for beginners",
       "url": "https://ubuntu.com/tutorials/command-line-for-beginners",
       "type": "doc",
       "source": "Ubuntu"
@@ -120,14 +114,20 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
       "url": "https://www.youtube.com/watch?v=ZtqBQ68cfJc",
       "type": "video",
       "source": "freeCodeCamp"
+    },
+    {
+      "title": "Go backend roadmap discussion",
+      "url": "https://www.reddit.com/r/golang/",
+      "type": "blog",
+      "source": "r/golang"
     }
   ],
   "m0-t1-s2": [
     {
-      "title": "Viewing files",
-      "url": "https://linuxjourney.com/lesson/viewing-files",
+      "title": "View files (cat command)",
+      "url": "https://linuxhandbook.com/cat-command/",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Linux Handbook"
     },
     {
       "title": "Linux command line basics",
@@ -144,10 +144,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m0-t1-s3": [
     {
-      "title": "Pipes & redirects",
-      "url": "https://linuxjourney.com/lesson/piping-commands",
+      "title": "Piping & redirection",
+      "url": "https://ryanstutorials.net/linuxtutorial/piping.php",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Ryan's Tutorials"
     },
     {
       "title": "Linux command line basics",
@@ -184,10 +184,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m0-t1-s5": [
     {
-      "title": "grep tutorial",
-      "url": "https://www.gnu.org/software/grep/manual/grep.html",
+      "title": "grep manual",
+      "url": "https://man7.org/linux/man-pages/man1/grep.1.html",
       "type": "doc",
-      "source": "GNU"
+      "source": "man7"
     },
     {
       "title": "Linux command line basics",
@@ -724,10 +724,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m1-t2-s1": [
     {
-      "title": "File operations",
-      "url": "https://linuxjourney.com/lesson/file-manipulation",
+      "title": "Linux command line for beginners",
+      "url": "https://ubuntu.com/tutorials/command-line-for-beginners",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Ubuntu"
     },
     {
       "title": "Flow control in Go",
@@ -1864,10 +1864,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m2-t4-s2": [
     {
-      "title": "Pipes & redirects",
-      "url": "https://linuxjourney.com/lesson/piping-commands",
+      "title": "Piping & redirection",
+      "url": "https://ryanstutorials.net/linuxtutorial/piping.php",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Ryan's Tutorials"
     },
     {
       "title": "Advanced Go concurrency",
@@ -2224,10 +2224,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m4-t0-s2": [
     {
-      "title": "Viewing files",
-      "url": "https://linuxjourney.com/lesson/viewing-files",
+      "title": "View files (cat command)",
+      "url": "https://linuxhandbook.com/cat-command/",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Linux Handbook"
     },
     {
       "title": "HTTP reference",
@@ -2264,10 +2264,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m4-t0-s4": [
     {
-      "title": "Viewing files",
-      "url": "https://linuxjourney.com/lesson/viewing-files",
+      "title": "View files (cat command)",
+      "url": "https://linuxhandbook.com/cat-command/",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Linux Handbook"
     },
     {
       "title": "HTTP reference",
@@ -2637,7 +2637,7 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
     },
     {
       "title": "Gin framework docs",
-      "url": "https://gin-gonic.com/docs/",
+      "url": "https://gin-gonic.com/en/docs/",
       "type": "doc",
       "source": "Gin"
     }
@@ -2657,7 +2657,7 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
     },
     {
       "title": "Gin framework docs",
-      "url": "https://gin-gonic.com/docs/",
+      "url": "https://gin-gonic.com/en/docs/",
       "type": "doc",
       "source": "Gin"
     }
@@ -2671,7 +2671,7 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
     },
     {
       "title": "Gin framework docs",
-      "url": "https://gin-gonic.com/docs/",
+      "url": "https://gin-gonic.com/en/docs/",
       "type": "doc",
       "source": "Gin"
     },
@@ -2784,10 +2784,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m5-t0-s2": [
     {
-      "title": "File operations",
-      "url": "https://linuxjourney.com/lesson/file-manipulation",
+      "title": "Linux command line for beginners",
+      "url": "https://ubuntu.com/tutorials/command-line-for-beginners",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Ubuntu"
     },
     {
       "title": "Database design basics",
@@ -3184,10 +3184,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m5-t3-s5": [
     {
-      "title": "File operations",
-      "url": "https://linuxjourney.com/lesson/file-manipulation",
+      "title": "Linux command line for beginners",
+      "url": "https://ubuntu.com/tutorials/command-line-for-beginners",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Ubuntu"
     },
     {
       "title": "database/sql tutorial",
@@ -3504,10 +3504,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m6-t0-s4": [
     {
-      "title": "Viewing files",
-      "url": "https://linuxjourney.com/lesson/viewing-files",
+      "title": "View files (cat command)",
+      "url": "https://linuxhandbook.com/cat-command/",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Linux Handbook"
     },
     {
       "title": "OWASP Auth cheatsheet",
@@ -3604,10 +3604,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m6-t1-s3": [
     {
-      "title": "File operations",
-      "url": "https://linuxjourney.com/lesson/file-manipulation",
+      "title": "Linux command line for beginners",
+      "url": "https://ubuntu.com/tutorials/command-line-for-beginners",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Ubuntu"
     },
     {
       "title": "Authorization cheatsheet",
@@ -3744,10 +3744,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m6-t2-s5": [
     {
-      "title": "Viewing files",
-      "url": "https://linuxjourney.com/lesson/viewing-files",
+      "title": "View files (cat command)",
+      "url": "https://linuxhandbook.com/cat-command/",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Linux Handbook"
     },
     {
       "title": "OWASP Top 10",
@@ -3770,10 +3770,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
       "source": "FHS"
     },
     {
-      "title": "Linux permissions",
-      "url": "https://ubuntu.com/tutorials/file-permissions",
+      "title": "File-system permissions",
+      "url": "https://en.wikipedia.org/wiki/File-system_permissions",
       "type": "doc",
-      "source": "Ubuntu"
+      "source": "Wikipedia"
     },
     {
       "title": "Go backend roadmap discussion",
@@ -3784,10 +3784,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m7-t0-s1": [
     {
-      "title": "File operations",
-      "url": "https://linuxjourney.com/lesson/file-manipulation",
+      "title": "Linux command line for beginners",
+      "url": "https://ubuntu.com/tutorials/command-line-for-beginners",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Ubuntu"
     },
     {
       "title": "Linux filesystem hierarchy",
@@ -3796,10 +3796,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
       "source": "FHS"
     },
     {
-      "title": "Linux permissions",
-      "url": "https://ubuntu.com/tutorials/file-permissions",
+      "title": "File-system permissions",
+      "url": "https://en.wikipedia.org/wiki/File-system_permissions",
       "type": "doc",
-      "source": "Ubuntu"
+      "source": "Wikipedia"
     }
   ],
   "m7-t0-s2": [
@@ -3810,10 +3810,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
       "source": "FHS"
     },
     {
-      "title": "Linux permissions",
-      "url": "https://ubuntu.com/tutorials/file-permissions",
+      "title": "File-system permissions",
+      "url": "https://en.wikipedia.org/wiki/File-system_permissions",
       "type": "doc",
-      "source": "Ubuntu"
+      "source": "Wikipedia"
     },
     {
       "title": "Go backend roadmap discussion",
@@ -3830,10 +3830,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
       "source": "FHS"
     },
     {
-      "title": "Linux permissions",
-      "url": "https://ubuntu.com/tutorials/file-permissions",
+      "title": "File-system permissions",
+      "url": "https://en.wikipedia.org/wiki/File-system_permissions",
       "type": "doc",
-      "source": "Ubuntu"
+      "source": "Wikipedia"
     },
     {
       "title": "Go backend roadmap discussion",
@@ -3850,10 +3850,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
       "source": "FHS"
     },
     {
-      "title": "Linux permissions",
-      "url": "https://ubuntu.com/tutorials/file-permissions",
+      "title": "File-system permissions",
+      "url": "https://en.wikipedia.org/wiki/File-system_permissions",
       "type": "doc",
-      "source": "Ubuntu"
+      "source": "Wikipedia"
     },
     {
       "title": "Go backend roadmap discussion",
@@ -3864,16 +3864,16 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m7-t1-s0": [
     {
-      "title": "File operations",
-      "url": "https://linuxjourney.com/lesson/file-manipulation",
+      "title": "Linux command line for beginners",
+      "url": "https://ubuntu.com/tutorials/command-line-for-beginners",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Ubuntu"
     },
     {
-      "title": "Linux processes",
-      "url": "https://www.redhat.com/sysadmin/linux-process-management",
-      "type": "blog",
-      "source": "Red Hat"
+      "title": "Manage Linux processes (ps/kill/nice)",
+      "url": "https://www.digitalocean.com/community/tutorials/how-to-use-ps-kill-and-nice-to-manage-processes-in-linux",
+      "type": "doc",
+      "source": "DigitalOcean"
     },
     {
       "title": "File descriptors explained",
@@ -3884,10 +3884,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m7-t1-s1": [
     {
-      "title": "Linux processes",
-      "url": "https://www.redhat.com/sysadmin/linux-process-management",
-      "type": "blog",
-      "source": "Red Hat"
+      "title": "Manage Linux processes (ps/kill/nice)",
+      "url": "https://www.digitalocean.com/community/tutorials/how-to-use-ps-kill-and-nice-to-manage-processes-in-linux",
+      "type": "doc",
+      "source": "DigitalOcean"
     },
     {
       "title": "File descriptors explained",
@@ -3904,16 +3904,16 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m7-t1-s2": [
     {
-      "title": "Pipes & redirects",
-      "url": "https://linuxjourney.com/lesson/piping-commands",
+      "title": "Piping & redirection",
+      "url": "https://ryanstutorials.net/linuxtutorial/piping.php",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Ryan's Tutorials"
     },
     {
-      "title": "Linux processes",
-      "url": "https://www.redhat.com/sysadmin/linux-process-management",
-      "type": "blog",
-      "source": "Red Hat"
+      "title": "Manage Linux processes (ps/kill/nice)",
+      "url": "https://www.digitalocean.com/community/tutorials/how-to-use-ps-kill-and-nice-to-manage-processes-in-linux",
+      "type": "doc",
+      "source": "DigitalOcean"
     },
     {
       "title": "File descriptors explained",
@@ -3924,14 +3924,14 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m7-t2-s0": [
     {
-      "title": "systemd unit files",
-      "url": "https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html",
+      "title": "Understanding systemd units",
+      "url": "https://www.digitalocean.com/community/tutorials/understanding-systemd-units-and-unit-files",
       "type": "doc",
-      "source": "systemd"
+      "source": "DigitalOcean"
     },
     {
-      "title": "systemd for developers",
-      "url": "https://www.digitalocean.com/community/tutorials/how-to-use-systemctl",
+      "title": "Manage systemd services",
+      "url": "https://www.digitalocean.com/community/tutorials/how-to-use-systemctl-to-manage-systemd-services-and-units",
       "type": "doc",
       "source": "DigitalOcean"
     },
@@ -3950,8 +3950,8 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
       "source": "Git SCM"
     },
     {
-      "title": "systemd for developers",
-      "url": "https://www.digitalocean.com/community/tutorials/how-to-use-systemctl",
+      "title": "Manage systemd services",
+      "url": "https://www.digitalocean.com/community/tutorials/how-to-use-systemctl-to-manage-systemd-services-and-units",
       "type": "doc",
       "source": "DigitalOcean"
     },
@@ -3964,14 +3964,14 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m7-t2-s2": [
     {
-      "title": "systemd unit files",
-      "url": "https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html",
+      "title": "Understanding systemd units",
+      "url": "https://www.digitalocean.com/community/tutorials/understanding-systemd-units-and-unit-files",
       "type": "doc",
-      "source": "systemd"
+      "source": "DigitalOcean"
     },
     {
-      "title": "systemd for developers",
-      "url": "https://www.digitalocean.com/community/tutorials/how-to-use-systemctl",
+      "title": "Manage systemd services",
+      "url": "https://www.digitalocean.com/community/tutorials/how-to-use-systemctl-to-manage-systemd-services-and-units",
       "type": "doc",
       "source": "DigitalOcean"
     },
@@ -4044,10 +4044,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m7-t4-s1": [
     {
-      "title": "File operations",
-      "url": "https://linuxjourney.com/lesson/file-manipulation",
+      "title": "Linux command line for beginners",
+      "url": "https://ubuntu.com/tutorials/command-line-for-beginners",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Ubuntu"
     },
     {
       "title": "SSH basics",
@@ -4064,10 +4064,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m7-t4-s2": [
     {
-      "title": "Viewing files",
-      "url": "https://linuxjourney.com/lesson/viewing-files",
+      "title": "View files (cat command)",
+      "url": "https://linuxhandbook.com/cat-command/",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Linux Handbook"
     },
     {
       "title": "SSH basics",
@@ -4130,10 +4130,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
       "source": "man7"
     },
     {
-      "title": "Archiving guide",
-      "url": "https://www.redhat.com/sysadmin/backup-restore-compress",
-      "type": "blog",
-      "source": "Red Hat"
+      "title": "Create & extract tar archives",
+      "url": "https://linuxize.com/post/how-to-create-and-extract-archives-using-the-tar-command-in-linux/",
+      "type": "doc",
+      "source": "Linuxize"
     },
     {
       "title": "Go backend roadmap discussion",
@@ -4150,10 +4150,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
       "source": "man7"
     },
     {
-      "title": "Archiving guide",
-      "url": "https://www.redhat.com/sysadmin/backup-restore-compress",
-      "type": "blog",
-      "source": "Red Hat"
+      "title": "Create & extract tar archives",
+      "url": "https://linuxize.com/post/how-to-create-and-extract-archives-using-the-tar-command-in-linux/",
+      "type": "doc",
+      "source": "Linuxize"
     },
     {
       "title": "Go backend roadmap discussion",
@@ -4170,10 +4170,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
       "source": "man7"
     },
     {
-      "title": "Archiving guide",
-      "url": "https://www.redhat.com/sysadmin/backup-restore-compress",
-      "type": "blog",
-      "source": "Red Hat"
+      "title": "Create & extract tar archives",
+      "url": "https://linuxize.com/post/how-to-create-and-extract-archives-using-the-tar-command-in-linux/",
+      "type": "doc",
+      "source": "Linuxize"
     },
     {
       "title": "Go backend roadmap discussion",
@@ -4224,10 +4224,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m8-t0-s0": [
     {
-      "title": "File operations",
-      "url": "https://linuxjourney.com/lesson/file-manipulation",
+      "title": "Linux command line for beginners",
+      "url": "https://ubuntu.com/tutorials/command-line-for-beginners",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Ubuntu"
     },
     {
       "title": "TCP/IP model",
@@ -4244,10 +4244,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m8-t0-s1": [
     {
-      "title": "File operations",
-      "url": "https://linuxjourney.com/lesson/file-manipulation",
+      "title": "Linux command line for beginners",
+      "url": "https://ubuntu.com/tutorials/command-line-for-beginners",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Ubuntu"
     },
     {
       "title": "TCP/IP model",
@@ -4304,10 +4304,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m8-t1-s1": [
     {
-      "title": "Viewing files",
-      "url": "https://linuxjourney.com/lesson/viewing-files",
+      "title": "View files (cat command)",
+      "url": "https://linuxhandbook.com/cat-command/",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Linux Handbook"
     },
     {
       "title": "How DNS works",
@@ -4324,10 +4324,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m8-t2-s0": [
     {
-      "title": "Viewing files",
-      "url": "https://linuxjourney.com/lesson/viewing-files",
+      "title": "View files (cat command)",
+      "url": "https://linuxhandbook.com/cat-command/",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Linux Handbook"
     },
     {
       "title": "HTTP/1.1 spec overview",
@@ -5104,10 +5104,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m11-t1-s0": [
     {
-      "title": "File operations",
-      "url": "https://linuxjourney.com/lesson/file-manipulation",
+      "title": "Linux command line for beginners",
+      "url": "https://ubuntu.com/tutorials/command-line-for-beginners",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Ubuntu"
     },
     {
       "title": "pprof profiling",
@@ -5264,10 +5264,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m11-t2-s2": [
     {
-      "title": "File operations",
-      "url": "https://linuxjourney.com/lesson/file-manipulation",
+      "title": "Linux command line for beginners",
+      "url": "https://ubuntu.com/tutorials/command-line-for-beginners",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Ubuntu"
     },
     {
       "title": "Benchmarking in Go",
@@ -5584,10 +5584,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m12-t2-s3": [
     {
-      "title": "Viewing files",
-      "url": "https://linuxjourney.com/lesson/viewing-files",
+      "title": "View files (cat command)",
+      "url": "https://linuxhandbook.com/cat-command/",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Linux Handbook"
     },
     {
       "title": "Application Load Balancer",
@@ -5624,10 +5624,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m12-t3-s1": [
     {
-      "title": "File operations",
-      "url": "https://linuxjourney.com/lesson/file-manipulation",
+      "title": "Linux command line for beginners",
+      "url": "https://ubuntu.com/tutorials/command-line-for-beginners",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Ubuntu"
     },
     {
       "title": "Terraform intro",
@@ -5644,10 +5644,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m12-t3-s2": [
     {
-      "title": "File operations",
-      "url": "https://linuxjourney.com/lesson/file-manipulation",
+      "title": "Linux command line for beginners",
+      "url": "https://ubuntu.com/tutorials/command-line-for-beginners",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Ubuntu"
     },
     {
       "title": "Terraform intro",
@@ -5684,10 +5684,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m13-t0-s1": [
     {
-      "title": "Pipes & redirects",
-      "url": "https://linuxjourney.com/lesson/piping-commands",
+      "title": "Piping & redirection",
+      "url": "https://ryanstutorials.net/linuxtutorial/piping.php",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Ryan's Tutorials"
     },
     {
       "title": "CI/CD explained",
@@ -6364,10 +6364,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m16-t1-s0": [
     {
-      "title": "Viewing files",
-      "url": "https://linuxjourney.com/lesson/viewing-files",
+      "title": "View files (cat command)",
+      "url": "https://linuxhandbook.com/cat-command/",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Linux Handbook"
     },
     {
       "title": "Scalability basics",
@@ -6550,10 +6550,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
       "source": "GitHub"
     },
     {
-      "title": "URL shortener design",
-      "url": "https://www.educative.io/blog/url-shortening-system-design",
-      "type": "blog",
-      "source": "Educative"
+      "title": "System design (URL shortener)",
+      "url": "https://github.com/karanpratapsingh/system-design",
+      "type": "doc",
+      "source": "GitHub"
     },
     {
       "title": "Go backend roadmap discussion",
@@ -6570,10 +6570,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
       "source": "GitHub"
     },
     {
-      "title": "URL shortener design",
-      "url": "https://www.educative.io/blog/url-shortening-system-design",
-      "type": "blog",
-      "source": "Educative"
+      "title": "System design (URL shortener)",
+      "url": "https://github.com/karanpratapsingh/system-design",
+      "type": "doc",
+      "source": "GitHub"
     },
     {
       "title": "Go backend roadmap discussion",
@@ -6590,10 +6590,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
       "source": "GitHub"
     },
     {
-      "title": "URL shortener design",
-      "url": "https://www.educative.io/blog/url-shortening-system-design",
-      "type": "blog",
-      "source": "Educative"
+      "title": "System design (URL shortener)",
+      "url": "https://github.com/karanpratapsingh/system-design",
+      "type": "doc",
+      "source": "GitHub"
     },
     {
       "title": "Go backend roadmap discussion",
@@ -6764,10 +6764,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m17-t2-s2": [
     {
-      "title": "Pipes & redirects",
-      "url": "https://linuxjourney.com/lesson/piping-commands",
+      "title": "Piping & redirection",
+      "url": "https://ryanstutorials.net/linuxtutorial/piping.php",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Ryan's Tutorials"
     },
     {
       "title": "Embeddings guide",
@@ -6804,10 +6804,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m17-t3-s1": [
     {
-      "title": "File operations",
-      "url": "https://linuxjourney.com/lesson/file-manipulation",
+      "title": "Linux command line for beginners",
+      "url": "https://ubuntu.com/tutorials/command-line-for-beginners",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Ubuntu"
     },
     {
       "title": "Function calling",
@@ -6864,14 +6864,14 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m18-t0-s0": [
     {
-      "title": "How to read code",
-      "url": "https://www.maartengrootendorst.com/blog/2022/11/16/how-to-read-code/",
-      "type": "blog",
-      "source": "Maarten Grootendorst"
+      "title": "Build-your-own-x (learn by reading)",
+      "url": "https://github.com/codecrafters-io/build-your-own-x",
+      "type": "doc",
+      "source": "GitHub"
     },
     {
       "title": "Reading Go source",
-      "url": "https://go.dev/doc/contribute#reading_code",
+      "url": "https://go.dev/doc/contribute",
       "type": "doc",
       "source": "go.dev"
     },
@@ -6884,14 +6884,14 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m18-t0-s1": [
     {
-      "title": "How to read code",
-      "url": "https://www.maartengrootendorst.com/blog/2022/11/16/how-to-read-code/",
-      "type": "blog",
-      "source": "Maarten Grootendorst"
+      "title": "Build-your-own-x (learn by reading)",
+      "url": "https://github.com/codecrafters-io/build-your-own-x",
+      "type": "doc",
+      "source": "GitHub"
     },
     {
       "title": "Reading Go source",
-      "url": "https://go.dev/doc/contribute#reading_code",
+      "url": "https://go.dev/doc/contribute",
       "type": "doc",
       "source": "go.dev"
     },
@@ -6904,14 +6904,14 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m18-t0-s2": [
     {
-      "title": "How to read code",
-      "url": "https://www.maartengrootendorst.com/blog/2022/11/16/how-to-read-code/",
-      "type": "blog",
-      "source": "Maarten Grootendorst"
+      "title": "Build-your-own-x (learn by reading)",
+      "url": "https://github.com/codecrafters-io/build-your-own-x",
+      "type": "doc",
+      "source": "GitHub"
     },
     {
       "title": "Reading Go source",
-      "url": "https://go.dev/doc/contribute#reading_code",
+      "url": "https://go.dev/doc/contribute",
       "type": "doc",
       "source": "go.dev"
     },
@@ -6930,14 +6930,14 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
       "source": "go.dev"
     },
     {
-      "title": "How to read code",
-      "url": "https://www.maartengrootendorst.com/blog/2022/11/16/how-to-read-code/",
-      "type": "blog",
-      "source": "Maarten Grootendorst"
+      "title": "Build-your-own-x (learn by reading)",
+      "url": "https://github.com/codecrafters-io/build-your-own-x",
+      "type": "doc",
+      "source": "GitHub"
     },
     {
       "title": "Reading Go source",
-      "url": "https://go.dev/doc/contribute#reading_code",
+      "url": "https://go.dev/doc/contribute",
       "type": "doc",
       "source": "go.dev"
     }
@@ -7004,10 +7004,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m18-t2-s0": [
     {
-      "title": "Learning journal tips",
-      "url": "https://www.coursera.org/articles/learning-journal",
+      "title": "Feynman learning technique",
+      "url": "https://fs.blog/feynman-technique/",
       "type": "blog",
-      "source": "Coursera"
+      "source": "Farnam Street"
     },
     {
       "title": "Zettelkasten method",
@@ -7184,10 +7184,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m19-t3-s0": [
     {
-      "title": "Remote work communication",
-      "url": "https://www.atlassian.com/blog/teamwork/remote-communication",
-      "type": "blog",
-      "source": "Atlassian"
+      "title": "Effective remote communication",
+      "url": "https://about.gitlab.com/company/culture/all-remote/effective-communication/",
+      "type": "doc",
+      "source": "GitLab"
     },
     {
       "title": "Giving technical demos",
@@ -7204,10 +7204,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m19-t3-s1": [
     {
-      "title": "Remote work communication",
-      "url": "https://www.atlassian.com/blog/teamwork/remote-communication",
-      "type": "blog",
-      "source": "Atlassian"
+      "title": "Effective remote communication",
+      "url": "https://about.gitlab.com/company/culture/all-remote/effective-communication/",
+      "type": "doc",
+      "source": "GitLab"
     },
     {
       "title": "Giving technical demos",
@@ -7224,10 +7224,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m19-t3-s2": [
     {
-      "title": "Remote work communication",
-      "url": "https://www.atlassian.com/blog/teamwork/remote-communication",
-      "type": "blog",
-      "source": "Atlassian"
+      "title": "Effective remote communication",
+      "url": "https://about.gitlab.com/company/culture/all-remote/effective-communication/",
+      "type": "doc",
+      "source": "GitLab"
     },
     {
       "title": "Giving technical demos",
@@ -7364,10 +7364,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m21-t0-s0": [
     {
-      "title": "grep tutorial",
-      "url": "https://www.gnu.org/software/grep/manual/grep.html",
+      "title": "grep manual",
+      "url": "https://man7.org/linux/man-pages/man1/grep.1.html",
       "type": "doc",
-      "source": "GNU"
+      "source": "man7"
     },
     {
       "title": "First contributions",
@@ -7570,13 +7570,13 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
       "source": "Cloudflare"
     },
     {
-      "title": "Trade-off driven design",
-      "url": "https://www.infoq.com/articles/architecture-tradeoffs/",
+      "title": "Software architecture guide",
+      "url": "https://martinfowler.com/architecture/",
       "type": "blog",
-      "source": "InfoQ"
+      "source": "Martin Fowler"
     },
     {
-      "title": "Thinking in systems",
+      "title": "Mental models",
       "url": "https://fs.blog/mental-models/",
       "type": "blog",
       "source": "Farnam Street"
@@ -7584,13 +7584,13 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m22-t0-s1": [
     {
-      "title": "Trade-off driven design",
-      "url": "https://www.infoq.com/articles/architecture-tradeoffs/",
+      "title": "Software architecture guide",
+      "url": "https://martinfowler.com/architecture/",
       "type": "blog",
-      "source": "InfoQ"
+      "source": "Martin Fowler"
     },
     {
-      "title": "Thinking in systems",
+      "title": "Mental models",
       "url": "https://fs.blog/mental-models/",
       "type": "blog",
       "source": "Farnam Street"
@@ -7604,13 +7604,13 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m22-t0-s2": [
     {
-      "title": "Trade-off driven design",
-      "url": "https://www.infoq.com/articles/architecture-tradeoffs/",
+      "title": "Software architecture guide",
+      "url": "https://martinfowler.com/architecture/",
       "type": "blog",
-      "source": "InfoQ"
+      "source": "Martin Fowler"
     },
     {
-      "title": "Thinking in systems",
+      "title": "Mental models",
       "url": "https://fs.blog/mental-models/",
       "type": "blog",
       "source": "Farnam Street"
@@ -7624,13 +7624,13 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m22-t0-s3": [
     {
-      "title": "Trade-off driven design",
-      "url": "https://www.infoq.com/articles/architecture-tradeoffs/",
+      "title": "Software architecture guide",
+      "url": "https://martinfowler.com/architecture/",
       "type": "blog",
-      "source": "InfoQ"
+      "source": "Martin Fowler"
     },
     {
-      "title": "Thinking in systems",
+      "title": "Mental models",
       "url": "https://fs.blog/mental-models/",
       "type": "blog",
       "source": "Farnam Street"
@@ -7650,16 +7650,16 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
       "source": "Auth0"
     },
     {
-      "title": "JWT vs sessions",
-      "url": "https://stackoverflow.com/questions/43452896/authentication-jwt-usage-vs-session",
-      "type": "blog",
-      "source": "Stack Overflow"
+      "title": "JSON Web Token (JWT)",
+      "url": "https://en.wikipedia.org/wiki/JSON_Web_Token",
+      "type": "doc",
+      "source": "Wikipedia"
     },
     {
-      "title": "Postgres vs MySQL",
-      "url": "https://www.prisma.io/dataguide/postgresql/postgresql-vs-mysql",
+      "title": "SQLite vs MySQL vs PostgreSQL",
+      "url": "https://www.digitalocean.com/community/tutorials/sqlite-vs-mysql-vs-postgresql-a-comparison-of-relational-database-management-systems",
       "type": "doc",
-      "source": "Prisma"
+      "source": "DigitalOcean"
     }
   ],
   "m22-t1-s1": [
@@ -7670,16 +7670,16 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
       "source": "PostgreSQL"
     },
     {
-      "title": "JWT vs sessions",
-      "url": "https://stackoverflow.com/questions/43452896/authentication-jwt-usage-vs-session",
-      "type": "blog",
-      "source": "Stack Overflow"
+      "title": "JSON Web Token (JWT)",
+      "url": "https://en.wikipedia.org/wiki/JSON_Web_Token",
+      "type": "doc",
+      "source": "Wikipedia"
     },
     {
-      "title": "Postgres vs MySQL",
-      "url": "https://www.prisma.io/dataguide/postgresql/postgresql-vs-mysql",
+      "title": "SQLite vs MySQL vs PostgreSQL",
+      "url": "https://www.digitalocean.com/community/tutorials/sqlite-vs-mysql-vs-postgresql-a-comparison-of-relational-database-management-systems",
       "type": "doc",
-      "source": "Prisma"
+      "source": "DigitalOcean"
     }
   ],
   "m22-t1-s2": [
@@ -7690,30 +7690,30 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
       "source": "PostgreSQL"
     },
     {
-      "title": "JWT vs sessions",
-      "url": "https://stackoverflow.com/questions/43452896/authentication-jwt-usage-vs-session",
-      "type": "blog",
-      "source": "Stack Overflow"
+      "title": "JSON Web Token (JWT)",
+      "url": "https://en.wikipedia.org/wiki/JSON_Web_Token",
+      "type": "doc",
+      "source": "Wikipedia"
     },
     {
-      "title": "Postgres vs MySQL",
-      "url": "https://www.prisma.io/dataguide/postgresql/postgresql-vs-mysql",
+      "title": "SQLite vs MySQL vs PostgreSQL",
+      "url": "https://www.digitalocean.com/community/tutorials/sqlite-vs-mysql-vs-postgresql-a-comparison-of-relational-database-management-systems",
       "type": "doc",
-      "source": "Prisma"
+      "source": "DigitalOcean"
     }
   ],
   "m22-t1-s3": [
     {
-      "title": "JWT vs sessions",
-      "url": "https://stackoverflow.com/questions/43452896/authentication-jwt-usage-vs-session",
-      "type": "blog",
-      "source": "Stack Overflow"
+      "title": "JSON Web Token (JWT)",
+      "url": "https://en.wikipedia.org/wiki/JSON_Web_Token",
+      "type": "doc",
+      "source": "Wikipedia"
     },
     {
-      "title": "Postgres vs MySQL",
-      "url": "https://www.prisma.io/dataguide/postgresql/postgresql-vs-mysql",
+      "title": "SQLite vs MySQL vs PostgreSQL",
+      "url": "https://www.digitalocean.com/community/tutorials/sqlite-vs-mysql-vs-postgresql-a-comparison-of-relational-database-management-systems",
       "type": "doc",
-      "source": "Prisma"
+      "source": "DigitalOcean"
     },
     {
       "title": "Go backend roadmap discussion",
@@ -7730,30 +7730,30 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
       "source": "Wikipedia"
     },
     {
-      "title": "JWT vs sessions",
-      "url": "https://stackoverflow.com/questions/43452896/authentication-jwt-usage-vs-session",
-      "type": "blog",
-      "source": "Stack Overflow"
+      "title": "JSON Web Token (JWT)",
+      "url": "https://en.wikipedia.org/wiki/JSON_Web_Token",
+      "type": "doc",
+      "source": "Wikipedia"
     },
     {
-      "title": "Postgres vs MySQL",
-      "url": "https://www.prisma.io/dataguide/postgresql/postgresql-vs-mysql",
+      "title": "SQLite vs MySQL vs PostgreSQL",
+      "url": "https://www.digitalocean.com/community/tutorials/sqlite-vs-mysql-vs-postgresql-a-comparison-of-relational-database-management-systems",
       "type": "doc",
-      "source": "Prisma"
+      "source": "DigitalOcean"
     }
   ],
   "m22-t1-s5": [
     {
-      "title": "JWT vs sessions",
-      "url": "https://stackoverflow.com/questions/43452896/authentication-jwt-usage-vs-session",
-      "type": "blog",
-      "source": "Stack Overflow"
+      "title": "JSON Web Token (JWT)",
+      "url": "https://en.wikipedia.org/wiki/JSON_Web_Token",
+      "type": "doc",
+      "source": "Wikipedia"
     },
     {
-      "title": "Postgres vs MySQL",
-      "url": "https://www.prisma.io/dataguide/postgresql/postgresql-vs-mysql",
+      "title": "SQLite vs MySQL vs PostgreSQL",
+      "url": "https://www.digitalocean.com/community/tutorials/sqlite-vs-mysql-vs-postgresql-a-comparison-of-relational-database-management-systems",
       "type": "doc",
-      "source": "Prisma"
+      "source": "DigitalOcean"
     },
     {
       "title": "Go backend roadmap discussion",
@@ -7764,16 +7764,16 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m22-t1-s6": [
     {
-      "title": "JWT vs sessions",
-      "url": "https://stackoverflow.com/questions/43452896/authentication-jwt-usage-vs-session",
-      "type": "blog",
-      "source": "Stack Overflow"
+      "title": "JSON Web Token (JWT)",
+      "url": "https://en.wikipedia.org/wiki/JSON_Web_Token",
+      "type": "doc",
+      "source": "Wikipedia"
     },
     {
-      "title": "Postgres vs MySQL",
-      "url": "https://www.prisma.io/dataguide/postgresql/postgresql-vs-mysql",
+      "title": "SQLite vs MySQL vs PostgreSQL",
+      "url": "https://www.digitalocean.com/community/tutorials/sqlite-vs-mysql-vs-postgresql-a-comparison-of-relational-database-management-systems",
       "type": "doc",
-      "source": "Prisma"
+      "source": "DigitalOcean"
     },
     {
       "title": "Go backend roadmap discussion",
@@ -7784,16 +7784,16 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m22-t1-s7": [
     {
-      "title": "JWT vs sessions",
-      "url": "https://stackoverflow.com/questions/43452896/authentication-jwt-usage-vs-session",
-      "type": "blog",
-      "source": "Stack Overflow"
+      "title": "JSON Web Token (JWT)",
+      "url": "https://en.wikipedia.org/wiki/JSON_Web_Token",
+      "type": "doc",
+      "source": "Wikipedia"
     },
     {
-      "title": "Postgres vs MySQL",
-      "url": "https://www.prisma.io/dataguide/postgresql/postgresql-vs-mysql",
+      "title": "SQLite vs MySQL vs PostgreSQL",
+      "url": "https://www.digitalocean.com/community/tutorials/sqlite-vs-mysql-vs-postgresql-a-comparison-of-relational-database-management-systems",
       "type": "doc",
-      "source": "Prisma"
+      "source": "DigitalOcean"
     },
     {
       "title": "Go backend roadmap discussion",
@@ -7844,10 +7844,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m23-t0-s0": [
     {
-      "title": "Backend resume guide",
-      "url": "https://www.freecodecamp.org/news/how-to-write-a-developer-resume/",
-      "type": "blog",
-      "source": "freeCodeCamp"
+      "title": "Developer resume examples",
+      "url": "https://github.com/resumejob/awesome-resume",
+      "type": "doc",
+      "source": "GitHub"
     },
     {
       "title": "GitHub profile README",
@@ -7864,10 +7864,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m23-t0-s1": [
     {
-      "title": "Backend resume guide",
-      "url": "https://www.freecodecamp.org/news/how-to-write-a-developer-resume/",
-      "type": "blog",
-      "source": "freeCodeCamp"
+      "title": "Developer resume examples",
+      "url": "https://github.com/resumejob/awesome-resume",
+      "type": "doc",
+      "source": "GitHub"
     },
     {
       "title": "GitHub profile README",
@@ -7884,16 +7884,16 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m23-t0-s2": [
     {
-      "title": "Viewing files",
-      "url": "https://linuxjourney.com/lesson/viewing-files",
+      "title": "View files (cat command)",
+      "url": "https://linuxhandbook.com/cat-command/",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Linux Handbook"
     },
     {
-      "title": "Backend resume guide",
-      "url": "https://www.freecodecamp.org/news/how-to-write-a-developer-resume/",
-      "type": "blog",
-      "source": "freeCodeCamp"
+      "title": "Developer resume examples",
+      "url": "https://github.com/resumejob/awesome-resume",
+      "type": "doc",
+      "source": "GitHub"
     },
     {
       "title": "GitHub profile README",
@@ -7904,10 +7904,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m23-t0-s3": [
     {
-      "title": "Backend resume guide",
-      "url": "https://www.freecodecamp.org/news/how-to-write-a-developer-resume/",
-      "type": "blog",
-      "source": "freeCodeCamp"
+      "title": "Developer resume examples",
+      "url": "https://github.com/resumejob/awesome-resume",
+      "type": "doc",
+      "source": "GitHub"
     },
     {
       "title": "GitHub profile README",
@@ -7930,28 +7930,28 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
       "source": "Auth0"
     },
     {
-      "title": "Dev.to writing tips",
-      "url": "https://dev.to/aabbhhaavv/writing-technical-articles-1h5f",
-      "type": "blog",
-      "source": "Dev.to"
+      "title": "Technical writing (overview)",
+      "url": "https://developers.google.com/tech-writing/overview",
+      "type": "course",
+      "source": "Google"
     },
     {
       "title": "Building in public",
-      "url": "https://www.indiehackers.com/post/building-in-public-101-1a5f3c8e5e",
+      "url": "https://www.indiehackers.com/",
       "type": "blog",
       "source": "Indie Hackers"
     }
   ],
   "m23-t1-s1": [
     {
-      "title": "Dev.to writing tips",
-      "url": "https://dev.to/aabbhhaavv/writing-technical-articles-1h5f",
-      "type": "blog",
-      "source": "Dev.to"
+      "title": "Technical writing (overview)",
+      "url": "https://developers.google.com/tech-writing/overview",
+      "type": "course",
+      "source": "Google"
     },
     {
       "title": "Building in public",
-      "url": "https://www.indiehackers.com/post/building-in-public-101-1a5f3c8e5e",
+      "url": "https://www.indiehackers.com/",
       "type": "blog",
       "source": "Indie Hackers"
     },
@@ -8004,10 +8004,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m23-t2-s2": [
     {
-      "title": "Viewing files",
-      "url": "https://linuxjourney.com/lesson/viewing-files",
+      "title": "View files (cat command)",
+      "url": "https://linuxhandbook.com/cat-command/",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Linux Handbook"
     },
     {
       "title": "Remote job boards",
@@ -8024,10 +8024,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m23-t2-s3": [
     {
-      "title": "Viewing files",
-      "url": "https://linuxjourney.com/lesson/viewing-files",
+      "title": "View files (cat command)",
+      "url": "https://linuxhandbook.com/cat-command/",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Linux Handbook"
     },
     {
       "title": "Remote job boards",
@@ -8044,10 +8044,10 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m23-t2-s4": [
     {
-      "title": "Viewing files",
-      "url": "https://linuxjourney.com/lesson/viewing-files",
+      "title": "View files (cat command)",
+      "url": "https://linuxhandbook.com/cat-command/",
       "type": "doc",
-      "source": "Linux Journey"
+      "source": "Linux Handbook"
     },
     {
       "title": "Remote job boards",

@@ -9,7 +9,6 @@ import {
   IconActivity,
   IconChartBar,
   IconNotebook,
-  IconBooks,
   IconTrophy,
   IconCalendarStats,
   IconSettings,
@@ -47,7 +46,6 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     items: [
       { href: "/analytics", label: "Analytics", icon: IconChartBar },
       { href: "/journal", label: "Journal", icon: IconNotebook },
-      { href: "/journal/go-backend", label: "Go Resources", icon: IconBooks },
       { href: "/achievements", label: "Achievements", icon: IconTrophy },
       { href: "/review", label: "Annual Review", icon: IconCalendarStats },
     ],
@@ -131,9 +129,7 @@ export function Sidebar() {
                 {group.items.map((item) => {
                   const isActive =
                     pathname === item.href ||
-                    (item.href === "/journal/go-backend" && pathname.startsWith("/journal/go-backend")) ||
-                    (item.href === "/journal" && pathname === "/journal") ||
-                    (item.href !== "/" && item.href !== "/journal" && pathname.startsWith(item.href));
+                    (item.href !== "/" && pathname.startsWith(item.href));
 
                   return (
                     <Link key={item.href} href={item.href} onClick={() => setSidebarOpen(false)}>
