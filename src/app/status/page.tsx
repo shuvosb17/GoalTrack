@@ -8,7 +8,7 @@ import {
   CheckCircle2, Loader2, Sparkles, Circle,
   BookmarkCheck,
 } from "lucide-react";
-import { IconActivity, IconCalendarEvent } from "@tabler/icons-react";
+import { IconActivity } from "@tabler/icons-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,14 +17,16 @@ import {
 } from "@/hooks/use-data";
 import {
   getStatusTimeline, getGlobalStatusCounts, getUrgencyAlerts,
-  getTodaySnapshot, ALL_STATUSES,
+  ALL_STATUSES,
 } from "@/lib/status";
 import { cn, STATUS_LABELS, STATUS_COLORS } from "@/lib/utils";
 import type { ProgressStatus } from "@/lib/types";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { StatusSummaryHeader } from "@/components/status/status-summary-header";
 import { StatusTimelineCard } from "@/components/status/status-timeline-card";
+import { countTopicsAddedSince } from "@/lib/status-summary";
 import { updateTopicStatus, updateSubtopicStatus } from "@/lib/crud";
 import { buildReviewDueSnapshot } from "@/lib/revision-catalog";
 import { NeedsAttentionPanel } from "@/components/status/needs-attention-panel";
@@ -37,8 +39,6 @@ const STATUS_ICONS: Record<ProgressStatus, typeof Circle> = {
   completed: CheckCircle2,
   mastered: Sparkles,
 };
-
-const PULSE_STATUSES: ProgressStatus[] = ["in_progress", "completed", "mastered"];
 
 type Filter = ProgressStatus | "all" | "review";
 
@@ -85,14 +85,10 @@ function StatusContent() {
   const [reviewDialog, setReviewDialog] = useState<{ id: string; name: string } | null>(null);
 
   const globalCounts = useMemo(() => getGlobalStatusCounts(topics, subtopics), [topics, subtopics]);
+  const topicsAddedThisWeek = useMemo(() => countTopicsAddedSince(topics, 7), [topics]);
   const alerts = useMemo(
     () => getUrgencyAlerts(topics, subtopics, modules, tracks),
     [topics, subtopics, modules, tracks]
-  );
-
-  const pulseTotal = useMemo(
-    () => PULSE_STATUSES.reduce((sum, s) => sum + globalCounts[s], 0),
-    [globalCounts]
   );
 
   const timeline = useMemo(() => {
@@ -112,11 +108,6 @@ function StatusContent() {
     }
     return days;
   }, [topics, subtopics, modules, tracks, statusFilter, trackFilter]);
-
-  const todaySnap = useMemo(
-    () => getTodaySnapshot(getStatusTimeline(topics, subtopics, modules, tracks, "all")),
-    [topics, subtopics, modules, tracks]
-  );
 
   const reviewSnapshot = useMemo(
     () => buildReviewDueSnapshot(tracks, modules, topics, subtopics),
@@ -138,96 +129,12 @@ function StatusContent() {
 
   return (
     <div className="space-y-8">
-      {/* Header + Status Pulse */}
-      <div className="space-y-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="flex items-center gap-2 text-2xl font-medium tracking-tight sm:text-3xl">
-              <IconActivity className="h-7 w-7 text-primary" stroke={1.5} /> Status
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Your learning status organized by date — track every milestone
-            </p>
-          </div>
-          <Link href="/tracks">
-            <Button variant="outline" className="border-[0.5px] border-white/[0.08]">Update in Tracks</Button>
-          </Link>
-        </div>
-
-        <Card className="border-[0.5px] border-white/[0.08] overflow-hidden">
-          <CardContent className="pt-6 pb-5">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Status pulse</p>
-              {todaySnap && (
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <IconCalendarEvent className="h-3.5 w-3.5 text-violet-400/80" stroke={1.5} />
-                  <span className="text-[11px] text-muted-foreground">Today:</span>
-                  {ALL_STATUSES.filter((s) => todaySnap.counts[s] > 0).map((s) => (
-                    <StatusChip key={s} status={s} count={todaySnap.counts[s]} compact />
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="flex h-3 overflow-hidden rounded-full bg-white/[0.04]">
-              {PULSE_STATUSES.map((status) => {
-                const count = globalCounts[status];
-                const pct = pulseTotal > 0 ? (count / pulseTotal) * 100 : 0;
-                if (pct === 0) return null;
-                return (
-                  <div
-                    key={status}
-                    className="h-full transition-all duration-500 first:rounded-l-full last:rounded-r-full"
-                    style={{ width: `${pct}%`, background: STATUS_COLORS[status] }}
-                    title={`${STATUS_LABELS[status]}: ${count}`}
-                  />
-                );
-              })}
-              {pulseTotal === 0 && (
-                <div className="h-full w-full rounded-full bg-zinc-700/40" />
-              )}
-            </div>
-            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5">
-              {PULSE_STATUSES.map((status) => (
-                <span key={status} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <span className="h-2 w-2 rounded-full" style={{ background: STATUS_COLORS[status] }} />
-                  {STATUS_LABELS[status]}
-                  <span className="metric-value tabular-nums text-foreground">{globalCounts[status]}</span>
-                </span>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Status overview tiles */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {ALL_STATUSES.map((status) => {
-          const Icon = STATUS_ICONS[status];
-          const count = globalCounts[status];
-          const active = statusFilter === status;
-          return (
-            <button
-              key={status}
-              type="button"
-              onClick={() => setStatusFilter(active ? "all" : status)}
-              className={cn(
-                "relative overflow-hidden rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.02] p-4 text-left transition-all hover:bg-white/[0.04]",
-                active && "ring-1 ring-primary/40 bg-white/[0.04]"
-              )}
-            >
-              <div
-                className="absolute inset-x-0 top-0 h-0.5"
-                style={{ background: STATUS_COLORS[status] }}
-              />
-              <div className="flex items-center justify-between">
-                <Icon className="h-4 w-4" style={{ color: STATUS_COLORS[status] }} />
-                <span className="metric-value text-2xl tabular-nums sm:text-3xl">{count}</span>
-              </div>
-              <p className="mt-2 text-[11px] font-medium text-muted-foreground">{STATUS_LABELS[status]}</p>
-            </button>
-          );
-        })}
-      </div>
+      <StatusSummaryHeader
+        counts={globalCounts}
+        statusFilter={statusFilter}
+        onStatusFilter={(status) => setStatusFilter(status)}
+        topicsAddedThisWeek={topicsAddedThisWeek}
+      />
 
       <NeedsAttentionPanel
         alerts={alerts}
