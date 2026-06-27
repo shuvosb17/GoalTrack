@@ -1,3 +1,11 @@
+export type GoProjectTier = "beginner" | "medium" | "advanced" | "capstone";
+
+export interface GoPathProject {
+  name: string;
+  tier: GoProjectTier;
+  deliverables: string[];
+}
+
 export interface GoPathTopic {
   name: string;
   subtopics: string[];
@@ -7,6 +15,7 @@ export interface GoPathModule {
   name: string;
   ongoing?: boolean;
   topics: GoPathTopic[];
+  projects?: GoPathProject[];
 }
 
 export const GO_BACKEND_PATH_MARKER =

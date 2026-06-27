@@ -11,7 +11,7 @@ import { ConfidencePromptProvider } from "@/components/providers/confidence-prom
 import { PrepQuizProvider } from "@/components/providers/prep-quiz-provider";
 import { LeetcodeConfidenceProvider } from "@/components/providers/leetcode-confidence-provider";
 import { InterviewReadinessChecker } from "@/components/providers/interview-readiness-checker";
-import { seedDatabase, ensureLeetcodePrep, ensureInterviewReadyAchievement, ensureGoBackendPath } from "@/lib/seed";
+import { seedDatabase, ensureLeetcodePrep, ensureInterviewReadyAchievement, ensureGoBackendPath, ensureGoBackendProjects } from "@/lib/seed";
 import { repairMisattributedSessions } from "@/lib/session-repair";
 import { useAppStore } from "@/stores/app-store";
 import { Logo } from "./logo";
@@ -23,6 +23,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     seedDatabase()
       .then(() => ensureLeetcodePrep())
       .then(() => ensureGoBackendPath())
+      .then(() => ensureGoBackendProjects())
       .then(() => ensureInterviewReadyAchievement())
       .then(() => repairMisattributedSessions())
       .then(() => setInitialized(true));

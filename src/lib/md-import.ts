@@ -1,11 +1,12 @@
 import { v4 as uuid } from "uuid";
 import { db } from "./db";
-import type { Topic, Subtopic } from "./types";
+import type { Topic, Subtopic, Difficulty } from "./types";
 import { nowISO } from "./utils";
 
 export interface ParsedTopic {
   name: string;
   subtopics: string[];
+  difficulty?: Difficulty;
 }
 
 export interface ParsedModule {
@@ -141,12 +142,13 @@ export async function importMdIntoModule(
   const newSubtopics: Subtopic[] = [];
 
   for (const parsed of topics) {
+    const topicDifficulty = parsed.difficulty ?? "medium";
     const topic: Topic = {
       id: uuid(),
       moduleId,
       trackId,
       name: parsed.name,
-      difficulty: "medium",
+      difficulty: topicDifficulty,
       status: "not_started",
       order: topicOrder++,
       archived: false,
@@ -163,7 +165,7 @@ export async function importMdIntoModule(
         trackId,
         name: subName,
         status: "not_started",
-        difficulty: "medium",
+        difficulty: topicDifficulty,
         order: i,
         archived: false,
         createdAt: now,

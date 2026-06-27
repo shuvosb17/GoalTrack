@@ -46,6 +46,7 @@ import {
 } from "@/lib/time-log";
 import { InlineCodeText } from "@/components/shared/inline-code-text";
 import { toPlainLearningLabel } from "@/lib/format-learning-text";
+import { GO_BACKEND_PROJECT_TOPIC_PREFIX } from "@/lib/go-backend-projects";
 
 interface HierarchyTreeProps {
   tracks: Track[];
@@ -236,13 +237,15 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                           const topicProgress = getTopicProgress(topic, subtopics);
                                           const reviewDue = isTopicDueForReview(topic);
                                           const reviewLabel = getReviewDueLabel(topic);
+                                          const isProjectTopic = topic.name.startsWith(GO_BACKEND_PROJECT_TOPIC_PREFIX);
 
                                           return (
                                             <div
                                               key={topic.id}
                                               className={cn(
                                                 "rounded-md border border-border/30",
-                                                reviewDue && "ring-1 ring-violet-500/40 bg-violet-500/[0.03]"
+                                                reviewDue && "ring-1 ring-violet-500/40 bg-violet-500/[0.03]",
+                                                isProjectTopic && "border-emerald-500/30 bg-emerald-500/[0.04]"
                                               )}
                                             >
                                               <div className="flex items-center gap-2 overflow-x-auto p-2 pl-2 cursor-pointer hover:bg-secondary/20 group sm:pl-4" onClick={() => toggle(topic.id)}>

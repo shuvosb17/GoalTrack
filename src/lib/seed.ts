@@ -6,7 +6,13 @@ import { nowISO } from "./utils";
 import { CS_FUNDAMENTALS, LEETCODE_PATTERNS, coreProblemKey, coreCsItemKey } from "./leetcode-patterns";
 import { getReviewStateForBackup, restoreReviewStateFromBackup, useReviewStore } from "@/stores/review-store";
 import { buildRevisionCatalog, getDueReviewCatalogItems } from "./revision-catalog";
-import { GO_BACKEND_PATH, GO_BACKEND_PATH_MARKER } from "./go-backend-path";
+import { GO_BACKEND_PATH_MARKER } from "./go-backend-path";
+import {
+  getGoBackendPathWithProjects,
+  goProjectsToParsedTopics,
+  moduleTopicsWithProjects,
+} from "./go-backend-import";
+import { formatGoProjectTopicName } from "./go-backend-projects";
 import { importMdIntoModule } from "./md-import";
 import { archiveModule } from "./crud";
 
@@ -197,7 +203,7 @@ export async function ensureGoBackendPath(): Promise<void> {
   if (hasMarker) return;
 
   let moduleOrder = existingModules.reduce((max, m) => Math.max(max, m.order), -1) + 1;
-  for (const mod of GO_BACKEND_PATH) {
+  for (const mod of getGoBackendPathWithProjects()) {
     const moduleId = uuid();
     const now = nowISO();
     await db.modules.add({
@@ -212,7 +218,34 @@ export async function ensureGoBackendPath(): Promise<void> {
     await importMdIntoModule(
       devTrack.id,
       moduleId,
-      mod.topics.map((t) => ({ name: t.name, subtopics: t.subtopics }))
+      moduleTopicsWithProjects(mod.topics, mod.projects)
+    );
+  }
+}
+
+export async function ensureGoBackendProjects(): Promise<void> {
+  const devTrack = await db.tracks.filter((t) => t.name === "Development").first();
+  if (!devTrack) return;
+
+  const dbModules = await db.modules.where("trackId").equals(devTrack.id).toArray();
+  const pathModules = getGoBackendPathWithProjects();
+
+  for (const pathMod of pathModules) {
+    if (!pathMod.projects?.length) continue;
+    const dbMod = dbModules.find((m) => m.name === pathMod.name);
+    if (!dbMod) continue;
+
+    const existingTopics = await db.topics.where("moduleId").equals(dbMod.id).toArray();
+    const missing = pathMod.projects.filter(
+      (project) =>
+        !existingTopics.some((t) => t.name === formatGoProjectTopicName(project))
+    );
+    if (missing.length === 0) continue;
+
+    await importMdIntoModule(
+      devTrack.id,
+      dbMod.id,
+      goProjectsToParsedTopics(missing)
     );
   }
 }
