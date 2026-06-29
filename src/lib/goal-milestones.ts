@@ -334,6 +334,9 @@ export interface PaceQuadrantPoint {
   trackColor: string;
   timeProgress: number;
   progressNormalized: number;
+  currentProgress: number;
+  expectedProgress: number;
+  daysRemaining: number;
   paceStatus: GoalPaceStatus;
   paceDelta: number;
   risk: GoalRiskLevel;
@@ -381,7 +384,7 @@ export function getGoalRisk(stats: GoalMilestoneStats): GoalRiskLevel {
 
 export function buildPaceQuadrantData(stats: GoalMilestoneStats[]): PaceQuadrantPoint[] {
   return stats
-    .filter((s) => s.paceStatus !== "completed" && s.paceStatus !== "overdue")
+    .filter((s) => s.paceStatus !== "overdue")
     .map((s) => ({
       id: s.goal.id,
       title: s.goal.title,
@@ -389,6 +392,9 @@ export function buildPaceQuadrantData(stats: GoalMilestoneStats[]): PaceQuadrant
       trackColor: s.trackColor,
       timeProgress: s.timeProgress,
       progressNormalized: normalizeGoalProgress(s),
+      currentProgress: s.currentProgress,
+      expectedProgress: s.expectedProgress,
+      daysRemaining: s.daysRemaining,
       paceStatus: s.paceStatus,
       paceDelta: s.paceDelta,
       risk: getGoalRisk(s),

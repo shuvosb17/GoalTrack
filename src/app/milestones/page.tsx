@@ -1,26 +1,31 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
-import { Flag, Plus, TrendingUp, Zap, AlertTriangle } from "lucide-react";
-import { IconChartDots3, IconTarget } from "@tabler/icons-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   useGoalMilestones, useTracks, useAllModules, useAllTopics, useAllSubtopics,
 } from "@/hooks/use-data";
+import { buildAllGoalStats, buildPaceQuadrantData, deleteGoalMilestone } from "@/lib/goal-milestones";
 import {
-  buildAllGoalStats,
-  buildPaceQuadrantData,
-  deleteGoalMilestone,
-  getGoalRisk,
-  RISK_COLORS,
-} from "@/lib/goal-milestones";
-import { PaceQuadrantChart } from "@/components/milestones/pace-quadrant-chart";
+  buildDashboardSummary,
+  buildGoalInsights,
+  filterGoalStats,
+  needsAttentionGoals,
+  sortGoalStats,
+  type GoalFilter,
+  type GoalSort,
+} from "@/lib/goal-dashboard";
+import { PaceMapChart } from "@/components/milestones/pace-map-chart";
 import { GoalMilestoneCard } from "@/components/milestones/goal-milestone-card";
 import { GoalMilestoneDialog } from "@/components/milestones/goal-milestone-dialog";
+import { GoalDetailDialog } from "@/components/milestones/goal-detail-dialog";
+import { GoalSummaryStats } from "@/components/milestones/goal-summary-stats";
+import { GoalSmartInsights } from "@/components/milestones/goal-smart-insights";
+import { GoalNeedsAttention } from "@/components/milestones/goal-needs-attention";
+import { GoalFilterBar } from "@/components/milestones/goal-filter-bar";
 import { SuggestedMilestones } from "@/components/milestones/suggested-milestones";
-import { SectionHeading } from "@/components/shared/section-heading";
 import type { GoalMilestone } from "@/lib/types";
 
 export default function MilestonesPage() {
@@ -31,7 +36,11 @@ export default function MilestonesPage() {
   const subtopics = useAllSubtopics();
 
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [editing, setEditing] = useState<GoalMilestone | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<GoalFilter>("all");
+  const [sort, setSort] = useState<GoalSort>("most_behind");
 
   const stats = useMemo(
     () => buildAllGoalStats(goals, tracks, modules, topics, subtopics),
@@ -39,116 +48,102 @@ export default function MilestonesPage() {
   );
 
   const quadrantPoints = useMemo(() => buildPaceQuadrantData(stats), [stats]);
+  const summary = useMemo(() => buildDashboardSummary(stats), [stats]);
+  const insights = useMemo(() => buildGoalInsights(stats), [stats]);
+  const attention = useMemo(() => needsAttentionGoals(stats), [stats]);
 
-  const summary = useMemo(() => {
-    const active = stats.filter((s) => s.isActive);
-    const ahead = stats.filter((s) => s.paceStatus === "ahead" || s.paceStatus === "completed").length;
-    const atRisk = stats.filter((s) => {
-      const risk = getGoalRisk(s);
-      return risk === "at_risk" || risk === "critical";
-    }).length;
-    const avgProgress = stats.length
-      ? Math.round(stats.reduce((sum, s) => sum + s.currentProgress, 0) / stats.length)
-      : 0;
-    const totalGained = stats.reduce((sum, s) => sum + s.progressGained, 0);
-    return { active: active.length, ahead, atRisk, avgProgress, totalGained, total: stats.length };
-  }, [stats]);
-
-  const needsAttention = useMemo(
-    () => stats.filter((s) => {
-      const risk = getGoalRisk(s);
-      return s.isActive && (risk === "at_risk" || risk === "critical" || s.paceStatus === "behind");
-    }),
-    [stats]
+  const displayedGoals = useMemo(
+    () => sortGoalStats(filterGoalStats(stats, filter), sort),
+    [stats, filter, sort]
   );
 
-  const activeGoals = stats.filter((s) => s.paceStatus !== "completed" && s.paceStatus !== "overdue");
-  const completedGoals = stats.filter((s) => s.paceStatus === "completed" || s.paceStatus === "overdue");
+  const selectedStats = stats.find((s) => s.goal.id === selectedId) ?? null;
 
   const openCreate = () => {
     setEditing(null);
     setDialogOpen(true);
   };
 
+  const openDetail = (id: string) => {
+    setSelectedId(id);
+    setDetailOpen(true);
+  };
+
   const openEdit = (goal: GoalMilestone) => {
     setEditing(goal);
+    setDetailOpen(false);
     setDialogOpen(true);
   };
 
   const handleDelete = async (id: string, title: string) => {
     if (!window.confirm(`Delete goal "${title}"?`)) return;
     await deleteGoalMilestone(id);
+    setDetailOpen(false);
+    setSelectedId(null);
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="flex items-center gap-2.5 mb-1">
-            <Flag className="h-6 w-6 text-violet-400" strokeWidth={1.75} />
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Goal Milestones</h1>
+        <div>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/[0.06] bg-white/[0.02] px-2.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            Live tracking
           </div>
-          <p className="text-muted-foreground max-w-xl text-sm">
-            Set focused learning windows and see at a glance whether you are ahead or behind the pace line.
+          <h1 className="text-2xl font-medium tracking-tight text-foreground sm:text-[28px]">
+            Goal Milestones
+          </h1>
+          <p className="mt-1 max-w-2xl text-xs text-muted-foreground sm:text-sm">
+            Track whether every goal is on pace against its planned timeline — recalculated
+            the moment anything changes.
           </p>
-        </motion.div>
-        <Button size="lg" onClick={openCreate} className="w-full sm:w-auto gap-2">
-          <Plus className="h-4 w-4" /> New Goal
+        </div>
+        <Button
+          onClick={openCreate}
+          className="h-10 gap-2 border-0 bg-violet-600 px-4 shadow-none hover:bg-violet-500"
+        >
+          <Plus className="h-4 w-4" /> Add Goal
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Active goals", value: summary.active, icon: Zap, color: "#8b5cf6" },
-          { label: "On / ahead", value: summary.ahead, icon: TrendingUp, color: "#10b981" },
-          { label: "At risk", value: summary.atRisk, icon: AlertTriangle, color: RISK_COLORS.at_risk },
-          { label: "Avg progress", value: `${summary.avgProgress}%`, icon: IconTarget, color: "#3b82f6" },
-        ].map((item) => (
-          <div key={item.label} className="rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.02] p-3 sm:p-4 text-center">
-            <item.icon className="h-4 w-4 mx-auto mb-2" style={{ color: item.color }} />
-            <p className="metric-value text-2xl sm:text-3xl tabular-nums">{item.value}</p>
-            <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide mt-1">{item.label}</p>
-          </div>
-        ))}
-      </div>
+      <GoalSmartInsights insights={insights} />
 
-      {needsAttention.length > 0 && (
-        <div className="rounded-xl border-[0.5px] border-amber-500/25 bg-amber-500/[0.04] p-4">
-          <p className="text-xs font-medium text-amber-400/90 mb-3 flex items-center gap-2">
-            <AlertTriangle className="h-3.5 w-3.5" />
-            Needs attention ({needsAttention.length})
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {needsAttention.map((s) => (
-              <button
-                key={s.goal.id}
-                type="button"
-                onClick={() => openEdit(s.goal)}
-                className="rounded-lg border-[0.5px] border-white/[0.08] bg-white/[0.03] px-3 py-2 text-left text-xs hover:bg-white/[0.06] transition-colors"
-              >
-                <span className="mr-1.5">{s.trackIcon}</span>
-                <span className="font-medium">{s.goal.title}</span>
-                <span className="text-muted-foreground ml-2">{s.paceDelta >= 0 ? "+" : ""}{s.paceDelta}% vs expected</span>
-              </button>
-            ))}
-          </div>
+      <GoalSummaryStats
+        active={summary.active}
+        ahead={summary.ahead}
+        atRisk={summary.atRisk}
+        avgProgress={summary.avgProgress}
+      />
+
+      <PaceMapChart
+        points={quadrantPoints}
+        onGoalClick={(id) => openDetail(id)}
+      />
+
+      <GoalNeedsAttention goals={attention} onOpen={openDetail} />
+
+      <GoalFilterBar
+        filter={filter}
+        sort={sort}
+        onFilterChange={setFilter}
+        onSortChange={setSort}
+        shownCount={displayedGoals.length}
+      />
+
+      <div>
+        <div className="mb-3 flex items-baseline justify-between gap-2">
+          <h2 className="text-lg font-medium text-foreground">All Goals</h2>
+          <span className="text-xs text-muted-foreground">{displayedGoals.length} shown</span>
         </div>
-      )}
 
-      <div>
-        <SectionHeading icon={IconChartDots3}>Pace map</SectionHeading>
-        <PaceQuadrantChart points={quadrantPoints} />
-      </div>
-
-      <div>
-        <SectionHeading icon={IconTarget}>Active goals</SectionHeading>
-        {activeGoals.length === 0 ? (
+        {displayedGoals.length === 0 ? (
           <div className="space-y-4">
             <SuggestedMilestones tracks={tracks} modules={modules} topics={topics} subtopics={subtopics} />
-            <Card className="border-dashed border-[0.5px]">
+            <Card className="border border-dashed border-white/[0.08] bg-transparent">
               <CardContent className="py-12 text-center">
-                <Flag className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-50" />
-                <p className="text-muted-foreground mb-4">No active goals yet. Create one to start your next learning sprint.</p>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  No goals match this view. Create one to start your next learning sprint.
+                </p>
                 <Button onClick={openCreate} className="gap-2">
                   <Plus className="h-4 w-4" /> Create your first goal
                 </Button>
@@ -156,42 +151,27 @@ export default function MilestonesPage() {
             </Card>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {activeGoals.map((s, i) => (
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {displayedGoals.map((s) => (
               <GoalMilestoneCard
                 key={s.goal.id}
                 stats={s}
-                index={i}
-                topics={topics}
-                subtopics={subtopics}
-                modules={modules}
-                onEdit={() => openEdit(s.goal)}
-                onDelete={() => handleDelete(s.goal.id, s.goal.title)}
+                onOpen={() => openDetail(s.goal.id)}
               />
             ))}
           </div>
         )}
       </div>
 
-      {completedGoals.length > 0 && (
-        <div>
-          <SectionHeading className="text-muted-foreground">Completed / past</SectionHeading>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {completedGoals.map((s, i) => (
-              <GoalMilestoneCard
-                key={s.goal.id}
-                stats={s}
-                index={i}
-                topics={topics}
-                subtopics={subtopics}
-                modules={modules}
-                onEdit={() => openEdit(s.goal)}
-                onDelete={() => handleDelete(s.goal.id, s.goal.title)}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+      <GoalDetailDialog
+        stats={selectedStats}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        onEdit={() => selectedStats && openEdit(selectedStats.goal)}
+        onDelete={() =>
+          selectedStats && handleDelete(selectedStats.goal.id, selectedStats.goal.title)
+        }
+      />
 
       <GoalMilestoneDialog
         open={dialogOpen}
