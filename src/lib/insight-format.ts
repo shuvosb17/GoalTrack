@@ -1,7 +1,7 @@
 import React from "react";
 
 const HIGHLIGHT_PATTERN =
-  /(\d+(?:\.\d+)?%|\d+ days|\d+ hours|\d+-day|between \d+:\d+ and \d+:\d+|\b(?:Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)s?\b)/gi;
+  /(\d+(?:\.\d+)?%|\d[\d,]*(?:\.\d+)?h(?:\/week)?|\d{1,2}(?::\d{2})?(?:am|pm)?[–-]\d{1,2}(?::\d{2})?(?:am|pm)?|\d+ days|\d+ hours|\d+-day|between \d+:\d+ and \d+:\d+|\b(?:Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)s?\b)/gi;
 
 export function renderInsightMessage(message: string): React.ReactNode[] {
   const parts: React.ReactNode[] = [];

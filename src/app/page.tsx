@@ -247,11 +247,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Row 4 — Smart Insights */}
-      <Card>
-        <CardContent className="pt-6">
-          <InsightsPanel insights={insights} />
-        </CardContent>
-      </Card>
+      <InsightsPanel insights={insights} />
 
       {/* Row 5 — Learning Activity */}
       <Card>

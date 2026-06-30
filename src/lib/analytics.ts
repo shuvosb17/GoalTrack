@@ -658,6 +658,32 @@ export function getRadarData(
   });
 }
 
+/** 24h hour -> compact 12h parts, e.g. 9 -> { hour: 9, period: "am" }. */
+function formatHour12(hour24: number): { hour: number; period: "am" | "pm" } {
+  const period: "am" | "pm" = hour24 % 24 >= 12 ? "pm" : "am";
+  let hour = hour24 % 12;
+  if (hour === 0) hour = 12;
+  return { hour, period };
+}
+
+/** Compact peak-time range, e.g. (9, 10) -> "9–10am", (11, 13) -> "11am–1pm". */
+function formatHourRange(start24: number, end24: number): string {
+  const start = formatHour12(start24);
+  const end = formatHour12(end24);
+  if (start.period === end.period) {
+    return `${start.hour}–${end.hour}${end.period}`;
+  }
+  return `${start.hour}${start.period}–${end.hour}${end.period}`;
+}
+
+/** Pick "a"/"an" for a leading number read aloud (e.g. 8, 11, 18, 80–89 take "an"). */
+function indefiniteArticle(n: number): string {
+  const s = String(n);
+  if (s.startsWith("8")) return "an";
+  if (s === "11" || s === "18") return "an";
+  return "a";
+}
+
 export function generateInsights(
   tracks: Track[],
   modules: Module[],
@@ -678,7 +704,7 @@ export function generateInsights(
     insights.push({
       id: "time-distribution",
       type: "info",
-      message: `You spent ${distribution.sort((a, b) => b.percentage - a.percentage)[0].percentage}% of your time on ${distribution[0].name}.`,
+      message: `You spent ${distribution.sort((a, b) => b.percentage - a.percentage)[0].percentage}% of your time on ${distribution[0].name} this week.`,
       priority: 1,
     });
   }
@@ -714,7 +740,7 @@ export function generateInsights(
     insights.push({
       id: "peak-hours",
       type: "tip",
-      message: `Your productivity peaks on ${days[maxDay]}s between ${maxHour}:00 and ${endHour}:00.`,
+      message: `Your productivity peaks ${days[maxDay]}s, ${formatHourRange(maxHour, endHour)}.`,
       priority: 3,
     });
   }
@@ -724,7 +750,7 @@ export function generateInsights(
     insights.push({
       id: "pace-comparison",
       type: "success",
-      message: `You're progressing faster in ${efficiency[0].name} than in ${efficiency[efficiency.length - 1].name}.`,
+      message: `Progressing faster in ${efficiency[0].name} than ${efficiency[efficiency.length - 1].name}.`,
       priority: 4,
     });
   }
@@ -774,7 +800,7 @@ export function generateInsights(
     insights.push({
       id: "streak-celebration",
       type: "success",
-      message: `Amazing! You're on a ${streak}-day learning streak. Keep the momentum going!`,
+      message: `On ${indefiniteArticle(streak)} ${streak}-day learning streak. Keep it going.`,
       priority: 6,
     });
   }

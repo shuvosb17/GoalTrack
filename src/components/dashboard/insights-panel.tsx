@@ -6,57 +6,117 @@ import {
   IconAlertTriangle,
   IconTrendingUp,
   IconInfoCircle,
+  IconChartPie,
+  IconClock,
+  IconFlame,
 } from "@tabler/icons-react";
-import { cn } from "@/lib/utils";
 import { renderInsightMessage } from "@/lib/insight-format";
 import type { Insight } from "@/lib/types";
 import type { TablerIcon } from "@tabler/icons-react";
 
-const iconMap: Record<Insight["type"], TablerIcon> = {
+/** Exact icon match for the five primary insight categories; others fall back by type. */
+const iconById: Record<string, TablerIcon> = {
+  "time-distribution": IconChartPie,
+  "peak-hours": IconClock,
+  "pace-comparison": IconTrendingUp,
+  "streak-celebration": IconFlame,
+  "yearly-behind": IconAlertTriangle,
+};
+
+const iconByType: Record<Insight["type"], TablerIcon> = {
   info: IconInfoCircle,
   warning: IconAlertTriangle,
   success: IconTrendingUp,
   tip: IconBulb,
 };
 
-const styleMap: Record<Insight["type"], { border: string; bg: string; text: string; icon: string }> = {
-  info: { border: "#38bdf8", bg: "rgba(56,189,248,0.07)", text: "#7dd3fc", icon: "text-sky-400" },
-  tip: { border: "#a78bfa", bg: "rgba(167,139,250,0.07)", text: "#c4b5fd", icon: "text-violet-400" },
-  success: { border: "#34d399", bg: "rgba(52,211,153,0.07)", text: "#86efac", icon: "text-emerald-400" },
-  warning: { border: "#fb923c", bg: "rgba(251,146,60,0.07)", text: "#fdba74", icon: "text-amber-400" },
+/** Badge background + icon color, replacing the old left-border color coding. */
+const badgeByType: Record<Insight["type"], { bg: string; icon: string }> = {
+  info: { bg: "#1c2a3d", icon: "#6fa8dc" },
+  tip: { bg: "#241f3d", icon: "#a48ee0" },
+  success: { bg: "#15302a", icon: "#4fb892" },
+  warning: { bg: "#3a2c16", icon: "#e0a23a" },
 };
+
+const NEUTRAL_ROW = { background: "#15151c", border: "0.5px solid #232330" };
+const WARNING_ROW = { background: "#1d180f", border: "0.5px solid #3a2c16" };
+
+/** Split a warning message into a primary line and a supporting detail line. */
+function splitWarning(message: string): { primary: string; detail: string | null } {
+  const stripped = message.replace(/^You(?:'re| are)\s+/i, "");
+  const idx = stripped.indexOf(". ");
+  if (idx === -1) return { primary: stripped, detail: null };
+  return {
+    primary: stripped.slice(0, idx + 1),
+    detail: stripped.slice(idx + 2).trim(),
+  };
+}
+
+function InsightRow({ insight, index }: { insight: Insight; index: number }) {
+  const Icon = iconById[insight.id] ?? iconByType[insight.type];
+  const badge = badgeByType[insight.type];
+  const isWarning = insight.type === "warning";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.06 }}
+      className="flex items-start gap-3 rounded-[10px]"
+      style={{ ...(isWarning ? WARNING_ROW : NEUTRAL_ROW), padding: "13px 14px" }}
+    >
+      <span
+        className="flex shrink-0 items-center justify-center"
+        style={{ width: 26, height: 26, borderRadius: 7, background: badge.bg, marginTop: 1 }}
+      >
+        <Icon size={14} stroke={1.5} style={{ color: badge.icon }} />
+      </span>
+
+      {isWarning ? (
+        (() => {
+          const { primary, detail } = splitWarning(insight.message);
+          return (
+            <div className="min-w-0">
+              <p style={{ fontSize: "13.5px", lineHeight: 1.5, color: "#c7c5d6", marginBottom: detail ? 6 : 0 }}>
+                {renderInsightMessage(primary)}
+              </p>
+              {detail && (
+                <p style={{ fontSize: "12px", lineHeight: 1.4, color: "#8b7a52", margin: 0 }}>
+                  {detail}
+                </p>
+              )}
+            </div>
+          );
+        })()
+      ) : (
+        <p className="min-w-0" style={{ fontSize: "13.5px", lineHeight: 1.5, color: "#c7c5d6", margin: 0 }}>
+          {renderInsightMessage(insight.message)}
+        </p>
+      )}
+    </motion.div>
+  );
+}
 
 export function InsightsPanel({ insights }: { insights: Insight[] }) {
   return (
-    <div className="space-y-3">
-      <h3 className="section-heading flex items-center gap-2 border-0 pb-0 text-sm text-muted-foreground">
-        <IconBulb className="h-4 w-4 opacity-70" stroke={1.5} /> Smart Insights
-      </h3>
+    <div style={{ background: "#0d0d11", borderRadius: 16, padding: 24 }}>
+      <div className="flex items-center" style={{ gap: 8, marginBottom: 18 }}>
+        <IconBulb size={16} stroke={1.5} style={{ color: "#8b88a3" }} />
+        <span style={{ fontSize: 13, fontWeight: 500, color: "#a9a7bd", letterSpacing: "0.02em" }}>
+          Smart insights
+        </span>
+      </div>
+
       {insights.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Start learning to unlock personalized insights.</p>
+        <p style={{ fontSize: "13.5px", lineHeight: 1.5, color: "#8b88a3", margin: 0 }}>
+          Start learning to unlock personalized insights.
+        </p>
       ) : (
-        insights.slice(0, 5).map((insight, i) => {
-          const Icon = iconMap[insight.type];
-          const style = styleMap[insight.type];
-          return (
-            <motion.div
-              key={insight.id}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className="flex items-start gap-3 rounded-lg border-[0.5px] border-white/[0.06] p-3 text-sm"
-              style={{
-                borderLeftWidth: 2,
-                borderLeftColor: style.border,
-                background: style.bg,
-                color: style.text,
-              }}
-            >
-              <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", style.icon)} stroke={1.5} />
-              <p className="leading-relaxed">{renderInsightMessage(insight.message)}</p>
-            </motion.div>
-          );
-        })
+        <div className="flex flex-col" style={{ gap: 8 }}>
+          {insights.slice(0, 5).map((insight, i) => (
+            <InsightRow key={insight.id} insight={insight} index={i} />
+          ))}
+        </div>
       )}
     </div>
   );
