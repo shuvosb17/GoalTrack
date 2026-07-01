@@ -164,6 +164,12 @@ export function pacePercentColor(percent: number): string {
   return "#f87171";
 }
 
+export function paceBadgeStyles(percent: number): { color: string; background: string } {
+  if (percent >= 90) return { color: "#34d399", background: "rgba(52, 211, 153, 0.14)" };
+  if (percent >= 70) return { color: "#fbbf24", background: "rgba(251, 191, 36, 0.14)" };
+  return { color: "#f87171", background: "rgba(248, 113, 113, 0.14)" };
+}
+
 export function formatHours(n: number): string {
   return n.toLocaleString("en-US");
 }

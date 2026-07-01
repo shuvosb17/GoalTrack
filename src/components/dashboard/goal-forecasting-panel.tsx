@@ -6,7 +6,7 @@ import type { TierGoalProgress } from "@/lib/types/metrics";
 import type { PaceCheckSummary, TrajectoryPoint } from "@/lib/goal-forecast-ui";
 import {
   TIER_FORECAST_COLORS,
-  pacePercentColor,
+  paceBadgeStyles,
   formatHours,
   getTrajectoryYMax,
 } from "@/lib/goal-forecast-ui";
@@ -23,12 +23,15 @@ interface GoalForecastingPanelProps {
 }
 
 function PaceSignal({ percent }: { percent: number }) {
-  const color = pacePercentColor(percent);
+  const { color, background } = paceBadgeStyles(percent);
   const Icon =
     percent >= 90 ? IconAntennaBars5 : percent >= 70 ? IconAntennaBars4 : IconAntennaBars2;
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide" style={{ color }}>
-      <Icon size={12} stroke={2} />
+    <span
+      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide"
+      style={{ color, backgroundColor: background }}
+    >
+      <Icon size={13} stroke={2.5} />
       {percent}% pace
     </span>
   );
@@ -94,8 +97,8 @@ function TierProgressRow({ tier }: { tier: TierGoalProgress }) {
   const fillPercent = tier.hours > 0 ? Math.min(100, (tier.loggedHours / tier.hours) * 100) : 0;
 
   return (
-    <div className="flex items-center gap-4">
-      <div className="flex w-28 shrink-0 items-center gap-2.5">
+    <div className="grid grid-cols-[minmax(7rem,8.5rem)_1fr_minmax(7.5rem,8.5rem)] items-center gap-3 sm:gap-4">
+      <div className="flex min-w-0 items-center gap-2.5">
         <div
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
           style={{ backgroundColor: `${colors.icon}22` }}
@@ -103,12 +106,12 @@ function TierProgressRow({ tier }: { tier: TierGoalProgress }) {
           <div className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: colors.icon }} />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-medium text-foreground">{tier.label}</p>
+          <p className="truncate text-sm font-medium text-foreground">{tier.label}</p>
           <p className="text-[11px] text-muted-foreground">{formatHours(tier.hours)}h</p>
         </div>
       </div>
 
-      <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+      <div className="relative h-2 min-w-0 overflow-hidden rounded-full bg-white/[0.06]">
         <div
           className="absolute inset-y-0 left-0 rounded-full"
           style={{
@@ -119,8 +122,8 @@ function TierProgressRow({ tier }: { tier: TierGoalProgress }) {
         />
       </div>
 
-      <div className="w-28 shrink-0 text-right">
-        <p className="font-mono text-sm tabular-nums">
+      <div className="flex flex-col items-end gap-1.5">
+        <p className="whitespace-nowrap font-mono text-sm leading-none tabular-nums">
           <span className="font-semibold text-foreground">{formatHours(tier.loggedHours)}</span>
           <span className="text-muted-foreground"> / {formatHours(tier.hours)}h</span>
         </p>
@@ -131,8 +134,8 @@ function TierProgressRow({ tier }: { tier: TierGoalProgress }) {
 }
 
 const W = 800;
-const H = 280;
-const PAD = { top: 28, right: 88, bottom: 48, left: 44 };
+const H = 300;
+const PAD = { top: 32, right: 132, bottom: 52, left: 44 };
 const PLOT_W = W - PAD.left - PAD.right;
 const PLOT_H = H - PAD.top - PAD.bottom;
 
@@ -191,22 +194,19 @@ function TrajectoryChart({
         <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
           Projected Trajectory
         </p>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-muted-foreground">
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block h-px w-4 bg-white" /> Actual
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block h-px w-4 border-t border-dotted border-zinc-400" /> Current pace
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block h-px w-4 border-t border-dashed border-emerald-400" /> Req. Min
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block h-px w-4 border-t border-dashed border-violet-400" /> Req. Target
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block h-px w-4 border-t border-dashed border-blue-400" /> Req. Stretch
-          </span>
+        <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1.5 text-[10px] text-muted-foreground sm:gap-x-4">
+          {[
+            { swatch: "bg-white", label: "Actual", dashed: false },
+            { swatch: "border-t border-dotted border-zinc-400", label: "Current pace", dashed: true },
+            { swatch: "border-t border-dashed border-emerald-400", label: "Req. Min", dashed: true },
+            { swatch: "border-t border-dashed border-violet-400", label: "Req. Target", dashed: true },
+            { swatch: "border-t border-dashed border-blue-400", label: "Req. Stretch", dashed: true },
+          ].map(({ swatch, label, dashed }) => (
+            <span key={label} className="inline-flex items-center gap-1.5 whitespace-nowrap">
+              <span className={`inline-block h-px w-4 ${dashed ? swatch : `bg-white`}`} />
+              {label}
+            </span>
+          ))}
         </div>
       </div>
 
@@ -308,32 +308,50 @@ function TrajectoryChart({
           </text>
         ))}
 
-        {lastPoint?.currentPace !== undefined && (
-          <text x={endX + 6} y={yAt(lastPoint.currentPace) + 3} fill="#a1a1aa" fontSize={9}>
-            {formatHours(lastPoint.currentPace)}h at current pace
-          </text>
-        )}
-
         {lastPoint && (
           <>
-            <circle cx={endX} cy={yAt(lastPoint.reqMinimum)} r={3} fill="#10b981" />
-            <text x={endX + 6} y={yAt(lastPoint.reqMinimum) + 3} fill="#10b981" fontSize={9}>
-              {formatHours(minimumHours)}h
-            </text>
-            <circle cx={endX} cy={yAt(lastPoint.reqTarget)} r={3} fill="#8b5cf6" />
-            <text x={endX + 6} y={yAt(lastPoint.reqTarget) + 3} fill="#8b5cf6" fontSize={9}>
-              {formatHours(targetHours)}h
-            </text>
-            <circle cx={endX} cy={yAt(lastPoint.reqStretch)} r={3} fill="#3b82f6" />
-            <text x={endX + 6} y={yAt(lastPoint.reqStretch) + 3} fill="#3b82f6" fontSize={9}>
-              {formatHours(stretchHours)}h
-            </text>
+            {(
+              [
+                lastPoint.currentPace !== undefined
+                  ? {
+                      y: yAt(lastPoint.currentPace),
+                      fill: "#a1a1aa",
+                      label: `${formatHours(lastPoint.currentPace)}h at current pace`,
+                    }
+                  : null,
+                {
+                  y: yAt(lastPoint.reqMinimum),
+                  fill: "#10b981",
+                  label: `${formatHours(minimumHours)}h`,
+                  dot: true,
+                },
+                {
+                  y: yAt(lastPoint.reqTarget),
+                  fill: "#8b5cf6",
+                  label: `${formatHours(targetHours)}h`,
+                  dot: true,
+                },
+                {
+                  y: yAt(lastPoint.reqStretch),
+                  fill: "#3b82f6",
+                  label: `${formatHours(stretchHours)}h`,
+                  dot: true,
+                },
+              ].filter(Boolean) as { y: number; fill: string; label: string; dot?: boolean }[]
+            ).map(({ y, fill, label, dot }) => (
+              <g key={label}>
+                {dot && <circle cx={endX} cy={y} r={3} fill={fill} />}
+                <text x={endX + 8} y={y + 4} fill={fill} fontSize={10}>
+                  {label}
+                </text>
+              </g>
+            ))}
           </>
         )}
 
         {todayX !== null && (
-          <text x={todayX} y={H - 6} textAnchor="middle" fill="#a1a1aa" fontSize={9}>
-            ● Today — {todayLabel}
+          <text x={todayX} y={H - 8} textAnchor="middle" fill="#a1a1aa" fontSize={9}>
+            Today — {todayLabel}
           </text>
         )}
       </svg>
