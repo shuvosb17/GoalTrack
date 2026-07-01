@@ -341,6 +341,34 @@ export async function markTopicReviewed(id: string, confidence: 1 | 2 | 3 | 4 | 
   await setTopicCompletionConfidence(id, confidence, { isReview: true });
 }
 
+/** Push the next review date forward using the current confidence rating (skip without re-rating). */
+export async function snoozeTopicReview(id: string) {
+  const topic = await db.topics.get(id);
+  if (!topic?.completionMeta) return;
+  const confidence = topic.completionMeta.confidenceRating;
+  await db.topics.update(id, {
+    completionMeta: {
+      ...topic.completionMeta,
+      nextReviewDue: computeNextReviewDate(confidence),
+    },
+    updatedAt: nowISO(),
+  });
+}
+
+/** Push the next review date forward using the current confidence rating (skip without re-rating). */
+export async function snoozeSubtopicReview(id: string) {
+  const sub = await db.subtopics.get(id);
+  if (!sub?.completionMeta) return;
+  const confidence = sub.completionMeta.confidenceRating;
+  await db.subtopics.update(id, {
+    completionMeta: {
+      ...sub.completionMeta,
+      nextReviewDue: computeNextReviewDate(confidence),
+    },
+    updatedAt: nowISO(),
+  });
+}
+
 /** Logs a solved LeetCode problem: bumps the aggregate counter and appends a dated entry. */
 export async function addLeetCodeProblem(difficulty: "easy" | "medium" | "hard") {
   const settings = await db.settings.get("default");

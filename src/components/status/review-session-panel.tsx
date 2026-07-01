@@ -20,6 +20,8 @@ import {
   buildReviewDueSnapshot,
   getReviewItemHierarchyLabel,
   isRateableReviewItem,
+  snoozeReviewCatalogItem,
+  type ReviewCatalogItem,
 } from "@/lib/revision-catalog";
 import { ConfidenceDots, ConfidenceLegend } from "@/components/status/confidence-dots";
 import { RevisionQuizDialog } from "@/components/status/revision-quiz-dialog";
@@ -94,6 +96,13 @@ export function ReviewSessionPanel({
     }
     startSession(itemId);
     setQuizOpen(true);
+  };
+
+  const handleRemoveFromQueue = async (item: ReviewCatalogItem) => {
+    if (dueIds.has(item.id)) {
+      await snoozeReviewCatalogItem(item);
+    }
+    removeFromQueue(item.id);
   };
 
   const completedByTrack = useMemo(() => countCompletedByTrack(catalog), [catalog]);
@@ -397,9 +406,10 @@ export function ReviewSessionPanel({
                           {!isActive && (
                             <button
                               type="button"
-                              onClick={() => removeFromQueue(item.id)}
+                              onClick={() => void handleRemoveFromQueue(item)}
                               className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground"
                               aria-label={`Remove ${item.name}`}
+                              title="Remove from queue and snooze review"
                             >
                               <X className="h-3.5 w-3.5" />
                             </button>

@@ -3,6 +3,7 @@ import { isTopicComplete } from "./in-progress";
 import { getModuleProgress } from "./analytics";
 import { getSubtopicConfidence, getTopicConfidence } from "./confidence-prompt";
 import { isSubtopicDone } from "./utils";
+import { snoozeSubtopicReview, snoozeTopicReview } from "./crud";
 import {
   getSubtopicsDueForReview,
   getTopicsDueForReview,
@@ -198,4 +199,13 @@ export function isRateableReviewItem(item: ReviewCatalogItem): boolean {
     (item.kind === "topic" && !!item.topicId) ||
     (item.kind === "subtopic" && !!item.subtopicId)
   );
+}
+
+/** Skip a scheduled review — reschedules using the existing confidence rating. */
+export async function snoozeReviewCatalogItem(item: ReviewCatalogItem) {
+  if (item.kind === "topic" && item.topicId) {
+    await snoozeTopicReview(item.topicId);
+  } else if (item.kind === "subtopic" && item.subtopicId) {
+    await snoozeSubtopicReview(item.subtopicId);
+  }
 }

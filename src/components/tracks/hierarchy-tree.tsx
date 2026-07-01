@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronRight, ChevronDown, Plus, GripVertical,
-  Archive, ArchiveRestore, Copy, Trash2, Pencil, BookmarkCheck,
+  Archive, ArchiveRestore, Copy, Trash2, Pencil, BookmarkCheck, X,
 } from "lucide-react";
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent,
@@ -32,9 +32,10 @@ import {
   updateTopicDifficulty, updateSubtopicDifficulty,
   renameModule, renameTopic, deleteModule, deleteTopic,
   archiveModule, unarchiveModule, archiveTopic, unarchiveTopic,
-  archiveSubtopic, deleteSubtopic, duplicateSubtopic, reorderItems,
+  archiveSubtopic, deleteSubtopic, duplicateSubtopic, reorderItems, snoozeTopicReview,
 } from "@/lib/crud";
 import { isTopicDueForReview, getReviewDueLabel } from "@/lib/metrics";
+import { useReviewStore } from "@/stores/review-store";
 import { TopicConfidenceDialog, type TopicConfidenceMode } from "@/components/tracks/topic-confidence-dialog";
 import { SetDeadlineDialog } from "@/components/tracks/set-deadline-dialog";
 import { lightenAccent } from "@/lib/deadline-picker";
@@ -73,6 +74,7 @@ function SortableItem({ id, children }: { id: string; children: React.ReactNode 
 
 export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrackId }: HierarchyTreeProps) {
   const sessions = useSessions();
+  const removeFromQueue = useReviewStore((s) => s.removeFromQueue);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [dialog, setDialog] = useState<{ type: string; parentId?: string; trackId?: string; moduleId?: string } | null>(null);
   const [newName, setNewName] = useState("");
@@ -138,6 +140,11 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
     if (deleteDialog.type === "module") await deleteModule(deleteDialog.id);
     if (deleteDialog.type === "topic") await deleteTopic(deleteDialog.id);
     setDeleteDialog(null);
+  };
+
+  const handleDismissReview = async (topicId: string) => {
+    await snoozeTopicReview(topicId);
+    removeFromQueue(`topic:${topicId}`);
   };
 
   const handleDragEnd = async (event: DragEndEvent, items: { id: string; order: number }[], table: Parameters<typeof reorderItems>[0]) => {
@@ -300,17 +307,31 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                   </SelectContent>
                                                 </Select>
                                                 {reviewDue && (
-                                                  <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    className="h-6 gap-1 border-violet-500/30 px-2 text-[10px] text-violet-300"
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      setConfidenceDialog({ id: topic.id, name: topic.name, mode: "review" });
-                                                    }}
-                                                  >
-                                                    <BookmarkCheck className="h-3 w-3" /> Review
-                                                  </Button>
+                                                  <>
+                                                    <Button
+                                                      size="sm"
+                                                      variant="outline"
+                                                      className="h-6 gap-1 border-violet-500/30 px-2 text-[10px] text-violet-300"
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setConfidenceDialog({ id: topic.id, name: topic.name, mode: "review" });
+                                                      }}
+                                                    >
+                                                      <BookmarkCheck className="h-3 w-3" /> Review
+                                                    </Button>
+                                                    <Button
+                                                      size="icon"
+                                                      variant="ghost"
+                                                      className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                                                      title="Snooze review — reschedule using current confidence"
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        void handleDismissReview(topic.id);
+                                                      }}
+                                                    >
+                                                      <X className="h-3 w-3" />
+                                                    </Button>
+                                                  </>
                                                 )}
                                                 <TimerControls
                                                   path={{ trackId: track.id, moduleId: mod.id, topicId: topic.id }}
