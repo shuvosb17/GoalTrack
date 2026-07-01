@@ -19,9 +19,8 @@ import { TrackCard } from "@/components/dashboard/track-card";
 import { InsightsPanel } from "@/components/dashboard/insights-panel";
 import { MomentumBreakdownPanel } from "@/components/dashboard/momentum-breakdown";
 import { NextActionCard } from "@/components/dashboard/next-action-card";
-import { TieredGoalPanel } from "@/components/dashboard/tiered-goal-panel";
+import { GoalForecastingPanel } from "@/components/dashboard/goal-forecasting-panel";
 import { GrowthRadarChart } from "@/components/charts/radar-chart";
-import { ForecastChart } from "@/components/charts/forecast-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   useTracks, useAllSubtopics, useAllModules, useAllTopics, useSessions, useSettings, useSkipLogs,
@@ -30,13 +29,14 @@ import { calculateStreaks, generateHeatmapData, todayISO } from "@/lib/utils";
 import {
   getTotalHours, getTodayHours, getTrackProgress, getTrackRemainingCount, getGoalForecast,
   generateInsights, getRadarData, countCompletedItems,
-  getDaysRemainingInYear, buildForecastChartData, DEFAULT_YEAR_START, DEFAULT_YEAR_END,
+  getDaysRemainingInYear, DEFAULT_YEAR_START, DEFAULT_YEAR_END,
 } from "@/lib/analytics";
 import {
   getDailyPaceTarget, getWeeklyConsistency, getMomentumBreakdown,
   getTrackBalance, resolveNextUpItem, getNextUpHref,
 } from "@/lib/metrics";
-import { getTieredGoalProgress, getGoalReframeMessage, resolveTieredGoal } from "@/lib/goals";
+import { getTieredGoalProgress, resolveTieredGoal } from "@/lib/goals";
+import { getPaceCheckSummary, buildTrajectoryData } from "@/lib/goal-forecast-ui";
 
 function paceColor(needed: number, logged: number) {
   if (logged >= needed) return "#86efac";
@@ -76,9 +76,29 @@ export default function DashboardPage() {
     () => getTieredGoalProgress(sessions, settings, yearStart, yearEnd, forecast.projectedHours),
     [sessions, settings, yearStart, yearEnd, forecast.projectedHours]
   );
-  const reframeMessage = useMemo(
-    () => getGoalReframeMessage(sessions, settings, yearStart, yearEnd, forecast.projectedHours),
-    [sessions, settings, yearStart, yearEnd, forecast.projectedHours]
+  const paceCheck = useMemo(
+    () =>
+      getPaceCheckSummary(
+        sessions,
+        settings,
+        yearStart,
+        yearEnd,
+        forecast.projectedHours,
+        forecast.dailyAverage
+      ),
+    [sessions, settings, yearStart, yearEnd, forecast.projectedHours, forecast.dailyAverage]
+  );
+  const trajectoryData = useMemo(
+    () =>
+      buildTrajectoryData(
+        sessions,
+        settings,
+        yearStart,
+        yearEnd,
+        forecast.projectedHours,
+        forecast.dailyAverage
+      ),
+    [sessions, settings, yearStart, yearEnd, forecast.projectedHours, forecast.dailyAverage]
   );
   const insights = useMemo(
     () => generateInsights(tracks, modules, topics, subtopics, sessions, streaks.current, tiered.stretch, yearStart, yearEnd, settings, skipLogs),
@@ -88,11 +108,6 @@ export default function DashboardPage() {
   const completed = useMemo(() => countCompletedItems(subtopics, modules, topics), [subtopics, modules, topics]);
   const daysRemaining = useMemo(() => getDaysRemainingInYear(yearEnd), [yearEnd]);
   const trackHealth = useMemo(() => getTrackBalance(tracks, sessions, settings), [tracks, sessions, settings]);
-
-  const forecastChartData = useMemo(
-    () => buildForecastChartData(sessions, yearStart, yearEnd),
-    [sessions, yearStart, yearEnd]
-  );
 
   const trackStats = useMemo(() => {
     const healthMap = new Map(trackHealth.map((h) => [h.trackId, h]));
@@ -258,21 +273,14 @@ export default function DashboardPage() {
 
       {/* Row 6 — Goal Forecasting */}
       <Card>
-        <CardHeader className="border-b border-white/[0.06] pb-2">
-          <CardTitle>
-            Goal Forecasting{" "}
-            <span className="text-xs font-normal text-muted-foreground/80">Jun – Dec 2026</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6 pt-6">
-          <TieredGoalPanel tiers={tierProgress} reframeMessage={reframeMessage} />
-          <ForecastChart
-            data={forecastChartData}
-            tierGoals={[
-              { value: tiered.minimum, label: "Min", color: "#34d399" },
-              { value: tiered.target, label: "Target", color: "#a78bfa" },
-              { value: tiered.stretch, label: "Stretch", color: "#38bdf8" },
-            ]}
+        <CardContent className="pt-6">
+          <GoalForecastingPanel
+            paceCheck={paceCheck}
+            tiers={tierProgress}
+            trajectory={trajectoryData}
+            projectedHours={forecast.projectedHours}
+            yearStart={yearStart}
+            yearEnd={yearEnd}
           />
         </CardContent>
       </Card>

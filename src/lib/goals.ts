@@ -61,6 +61,7 @@ export function getTieredGoalProgress(
       tier,
       label,
       hours,
+      loggedHours: Math.round(logged),
       projectedHours: Math.round(projectedHours),
       percentOnTrack,
       onTrack: projectedHours >= hours || logged >= expectedByNow * 0.9,

@@ -160,6 +160,7 @@ export interface TierGoalProgress {
   tier: "minimum" | "target" | "stretch";
   label: string;
   hours: number;
+  loggedHours: number;
   projectedHours: number;
   percentOnTrack: number;
   onTrack: boolean;
