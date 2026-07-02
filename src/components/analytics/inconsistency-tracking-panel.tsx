@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { format, parseISO } from "date-fns";
 import { SKIP_REASON_LABELS } from "@/lib/analytics";
-import { sortSkipLogsNewestFirst } from "@/lib/skip-logs";
+import { getDistinctSkipLogsByDate } from "@/lib/skip-logs";
 import type { SkipLog } from "@/lib/types/metrics";
 
 interface InconsistencyTrackingPanelProps {
@@ -11,7 +11,7 @@ interface InconsistencyTrackingPanelProps {
 }
 
 export function InconsistencyTrackingPanel({ skipLogs }: InconsistencyTrackingPanelProps) {
-  const history = useMemo(() => sortSkipLogsNewestFirst(skipLogs), [skipLogs]);
+  const history = useMemo(() => getDistinctSkipLogsByDate(skipLogs), [skipLogs]);
 
   if (history.length === 0) {
     return (
