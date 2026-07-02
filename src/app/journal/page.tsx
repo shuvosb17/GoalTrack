@@ -7,8 +7,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
   Plus, Lightbulb, AlertCircle, Star, ArrowRight, Clock, Trash2, Pencil, BookMarked,
+  CalendarDays, Link2, Sparkles,
 } from "lucide-react";
-import { IconNotebook, IconBulb } from "@tabler/icons-react";
+import { IconNotebook } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -100,6 +101,39 @@ export default function JournalPage() {
 
   const grouped = useMemo(() => groupEntriesByMonth(filteredEntries), [filteredEntries]);
 
+  const latestEntry = useMemo(
+    () => [...entries].sort((a, b) => b.date.localeCompare(a.date) || b.updatedAt.localeCompare(a.updatedAt))[0],
+    [entries]
+  );
+
+  const headerStats = [
+    {
+      label: "Total entries",
+      value: stats.total,
+      hint: stats.total === 1 ? "1 reflection saved" : `${stats.total} reflections saved`,
+    },
+    {
+      label: "This week",
+      value: stats.thisWeek,
+      hint: stats.thisWeek === 0 ? "No entries this week" : `${stats.thisWeek} captured this week`,
+    },
+    {
+      label: "Journaling streak",
+      value: `${stats.streak}d`,
+      hint: stats.streak === 0 ? "Write today to begin a streak" : "Consecutive study-day reflections",
+    },
+    {
+      label: "Linked to tracks",
+      value: stats.withTrack,
+      hint: stats.total === 0 ? "No linked entries yet" : `${Math.round((stats.withTrack / Math.max(1, stats.total)) * 100)}% of entries mapped`,
+    },
+  ] as const;
+
+  const reflectionSummary =
+    unjournaledDays.length === 0
+      ? "All recent study days already have reflections."
+      : `${unjournaledDays.length} recent study day${unjournaledDays.length === 1 ? "" : "s"} still need reflection.`;
+
   const openNew = (date?: string) => {
     setEditingId(null);
     setForm({ ...emptyForm(), date: date ?? todayISO() });
@@ -153,54 +187,101 @@ export default function JournalPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-medium tracking-tight sm:text-3xl">
-            <IconNotebook className="h-7 w-7 text-primary" stroke={1.5} /> Journal
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Capture what you learned and link reflections to your tracks.
-          </p>
-        </div>
-        <Button onClick={() => openNew()} className="gap-2">
-          <Plus className="h-4 w-4" /> New Entry
-        </Button>
-      </div>
+      <section className="space-y-4">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+          <div className="rounded-2xl border-[0.5px] border-white/[0.08] bg-[#121216] p-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h1 className="flex items-center gap-2 text-2xl font-medium tracking-tight sm:text-3xl">
+                  <IconNotebook className="h-7 w-7 text-primary" stroke={1.5} /> Journal
+                </h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Capture what you learned, tie it to your track work, and keep reflection consistent.
+                </p>
+              </div>
+              <Button onClick={() => openNew()} className="h-11 gap-2 px-5">
+                <Plus className="h-4 w-4" /> New Entry
+              </Button>
+            </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {[
-          { label: "Total entries", value: stats.total },
-          { label: "This week", value: stats.thisWeek },
-          { label: "Journaling streak", value: `${stats.streak}d` },
-          { label: "Linked to tracks", value: stats.withTrack },
-        ].map((item) => (
-          <div key={item.label} className="rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.02] p-3 sm:p-4 text-center">
-            <p className="metric-value text-2xl tabular-nums sm:text-3xl">{item.value}</p>
-            <p className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">{item.label}</p>
+            <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+              {headerStats.map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.02] px-4 py-3"
+                >
+                  <p className="metric-value text-2xl tabular-nums sm:text-3xl">{item.value}</p>
+                  <p className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">{item.label}</p>
+                  <p className="mt-2 text-[11px] text-muted-foreground/80">{item.hint}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        ))}
-      </div>
 
-      {unjournaledDays.length > 0 && (
-        <div className="rounded-xl border-[0.5px] border-amber-500/25 bg-amber-500/[0.04] p-4">
-          <p className="mb-3 flex items-center gap-2 text-xs font-medium text-amber-400/90">
-            <IconBulb className="h-3.5 w-3.5" stroke={1.5} />
-            Reflect on a study day
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {unjournaledDays.map((date) => (
-              <button
-                key={date}
-                type="button"
-                onClick={() => openNew(date)}
-                className="rounded-lg border-[0.5px] border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-xs hover:bg-white/[0.06] transition-colors"
-              >
-                {format(parseISO(date), "EEE, MMM d")}
-              </button>
-            ))}
+          <div className="rounded-2xl border-[0.5px] border-white/[0.08] bg-[#121216] p-5">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-500/15 bg-amber-500/[0.08]">
+                <Sparkles className="h-4.5 w-4.5 text-amber-400" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground">Reflection queue</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  {reflectionSummary}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-3">
+              <p className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-amber-300/90">
+                <CalendarDays className="h-3.5 w-3.5" />
+                Reflect on a study day
+              </p>
+              {unjournaledDays.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {unjournaledDays.map((date) => (
+                    <button
+                      key={date}
+                      type="button"
+                      onClick={() => openNew(date)}
+                      className="rounded-full border-[0.5px] border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs transition-colors hover:bg-white/[0.08]"
+                    >
+                      {format(parseISO(date), "EEE, MMM d")}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Nothing pending right now.</p>
+              )}
+            </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-3">
+                <p className="mb-1 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  <Link2 className="h-3.5 w-3.5" />
+                  Link coverage
+                </p>
+                <p className="text-sm text-foreground">
+                  {stats.withTrack} of {stats.total} entr{stats.total === 1 ? "y is" : "ies are"} connected to your learning path.
+                </p>
+              </div>
+              <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-3">
+                <p className="mb-1 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" />
+                  Latest entry
+                </p>
+                <p className="truncate text-sm text-foreground">
+                  {latestEntry
+                    ? (latestEntry.title || format(parseISO(latestEntry.date), "EEEE, MMM d"))
+                    : "No entries yet"}
+                </p>
+                {latestEntry && (
+                  <p className="mt-1 text-[11px] text-muted-foreground">{latestEntry.date}</p>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-      )}
+      </section>
 
       <Link
         href="/journal/go-backend"
