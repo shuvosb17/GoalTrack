@@ -594,20 +594,13 @@ export function ResourceLinksPanel({
                           exit={{ opacity: 0, scale: 0.96 }}
                           transition={{ delay: i * 0.03 }}
                           className={cn(
-                            "group relative flex flex-col overflow-hidden rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.02] p-4 transition-all duration-200",
-                            "hover:-translate-y-0.5 hover:border-white/[0.16] hover:bg-white/[0.04] hover:shadow-lg hover:shadow-black/20"
+                            "group relative flex flex-col overflow-hidden rounded-r-xl border-l-[3px] border-white/[0.06] bg-[#15151a] p-4 transition-all duration-200",
+                            "hover:-translate-y-0.5 hover:border-white/[0.16] hover:bg-[#181820]"
                           )}
-                          style={{ borderLeftWidth: 3, borderLeftColor: color }}
+                          style={{ borderLeftColor: color }}
                         >
-                          <div
-                            className="pointer-events-none absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100"
-                            style={{
-                              background: `radial-gradient(ellipse 80% 60% at 50% 0%, ${color}18, transparent 70%)`,
-                            }}
-                          />
-
                           <div className="relative flex items-start gap-3">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border-[0.5px] border-white/[0.08] bg-white/[0.04]">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border-[0.5px] border-white/[0.12] bg-white/[0.04]">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
                                 src={getLinkFavicon(link.url)}
@@ -618,7 +611,7 @@ export function ResourceLinksPanel({
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-start gap-2">
-                                <p className="line-clamp-2 flex-1 text-sm font-medium leading-snug">
+                                <p className="line-clamp-2 flex-1 text-sm font-medium leading-snug text-foreground">
                                   {displayTitle}
                                 </p>
                                 <a
@@ -641,7 +634,7 @@ export function ResourceLinksPanel({
                             <Badge
                               variant="outline"
                               className="border-white/[0.08] text-[9px] font-normal"
-                              style={{ color, borderColor: `${color}44` }}
+                              style={{ color, backgroundColor: "rgba(15,23,42,0.6)", borderColor: `${color}55` }}
                             >
                               {getLevelLabel(depth)}
                             </Badge>
@@ -653,12 +646,20 @@ export function ResourceLinksPanel({
                             </p>
                           </div>
 
-                          <div className="relative mt-3 grid grid-cols-3 gap-1 border-t border-white/[0.06] pt-3">
+                          <div className="relative mt-3 flex items-center justify-between gap-2 border-t border-white/[0.06] pt-3">
+                            <div className="flex flex-col text-[10px] text-muted-foreground">
+                              <span className="font-medium uppercase tracking-wide opacity-80">
+                                Saved link
+                              </span>
+                              <span className="truncate opacity-70">{domain}</span>
+                            </div>
+
+                            <div className="flex gap-1.5">
                             <Button
                               type="button"
                               size="sm"
                               variant="outline"
-                              className="h-8 gap-1 border-white/[0.08] bg-transparent text-xs"
+                              className="h-8 gap-1 border-white/[0.08] bg-transparent text-[11px]"
                               onClick={() => openEdit(link)}
                             >
                               <Pencil className="h-3 w-3" />
@@ -668,7 +669,7 @@ export function ResourceLinksPanel({
                               type="button"
                               size="sm"
                               variant="outline"
-                              className="h-8 gap-1 border-white/[0.08] bg-transparent text-xs"
+                              className="h-8 gap-1 border-white/[0.08] bg-transparent text-[11px]"
                               onClick={() => void handleCopy(link)}
                             >
                               <Copy className="h-3 w-3" />
@@ -678,12 +679,13 @@ export function ResourceLinksPanel({
                               type="button"
                               size="sm"
                               variant="outline"
-                              className="h-8 gap-1 border-white/[0.08] bg-transparent text-xs text-destructive hover:text-destructive"
+                              className="h-8 gap-1 border-white/[0.08] bg-transparent text-[11px] text-destructive hover:text-destructive"
                               onClick={() => void handleDelete(link)}
                             >
                               <Trash2 className="h-3 w-3" />
                               Delete
                             </Button>
+                            </div>
                           </div>
                         </motion.div>
                       );
