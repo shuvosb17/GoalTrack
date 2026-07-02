@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,18 +16,17 @@ import {
   updateGoalMilestone,
   resolveGoalProgress,
   getGoalTopicIds,
+  getGoalModuleIds,
   formatGoalScopeLabel,
+  formatGoalDuration,
+  computeEndDate,
 } from "@/lib/goal-milestones";
 import { v4 as uuid } from "uuid";
+import { differenceInCalendarDays, format } from "date-fns";
 import { getTopicProgress } from "@/lib/analytics";
-import { cn, todayISO } from "@/lib/utils";
+import { cn, parseLocalDate, todayISO } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
-import { Check, RefreshCw, Plus, X } from "lucide-react";
-
-interface GoalHierarchy {
-  trackId: string;
-  moduleId: string;
-}
+import { Check, RefreshCw, Plus, X, CalendarDays, Layers } from "lucide-react";
 
 interface GoalMilestoneDialogProps {
   open: boolean;
@@ -49,10 +48,11 @@ export function GoalMilestoneDialog({
   editing,
 }: GoalMilestoneDialogProps) {
   const [title, setTitle] = useState("");
-  const [hierarchy, setHierarchy] = useState<GoalHierarchy>({ trackId: "", moduleId: "" });
+  const [trackId, setTrackId] = useState("");
+  const [selectedModuleIds, setSelectedModuleIds] = useState<string[]>([]);
   const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
   const [startDate, setStartDate] = useState(todayISO());
-  const [months, setMonths] = useState(3);
+  const [endDate, setEndDate] = useState(computeEndDate(todayISO(), 3));
   const [notes, setNotes] = useState("");
   const [checkpointInput, setCheckpointInput] = useState("");
   const [checkpoints, setCheckpoints] = useState<string[]>([]);
@@ -61,61 +61,93 @@ export function GoalMilestoneDialog({
     if (!open) return;
     if (editing) {
       setTitle(editing.title);
-      setHierarchy({
-        trackId: editing.trackId,
-        moduleId: editing.moduleId ?? "",
-      });
+      setTrackId(editing.trackId);
+      setSelectedModuleIds(getGoalModuleIds(editing));
       setSelectedTopicIds(getGoalTopicIds(editing));
       setStartDate(editing.startDate);
-      setMonths(editing.months);
+      setEndDate(editing.endDate);
       setNotes(editing.notes ?? "");
       setCheckpoints(editing.checkpoints?.map((c) => c.label) ?? []);
       setCheckpointInput("");
     } else {
+      const start = todayISO();
       setTitle("");
-      setHierarchy({ trackId: tracks[0]?.id ?? "", moduleId: "" });
+      setTrackId(tracks[0]?.id ?? "");
+      setSelectedModuleIds([]);
       setSelectedTopicIds([]);
-      setStartDate(todayISO());
-      setMonths(3);
+      setStartDate(start);
+      setEndDate(computeEndDate(start, 3));
       setNotes("");
       setCheckpoints([]);
       setCheckpointInput("");
     }
   }, [open, editing, tracks]);
 
-  const trackModules = modules.filter((m) => m.trackId === hierarchy.trackId && !m.archived);
-  const moduleTopics = topics.filter((t) => t.moduleId === hierarchy.moduleId && !t.archived);
+  const trackModules = useMemo(
+    () => modules.filter((m) => m.trackId === trackId && !m.archived),
+    [modules, trackId]
+  );
+
+  const singleModuleId = selectedModuleIds.length === 1 ? selectedModuleIds[0] : null;
+  const moduleTopics = useMemo(
+    () => (singleModuleId ? topics.filter((t) => t.moduleId === singleModuleId && !t.archived) : []),
+    [topics, singleModuleId]
+  );
 
   const scopeInput = {
-    trackId: hierarchy.trackId,
-    moduleId: hierarchy.moduleId || undefined,
-    topicIds: selectedTopicIds.length > 0 ? selectedTopicIds : undefined,
+    trackId,
+    moduleIds: selectedModuleIds.length > 0 ? selectedModuleIds : undefined,
+    topicIds:
+      singleModuleId && selectedTopicIds.length > 0 ? selectedTopicIds : undefined,
   };
 
-  const liveProgress = hierarchy.trackId
-    ? resolveGoalProgress(scopeInput, topics, subtopics, modules)
-    : 0;
+  const liveProgress = trackId ? resolveGoalProgress(scopeInput, topics, subtopics, modules) : 0;
+  const scopeLabel = trackId ? formatGoalScopeLabel(scopeInput, topics, modules, tracks) : "Track";
 
-  const scopeLabel = hierarchy.trackId
-    ? formatGoalScopeLabel(scopeInput, topics, modules, tracks)
-    : "Track";
+  const dayCount = Math.max(
+    0,
+    differenceInCalendarDays(parseLocalDate(endDate), parseLocalDate(startDate))
+  );
+  const validRange = dayCount >= 1;
+  const activePreset = useMemo(
+    () => GOAL_MONTH_OPTIONS.find((m) => computeEndDate(startDate, m) === endDate) ?? null,
+    [startDate, endDate]
+  );
 
-  const updateHierarchy = (patch: Partial<GoalHierarchy>) => {
-    const next = { ...hierarchy, ...patch };
-    if (patch.trackId !== undefined) {
-      next.moduleId = "";
-      setSelectedTopicIds([]);
-    }
-    if (patch.moduleId !== undefined) {
-      setSelectedTopicIds([]);
-    }
-    setHierarchy(next);
+  const changeTrack = (nextTrackId: string) => {
+    setTrackId(nextTrackId);
+    setSelectedModuleIds([]);
+    setSelectedTopicIds([]);
+  };
+
+  const toggleModule = (moduleId: string) => {
+    setSelectedModuleIds((prev) => {
+      const next = prev.includes(moduleId)
+        ? prev.filter((id) => id !== moduleId)
+        : [...prev, moduleId];
+      return next;
+    });
+    setSelectedTopicIds([]);
   };
 
   const toggleTopic = (topicId: string) => {
     setSelectedTopicIds((prev) =>
       prev.includes(topicId) ? prev.filter((id) => id !== topicId) : [...prev, topicId]
     );
+  };
+
+  const applyPreset = (m: number) => {
+    setEndDate(computeEndDate(startDate, m));
+  };
+
+  const changeStartDate = (value: string) => {
+    if (!value) return;
+    setStartDate(value);
+    if (activePreset) {
+      setEndDate(computeEndDate(value, activePreset));
+    } else if (parseLocalDate(endDate) <= parseLocalDate(value)) {
+      setEndDate(computeEndDate(value, 1));
+    }
   };
 
   const addCheckpoint = () => {
@@ -130,14 +162,15 @@ export function GoalMilestoneDialog({
   };
 
   const handleSave = async () => {
-    if (!title.trim() || !hierarchy.trackId) return;
+    if (!title.trim() || !trackId || !validRange) return;
     const payload = {
       title: title.trim(),
-      trackId: hierarchy.trackId,
-      moduleId: hierarchy.moduleId || undefined,
-      topicIds: selectedTopicIds.length > 0 ? selectedTopicIds : undefined,
+      trackId,
+      moduleIds: selectedModuleIds.length > 0 ? selectedModuleIds : undefined,
+      topicIds: singleModuleId && selectedTopicIds.length > 0 ? selectedTopicIds : undefined,
       startDate,
-      months,
+      months: activePreset ?? Math.max(1, Math.round(dayCount / 30)),
+      endDate,
       notes: notes.trim() || undefined,
     };
 
@@ -157,6 +190,11 @@ export function GoalMilestoneDialog({
     onOpenChange(false);
   };
 
+  const moduleSummary =
+    selectedModuleIds.length === 0
+      ? "Whole track"
+      : `${selectedModuleIds.length} module${selectedModuleIds.length === 1 ? "" : "s"} selected`;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
@@ -175,40 +213,89 @@ export function GoalMilestoneDialog({
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-muted-foreground">Track</label>
-              <Select value={hierarchy.trackId || "none"} onValueChange={(v) => updateHierarchy({ trackId: v === "none" ? "" : v })}>
-                <SelectTrigger className="mt-1 h-11"><SelectValue placeholder="Select track" /></SelectTrigger>
-                <SelectContent>
-                  {tracks.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>{t.icon} {t.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground">Module (optional)</label>
-              <Select
-                value={hierarchy.moduleId || "none"}
-                onValueChange={(v) => updateHierarchy({ moduleId: v === "none" ? "" : v })}
-                disabled={!hierarchy.trackId}
-              >
-                <SelectTrigger className="mt-1 h-11"><SelectValue placeholder="Whole track" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Whole track</SelectItem>
-                  {trackModules.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div>
+            <label className="text-xs text-muted-foreground">Track</label>
+            <Select value={trackId || "none"} onValueChange={(v) => changeTrack(v === "none" ? "" : v)}>
+              <SelectTrigger className="mt-1 h-11"><SelectValue placeholder="Select track" /></SelectTrigger>
+              <SelectContent>
+                {tracks.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>{t.icon} {t.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          {hierarchy.moduleId && moduleTopics.length > 0 && (
+          {trackId && trackModules.length > 0 && (
             <div>
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <label className="text-xs text-muted-foreground">Topics (select one or more)</label>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Layers className="h-3.5 w-3.5" /> Modules (optional)
+                </label>
+                <div className="flex gap-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-[10px]"
+                    onClick={() => {
+                      setSelectedModuleIds(trackModules.map((m) => m.id));
+                      setSelectedTopicIds([]);
+                    }}
+                  >
+                    Select all
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-[10px]"
+                    onClick={() => {
+                      setSelectedModuleIds([]);
+                      setSelectedTopicIds([]);
+                    }}
+                  >
+                    Whole track
+                  </Button>
+                </div>
+              </div>
+              <p className="mb-2 text-[11px] text-muted-foreground">
+                {selectedModuleIds.length === 0
+                  ? "No modules selected — goal covers the entire track."
+                  : moduleSummary}
+              </p>
+              <div className="max-h-52 divide-y divide-border/30 overflow-y-auto rounded-xl border border-border/50">
+                {trackModules.map((mod) => {
+                  const selected = selectedModuleIds.includes(mod.id);
+                  return (
+                    <button
+                      key={mod.id}
+                      type="button"
+                      onClick={() => toggleModule(mod.id)}
+                      className={cn(
+                        "flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-secondary/40",
+                        selected && "bg-primary/10"
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors",
+                          selected ? "border-primary bg-primary text-primary-foreground" : "border-border"
+                        )}
+                      >
+                        {selected && <Check className="h-3 w-3" />}
+                      </div>
+                      <span className="min-w-0 flex-1 truncate text-sm">{mod.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {singleModuleId && moduleTopics.length > 0 && (
+            <div>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <label className="text-xs text-muted-foreground">Topics (optional · single module)</label>
                 <div className="flex gap-1">
                   <Button
                     type="button"
@@ -230,12 +317,12 @@ export function GoalMilestoneDialog({
                   </Button>
                 </div>
               </div>
-              <p className="text-[11px] text-muted-foreground mb-2">
+              <p className="mb-2 text-[11px] text-muted-foreground">
                 {selectedTopicIds.length === 0
                   ? "No topics selected — goal covers the entire module."
                   : `${selectedTopicIds.length} topic${selectedTopicIds.length === 1 ? "" : "s"} selected`}
               </p>
-              <div className="rounded-xl border border-border/50 divide-y divide-border/30 max-h-48 overflow-y-auto">
+              <div className="max-h-48 divide-y divide-border/30 overflow-y-auto rounded-xl border border-border/50">
                 {moduleTopics.map((topic) => {
                   const selected = selectedTopicIds.includes(topic.id);
                   const pct = getTopicProgress(topic, subtopics).percentage;
@@ -257,8 +344,8 @@ export function GoalMilestoneDialog({
                       >
                         {selected && <Check className="h-3 w-3" />}
                       </div>
-                      <span className="text-sm flex-1 min-w-0 truncate">{topic.name}</span>
-                      <Badge variant="secondary" className="text-[10px] font-mono shrink-0">{pct}%</Badge>
+                      <span className="min-w-0 flex-1 truncate text-sm">{topic.name}</span>
+                      <Badge variant="secondary" className="shrink-0 font-mono text-[10px]">{pct}%</Badge>
                     </button>
                   );
                 })}
@@ -266,8 +353,8 @@ export function GoalMilestoneDialog({
             </div>
           )}
 
-          {hierarchy.trackId && (
-            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-2">
+          {trackId && (
+            <div className="space-y-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
               <div className="flex items-center justify-between text-xs">
                 <span className="flex items-center gap-1.5 text-emerald-400">
                   <RefreshCw className="h-3.5 w-3.5" /> Live from Tracks
@@ -283,29 +370,70 @@ export function GoalMilestoneDialog({
 
           <div>
             <label className="text-xs text-muted-foreground">Timeline</label>
-            <div className="flex flex-wrap gap-2 mt-2">
+            <div className="mt-2 flex flex-wrap gap-2">
               {GOAL_MONTH_OPTIONS.map((m) => (
                 <Button
                   key={m}
                   type="button"
                   size="sm"
-                  variant={months === m ? "default" : "outline"}
-                  onClick={() => setMonths(m)}
+                  variant={activePreset === m ? "default" : "outline"}
+                  onClick={() => applyPreset(m)}
                 >
                   {m} {m === 1 ? "month" : "months"}
                 </Button>
               ))}
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors",
+                  activePreset === null
+                    ? "border-primary bg-primary/15 text-foreground"
+                    : "border-border/60 text-muted-foreground"
+                )}
+              >
+                <CalendarDays className="h-3.5 w-3.5" />
+                Custom
+              </span>
             </div>
-          </div>
 
-          <div>
-            <label className="text-xs text-muted-foreground">Start date</label>
-            <Input type="date" className="mt-1 h-11" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label className="text-[11px] text-muted-foreground">Start date</label>
+                <Input
+                  type="date"
+                  className="mt-1 h-11"
+                  value={startDate}
+                  max={endDate}
+                  onChange={(e) => changeStartDate(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-[11px] text-muted-foreground">End date</label>
+                <Input
+                  type="date"
+                  className="mt-1 h-11"
+                  value={endDate}
+                  min={startDate}
+                  onChange={(e) => e.target.value && setEndDate(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <p className={cn("mt-2 text-[11px]", validRange ? "text-muted-foreground" : "text-red-400")}>
+              {validRange ? (
+                <>
+                  Duration: <span className="text-foreground">{formatGoalDuration(startDate, endDate)}</span>{" "}
+                  ({dayCount} day{dayCount === 1 ? "" : "s"}) · finishes{" "}
+                  <span className="text-foreground">{format(parseLocalDate(endDate), "MMM d, yyyy")}</span>
+                </>
+              ) : (
+                "End date must be after the start date."
+              )}
+            </p>
           </div>
 
           <div>
             <label className="text-xs text-muted-foreground">Checkpoints (optional)</label>
-            <p className="text-[11px] text-muted-foreground mb-2">
+            <p className="mb-2 text-[11px] text-muted-foreground">
               Break the goal into small wins you can tick off along the way.
             </p>
             <div className="flex gap-2">
@@ -345,7 +473,7 @@ export function GoalMilestoneDialog({
             />
           </div>
 
-          <Button onClick={handleSave} className="w-full h-11" disabled={!title.trim() || !hierarchy.trackId}>
+          <Button onClick={handleSave} className="h-11 w-full" disabled={!title.trim() || !trackId || !validRange}>
             {editing ? "Save Changes" : "Create Goal"}
           </Button>
         </div>

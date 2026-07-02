@@ -2,7 +2,7 @@
 
 import { Calendar, ChevronRight, Clock, Flag, TrendingDown, TrendingUp } from "lucide-react";
 import type { GoalMilestoneStats } from "@/lib/types";
-import { formatGoalDateRange } from "@/lib/goal-milestones";
+import { formatGoalDateRange, formatGoalDuration } from "@/lib/goal-milestones";
 import {
   formatProjectionLine,
   getCardAccentColor,
@@ -215,7 +215,7 @@ export function GoalMilestoneCard({ stats, onOpen }: GoalMilestoneCardProps) {
               </span>
             </span>
             <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 text-[10px] text-muted-foreground">
-              {goal.months} mo plan
+              {formatGoalDuration(goal.startDate, goal.endDate)} plan
               <ChevronRight className="h-3 w-3" />
             </span>
           </div>
