@@ -47,6 +47,11 @@ export function GoalMilestoneDialog({
   subtopics,
   editing,
 }: GoalMilestoneDialogProps) {
+  const sortedTracks = useMemo(
+    () => [...tracks].filter((t) => !t.archived).sort((a, b) => a.order - b.order || a.name.localeCompare(b.name)),
+    [tracks]
+  );
+
   const [title, setTitle] = useState("");
   const [trackId, setTrackId] = useState("");
   const [selectedModuleIds, setSelectedModuleIds] = useState<string[]>([]);
@@ -72,7 +77,7 @@ export function GoalMilestoneDialog({
     } else {
       const start = todayISO();
       setTitle("");
-      setTrackId(tracks[0]?.id ?? "");
+      setTrackId(sortedTracks[0]?.id ?? "");
       setSelectedModuleIds([]);
       setSelectedTopicIds([]);
       setStartDate(start);
@@ -81,16 +86,24 @@ export function GoalMilestoneDialog({
       setCheckpoints([]);
       setCheckpointInput("");
     }
-  }, [open, editing, tracks]);
+  }, [open, editing, sortedTracks]);
 
   const trackModules = useMemo(
-    () => modules.filter((m) => m.trackId === trackId && !m.archived),
+    () =>
+      modules
+        .filter((m) => m.trackId === trackId && !m.archived)
+        .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name)),
     [modules, trackId]
   );
 
   const singleModuleId = selectedModuleIds.length === 1 ? selectedModuleIds[0] : null;
   const moduleTopics = useMemo(
-    () => (singleModuleId ? topics.filter((t) => t.moduleId === singleModuleId && !t.archived) : []),
+    () =>
+      singleModuleId
+        ? topics
+            .filter((t) => t.moduleId === singleModuleId && !t.archived)
+            .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name))
+        : [],
     [topics, singleModuleId]
   );
 
@@ -218,7 +231,7 @@ export function GoalMilestoneDialog({
             <Select value={trackId || "none"} onValueChange={(v) => changeTrack(v === "none" ? "" : v)}>
               <SelectTrigger className="mt-1 h-11"><SelectValue placeholder="Select track" /></SelectTrigger>
               <SelectContent>
-                {tracks.map((t) => (
+                {sortedTracks.map((t) => (
                   <SelectItem key={t.id} value={t.id}>{t.icon} {t.name}</SelectItem>
                 ))}
               </SelectContent>
