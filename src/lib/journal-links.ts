@@ -116,6 +116,10 @@ export function linkMatchesSearch(link: JournalLink, query: string): boolean {
   return label.includes(q) || link.url.toLowerCase().includes(q);
 }
 
+export function isScopeFilterActive(scope: JournalHierarchy): boolean {
+  return Boolean(scope.trackId || scope.moduleId || scope.topicId || scope.subtopicId);
+}
+
 export function hierarchyFromLink(
   link: Pick<JournalLink, "trackId" | "moduleId" | "topicId" | "subtopicId">
 ): JournalHierarchy {

@@ -8,11 +8,13 @@ import {
   Check,
   Copy,
   ExternalLink,
+  Filter,
   Link2,
   Pencil,
   Search,
   Sparkles,
   Trash2,
+  X,
 } from "lucide-react";
 import { IconLink } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
@@ -42,7 +44,9 @@ import {
   getLinkGroupKey,
   getLinkPathLabel,
   hierarchyFromLink,
+  isScopeFilterActive,
   linkMatchesSearch,
+  linkVisibleForScope,
   normalizeUrl,
   suggestLinkTitle,
   UNCATEGORIZED_GROUP_KEY,
@@ -97,6 +101,8 @@ export function ResourceLinksPanel({
   const [justAdded, setJustAdded] = useState(false);
 
   const [search, setSearch] = useState("");
+  const [scopeFilter, setScopeFilter] = useState<JournalHierarchy>({ ...EMPTY_HIERARCHY });
+  const [pathFilterOpen, setPathFilterOpen] = useState(false);
   const [trackFilter, setTrackFilter] = useState<TrackFilter>("all");
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState<string | null>(null);
@@ -154,15 +160,42 @@ export function ResourceLinksPanel({
     return chips;
   }, [links, tracks]);
 
+  const scopeFilterActive = isScopeFilterActive(scopeFilter);
+
+  const scopeFilterPreview = useMemo(() => {
+    if (!scopeFilterActive) return null;
+    return getHierarchyPath(
+      {
+        trackId: scopeFilter.trackId || undefined,
+        moduleId: scopeFilter.moduleId || undefined,
+        topicId: scopeFilter.topicId || undefined,
+        subtopicId: scopeFilter.subtopicId || undefined,
+      },
+      tracks,
+      modules,
+      topics,
+      subtopics
+    );
+  }, [scopeFilter, scopeFilterActive, tracks, modules, topics, subtopics]);
+
   const filteredLinks = useMemo(() => {
     return links
       .filter((link) => linkMatchesSearch(link, search))
       .filter((link) => {
+        if (scopeFilterActive) return linkVisibleForScope(link, scopeFilter);
         if (trackFilter === "all") return true;
         return getLinkGroupKey(link) === trackFilter;
       })
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [links, search, trackFilter]);
+  }, [links, search, scopeFilter, scopeFilterActive, trackFilter]);
+
+  const hasActiveFilters = search.trim().length > 0 || scopeFilterActive || trackFilter !== "all";
+
+  const clearAllFilters = () => {
+    setSearch("");
+    setScopeFilter({ ...EMPTY_HIERARCHY });
+    setTrackFilter("all");
+  };
 
   const linkGroups = useMemo((): LinkGroup[] => {
     const grouped = new Map<string, JournalLink[]>();
@@ -449,20 +482,135 @@ export function ResourceLinksPanel({
       </div>
 
       <div className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-sm font-medium">Saved links</h3>
-          <div className="relative w-full max-w-xs">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search links…"
-              className="h-9 border-white/[0.08] bg-white/[0.02] pl-9 text-sm"
-            />
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-medium">Saved links</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {hasActiveFilters
+                ? `${filteredLinks.length} of ${links.length} matching`
+                : `${links.length} pinned across your tracks`}
+            </p>
           </div>
         </div>
 
-        {trackChipData.length > 0 && (
+        <div className="rounded-xl border-[0.5px] border-white/[0.08] bg-[#121216] p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+            <div className="relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by title or URL…"
+                className="h-10 border-white/[0.08] bg-white/[0.03] pl-9 text-sm"
+              />
+            </div>
+            <Button
+              type="button"
+              variant={pathFilterOpen || scopeFilterActive ? "default" : "outline"}
+              className={cn(
+                "h-10 shrink-0 gap-2",
+                !(pathFilterOpen || scopeFilterActive) && "border-white/[0.08] bg-white/[0.02]"
+              )}
+              onClick={() => setPathFilterOpen((open) => !open)}
+            >
+              <Filter className="h-4 w-4" />
+              Filter by path
+              {scopeFilterActive && (
+                <span className="rounded-full bg-white/15 px-1.5 py-0.5 text-[10px] tabular-nums">
+                  on
+                </span>
+              )}
+            </Button>
+          </div>
+
+          {(pathFilterOpen || scopeFilterActive) && (
+            <div className="mt-4 space-y-3 border-t border-white/[0.06] pt-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-medium text-foreground">Learning path filter</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Narrow by track, module, topic, or subtopic — parent-level links still appear.
+                  </p>
+                </div>
+                {scopeFilterActive && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 gap-1 text-xs text-muted-foreground"
+                    onClick={() => setScopeFilter({ ...EMPTY_HIERARCHY })}
+                  >
+                    <X className="h-3 w-3" />
+                    Clear path
+                  </Button>
+                )}
+              </div>
+
+              <div className="rounded-lg border-[0.5px] border-white/[0.08] bg-white/[0.02] p-3">
+                <HierarchyPicker
+                  value={scopeFilter}
+                  onChange={(next) => {
+                    setScopeFilter(next);
+                    if (next.trackId) setTrackFilter("all");
+                  }}
+                  tracks={tracks}
+                  modules={modules}
+                  topics={topics}
+                  subtopics={subtopics}
+                />
+              </div>
+
+              {scopeFilterPreview && (
+                <p className="truncate text-[11px] text-muted-foreground" title={scopeFilterPreview.label}>
+                  Showing links under{" "}
+                  <span className="text-foreground/90">{scopeFilterPreview.label}</span>
+                </p>
+              )}
+            </div>
+          )}
+
+          {hasActiveFilters && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-white/[0.06] pt-3">
+              {search.trim() && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-[11px]">
+                  Search: &quot;{search.trim()}&quot;
+                  <button type="button" onClick={() => setSearch("")} className="text-muted-foreground hover:text-foreground">
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              )}
+              {scopeFilterPreview && (
+                <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-[11px]">
+                  <span className="truncate">Path: {scopeFilterPreview.label}</span>
+                  <button
+                    type="button"
+                    onClick={() => setScopeFilter({ ...EMPTY_HIERARCHY })}
+                    className="shrink-0 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              )}
+              {trackFilter !== "all" && !scopeFilterActive && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-[11px]">
+                  Track chip active
+                  <button type="button" onClick={() => setTrackFilter("all")} className="text-muted-foreground hover:text-foreground">
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={clearAllFilters}
+                className="text-[11px] font-medium text-[#7F77DD] hover:text-[#AFA9EC]"
+              >
+                Clear all
+              </button>
+            </div>
+          )}
+        </div>
+
+        {trackChipData.length > 0 && !scopeFilterActive && (
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
@@ -520,17 +668,22 @@ export function ResourceLinksPanel({
           </div>
         ) : filteredLinks.length === 0 ? (
           <div className="rounded-xl border border-dashed border-white/[0.08] py-10 text-center">
-            <p className="text-sm text-muted-foreground">No links match your search or filter.</p>
+            <p className="text-sm text-muted-foreground">No links match your search or path filter.</p>
+            {hasActiveFilters && (
+              <Button type="button" variant="outline" size="sm" className="mt-3" onClick={clearAllFilters}>
+                Clear filters
+              </Button>
+            )}
           </div>
         ) : (
           <div className="space-y-6">
             <AnimatePresence mode="popLayout">
               {linkGroups.map((group) => {
-                const isSearchActive = search.trim().length > 0;
+                const isFilterActive = search.trim().length > 0 || scopeFilterActive;
                 const isExpanded = expandedGroups.has(group.key);
-                const canExpand = !isSearchActive && group.totalCount > RECENT_LINKS_PER_TRACK;
+                const canExpand = !isFilterActive && group.totalCount > RECENT_LINKS_PER_TRACK;
                 const visibleLinks =
-                  isSearchActive || isExpanded
+                  isFilterActive || isExpanded
                     ? group.allLinks
                     : group.allLinks.slice(0, RECENT_LINKS_PER_TRACK);
 
