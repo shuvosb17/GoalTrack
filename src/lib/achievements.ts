@@ -89,9 +89,9 @@ const COMPLETION_LANE_META: Record<
 const GETTING_STARTED_KEYS = new Set([
   "first_session",
   "sessions_5",
+  "sessions_10",
   "first_subtopic",
   "streak_3",
-  "hours_10",
 ]);
 
 export function getStreakCheckpointDefinitions(): Omit<Achievement, "id">[] {
@@ -126,6 +126,12 @@ export const BASE_ACHIEVEMENT_DEFINITIONS: Omit<Achievement, "id">[] = [
     title: "5 Sessions",
     description: "Log 5 study sessions",
     icon: "📖",
+  },
+  {
+    key: "sessions_10",
+    title: "10 Sessions",
+    description: "Log 10 study sessions",
+    icon: "📚",
   },
   {
     key: "first_subtopic",
@@ -275,6 +281,7 @@ export function getAchievementOrder(settings?: AppSettings | null): string[] {
   return [
     "first_session",
     "sessions_5",
+    "sessions_10",
     "first_subtopic",
     "streak_3",
     ...hourKeys,
@@ -626,6 +633,15 @@ export function getAchievementProgress(
       unit: "sessions",
     };
   }
+  if (key === "sessions_10") {
+    const current = Math.min(10, sessions.length);
+    return {
+      current,
+      target: 10,
+      percent: Math.min(100, Math.round((sessions.length / 10) * 100)),
+      unit: "sessions",
+    };
+  }
   if (key === "first_subtopic") {
     const done = subtopics.some(
       (s) => !s.archived && (s.status === "completed" || s.status === "mastered")
@@ -761,6 +777,7 @@ export async function checkAchievements(
 
   if (sessions.length >= 1) await unlock("first_session");
   if (sessions.length >= 5) await unlock("sessions_5");
+  if (sessions.length >= 10) await unlock("sessions_10");
 
   const completedSubtopics = subtopics.filter(
     (s) => !s.archived && (s.status === "completed" || s.status === "mastered")

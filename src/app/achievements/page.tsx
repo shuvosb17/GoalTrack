@@ -100,7 +100,7 @@ export default function AchievementsPage() {
         .sort(sortLaneItems);
       const subtitle =
         cat === "hours"
-          ? `100h · 200h · 300h … every ${hourStep}h up to ${tiered.stretch}h stretch`
+          ? `10h · 100h · 200h · 300h … every ${hourStep}h up to ${tiered.stretch}h stretch`
           : cat === "getting_started"
             ? "Early milestones before the hour sprint"
             : cat === "streaks"
