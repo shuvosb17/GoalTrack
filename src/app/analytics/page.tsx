@@ -11,7 +11,7 @@ import {
 } from "@tabler/icons-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, Area, AreaChart, ComposedChart, Legend,
+  LineChart, Line, Area, AreaChart, ComposedChart, Legend,
 } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -23,6 +23,12 @@ import { LearningVelocityPanel } from "@/components/analytics/learning-velocity-
 import { MostStudiedTopicsPanel } from "@/components/analytics/most-studied-topics-panel";
 import { FocusHoursHeatmap } from "@/components/analytics/focus-hours-heatmap";
 import { FocusModePanel } from "@/components/analytics/focus-mode-panel";
+import { TimeDistributionCard } from "@/components/analytics/time-distribution-card";
+import { EfficiencyRoiCard } from "@/components/analytics/efficiency-roi-card";
+import {
+  getTimeDistributionInsight,
+  getEfficiencyRoiInsight,
+} from "@/lib/analytics-card-insights";
 import {
   useTracks, useAllSubtopics, useAllTopics, useAllModules, useSessions, useSettings, useSkipLogs,
 } from "@/hooks/use-data";
@@ -38,7 +44,7 @@ import {
 } from "@/lib/analytics";
 import { getDailyPaceTarget, getWeeklyConsistency } from "@/lib/metrics";
 import { resolveTieredGoal, getWeeksUntilYearEnd, getHoursLoggedThisYear } from "@/lib/goals";
-import { calculateStreaks, formatHours } from "@/lib/utils";
+import { calculateStreaks } from "@/lib/utils";
 import { differenceInDays, parseISO } from "date-fns";
 
 type WeekRange = "4" | "12" | "all";
@@ -133,9 +139,23 @@ export default function AnalyticsPage() {
     () => getActiveDistribution(sessions, tracks, topics, modules, subtopics),
     [sessions, tracks, topics, modules, subtopics]
   );
-  const totalDistHours = useMemo(
-    () => activeDistribution.reduce((s, d) => s + d.value, 0),
+
+  const timeDistributionTracks = useMemo(
+    () =>
+      [...activeDistribution]
+        .map((d) => ({
+          name: d.name,
+          hours: d.value / 3600000,
+          percentage: d.percentage,
+          color: d.color,
+        }))
+        .sort((a, b) => b.hours - a.hours),
     [activeDistribution]
+  );
+
+  const timeDistributionInsight = useMemo(
+    () => getTimeDistributionInsight(timeDistributionTracks, sessions, tracks),
+    [timeDistributionTracks, sessions, tracks]
   );
 
   const heatmap = useMemo(() => getFocusHeatmap(sessions), [sessions]);
@@ -182,7 +202,23 @@ export default function AnalyticsPage() {
     () => getEfficiencyScores(tracks, topics, subtopics, sessions).filter((e) => e.hours > 0),
     [tracks, topics, subtopics, sessions]
   );
-  const maxEfficiency = Math.max(...efficiency.map((e) => e.efficiency), 1);
+
+  const efficiencyRows = useMemo(
+    () =>
+      efficiency.map((e) => ({
+        name: e.name,
+        percentage: e.progress,
+        hours: e.hours,
+        roi: e.efficiency,
+        color: e.color,
+      })),
+    [efficiency]
+  );
+
+  const efficiencyInsight = useMemo(
+    () => getEfficiencyRoiInsight(efficiencyRows),
+    [efficiencyRows]
+  );
 
   const trendDays = weekRange === "4" ? 28 : weekRange === "12" ? 90 : 180;
   const trends = useMemo(
@@ -412,88 +448,9 @@ export default function AnalyticsPage() {
       </Card>
 
       {/* Distribution + Efficiency */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-[0.5px] border-white/[0.08]">
-          <CardContent className="pt-6">
-            <SectionHeading>Time Distribution</SectionHeading>
-            {activeDistribution.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">No track time logged yet.</p>
-            ) : (
-              <>
-                <div className="relative">
-                  <ResponsiveContainer width="100%" height={200}>
-                    <PieChart>
-                      <Pie
-                        data={activeDistribution}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={55}
-                        outerRadius={80}
-                        paddingAngle={2}
-                      >
-                        {activeDistribution.map((entry, i) => (
-                          <Cell key={i} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(value: number) => formatHours(value)} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                    <p className="metric-value text-2xl tabular-nums">{(totalDistHours / 3600000).toFixed(0)}h</p>
-                    <p className="text-[10px] text-muted-foreground">total</p>
-                  </div>
-                </div>
-                <div className="mt-2 space-y-1.5">
-                  {activeDistribution.map((d) => (
-                    <div key={d.name} className="flex items-center gap-2 text-sm">
-                      <div className="h-2 w-2 shrink-0 rounded-full" style={{ background: d.color }} />
-                      <span className="min-w-0 flex-1 truncate">{d.name}</span>
-                      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-white/[0.06]">
-                        <div className="h-full rounded-full" style={{ width: `${d.percentage}%`, background: d.color }} />
-                      </div>
-                      <span className="w-8 text-right text-xs tabular-nums text-muted-foreground">{d.percentage}%</span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-            <InsightLine text={diagnostics.distribution} />
-          </CardContent>
-        </Card>
-
-        <Card className="border-[0.5px] border-white/[0.08]">
-          <CardContent className="pt-6">
-            <SectionHeading>Efficiency (ROI)</SectionHeading>
-            <p className="mb-3 text-[11px] text-muted-foreground">
-              (progress × avg quality) ÷ hours — higher = more completion per hour invested
-            </p>
-            {efficiency.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">Log hours on a track to see ROI.</p>
-            ) : (
-              <div className="space-y-3">
-                {efficiency.map((e) => (
-                  <div key={e.name} className="space-y-1">
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className="h-2 w-2 shrink-0 rounded-full" style={{ background: e.color }} />
-                      <span className="min-w-0 flex-1 truncate">{e.name}</span>
-                      <span className="text-[10px] text-muted-foreground">{e.progress}% · {e.hours.toFixed(0)}h</span>
-                      <span className="w-10 text-right font-mono text-xs tabular-nums">{e.efficiency.toFixed(1)}</span>
-                    </div>
-                    <div className="h-1 overflow-hidden rounded-full bg-white/[0.06]">
-                      <div
-                        className="h-full rounded-full bg-violet-500/80 transition-all"
-                        style={{ width: `${(e.efficiency / maxEfficiency) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            <InsightLine text={diagnostics.efficiency} />
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 gap-6 min-[820px]:grid-cols-2">
+        <TimeDistributionCard tracks={timeDistributionTracks} insight={timeDistributionInsight} />
+        <EfficiencyRoiCard rows={efficiencyRows} insight={efficiencyInsight} />
       </div>
 
       {/* Completion Trends */}
