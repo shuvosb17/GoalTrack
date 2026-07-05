@@ -502,6 +502,106 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
       "source": "r/golang"
     }
   ],
+  "m0-t4-s0": [
+    {
+      "title": "Cursor docs",
+      "url": "https://docs.cursor.com/welcome",
+      "type": "doc",
+      "source": "Cursor"
+    },
+    {
+      "title": "GitHub Copilot best practices",
+      "url": "https://docs.github.com/en/copilot/using-github-copilot/best-practices-for-using-github-copilot",
+      "type": "doc",
+      "source": "GitHub"
+    },
+    {
+      "title": "Claude Code overview",
+      "url": "https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview",
+      "type": "doc",
+      "source": "Anthropic"
+    }
+  ],
+  "m0-t4-s1": [
+    {
+      "title": "context package",
+      "url": "https://pkg.go.dev/context",
+      "type": "doc",
+      "source": "pkg.go.dev"
+    },
+    {
+      "title": "Cursor docs",
+      "url": "https://docs.cursor.com/welcome",
+      "type": "doc",
+      "source": "Cursor"
+    },
+    {
+      "title": "GitHub Copilot best practices",
+      "url": "https://docs.github.com/en/copilot/using-github-copilot/best-practices-for-using-github-copilot",
+      "type": "doc",
+      "source": "GitHub"
+    }
+  ],
+  "m0-t4-s2": [
+    {
+      "title": "Cursor docs",
+      "url": "https://docs.cursor.com/welcome",
+      "type": "doc",
+      "source": "Cursor"
+    },
+    {
+      "title": "GitHub Copilot best practices",
+      "url": "https://docs.github.com/en/copilot/using-github-copilot/best-practices-for-using-github-copilot",
+      "type": "doc",
+      "source": "GitHub"
+    },
+    {
+      "title": "Claude Code overview",
+      "url": "https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview",
+      "type": "doc",
+      "source": "Anthropic"
+    }
+  ],
+  "m0-t4-s3": [
+    {
+      "title": "Recording changes",
+      "url": "https://git-scm.com/book/en/v2/Git-Basics-Recording-Changes-to-the-Repository",
+      "type": "doc",
+      "source": "Git SCM"
+    },
+    {
+      "title": "Cursor docs",
+      "url": "https://docs.cursor.com/welcome",
+      "type": "doc",
+      "source": "Cursor"
+    },
+    {
+      "title": "GitHub Copilot best practices",
+      "url": "https://docs.github.com/en/copilot/using-github-copilot/best-practices-for-using-github-copilot",
+      "type": "doc",
+      "source": "GitHub"
+    }
+  ],
+  "m0-t4-s4": [
+    {
+      "title": "Cursor docs",
+      "url": "https://docs.cursor.com/welcome",
+      "type": "doc",
+      "source": "Cursor"
+    },
+    {
+      "title": "GitHub Copilot best practices",
+      "url": "https://docs.github.com/en/copilot/using-github-copilot/best-practices-for-using-github-copilot",
+      "type": "doc",
+      "source": "GitHub"
+    },
+    {
+      "title": "Claude Code overview",
+      "url": "https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview",
+      "type": "doc",
+      "source": "Anthropic"
+    }
+  ],
   "m1-t0-s0": [
     {
       "title": "Install Go",
@@ -3064,6 +3164,26 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
   ],
   "m5-t2-s6": [
     {
+      "title": "PostgreSQL documentation",
+      "url": "https://www.postgresql.org/docs/current/",
+      "type": "doc",
+      "source": "PostgreSQL"
+    },
+    {
+      "title": "Postgres transactions",
+      "url": "https://www.postgresql.org/docs/current/tutorial-transactions.html",
+      "type": "doc",
+      "source": "PostgreSQL"
+    },
+    {
+      "title": "Go backend roadmap discussion",
+      "url": "https://www.reddit.com/r/golang/",
+      "type": "blog",
+      "source": "r/golang"
+    }
+  ],
+  "m5-t2-s7": [
+    {
       "title": "PostgreSQL tutorial",
       "url": "https://www.postgresql.org/docs/current/tutorial.html",
       "type": "doc",
@@ -5020,6 +5140,106 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
       "url": "https://www.reddit.com/r/golang/",
       "type": "blog",
       "source": "r/golang"
+    }
+  ],
+  "m10-t4-s0": [
+    {
+      "title": "Kafka introduction",
+      "url": "https://kafka.apache.org/intro",
+      "type": "doc",
+      "source": "Apache Kafka"
+    },
+    {
+      "title": "NATS concepts",
+      "url": "https://docs.nats.io/nats-concepts/overview",
+      "type": "doc",
+      "source": "NATS"
+    },
+    {
+      "title": "Transactional outbox pattern",
+      "url": "https://microservices.io/patterns/data/transactional-outbox.html",
+      "type": "doc",
+      "source": "microservices.io"
+    }
+  ],
+  "m10-t4-s1": [
+    {
+      "title": "Cloudflare Learning Center",
+      "url": "https://www.cloudflare.com/learning/",
+      "type": "doc",
+      "source": "Cloudflare"
+    },
+    {
+      "title": "Kafka introduction",
+      "url": "https://kafka.apache.org/intro",
+      "type": "doc",
+      "source": "Apache Kafka"
+    },
+    {
+      "title": "NATS concepts",
+      "url": "https://docs.nats.io/nats-concepts/overview",
+      "type": "doc",
+      "source": "NATS"
+    }
+  ],
+  "m10-t4-s2": [
+    {
+      "title": "Kafka introduction",
+      "url": "https://kafka.apache.org/intro",
+      "type": "doc",
+      "source": "Apache Kafka"
+    },
+    {
+      "title": "NATS concepts",
+      "url": "https://docs.nats.io/nats-concepts/overview",
+      "type": "doc",
+      "source": "NATS"
+    },
+    {
+      "title": "Transactional outbox pattern",
+      "url": "https://microservices.io/patterns/data/transactional-outbox.html",
+      "type": "doc",
+      "source": "microservices.io"
+    }
+  ],
+  "m10-t4-s3": [
+    {
+      "title": "Kafka introduction",
+      "url": "https://kafka.apache.org/intro",
+      "type": "doc",
+      "source": "Apache Kafka"
+    },
+    {
+      "title": "NATS concepts",
+      "url": "https://docs.nats.io/nats-concepts/overview",
+      "type": "doc",
+      "source": "NATS"
+    },
+    {
+      "title": "Transactional outbox pattern",
+      "url": "https://microservices.io/patterns/data/transactional-outbox.html",
+      "type": "doc",
+      "source": "microservices.io"
+    }
+  ],
+  "m10-t4-s4": [
+    {
+      "title": "Kafka introduction",
+      "url": "https://kafka.apache.org/intro",
+      "type": "doc",
+      "source": "Apache Kafka"
+    },
+    {
+      "title": "NATS concepts",
+      "url": "https://docs.nats.io/nats-concepts/overview",
+      "type": "doc",
+      "source": "NATS"
+    },
+    {
+      "title": "Transactional outbox pattern",
+      "url": "https://microservices.io/patterns/data/transactional-outbox.html",
+      "type": "doc",
+      "source": "microservices.io"
     }
   ],
   "m11-t0-s0": [
@@ -7783,6 +8003,46 @@ export const GO_BACKEND_RESOURCE_LINKS: Record<string, GoResourceLink[]> = {
     }
   ],
   "m22-t1-s7": [
+    {
+      "title": "JSON Web Token (JWT)",
+      "url": "https://en.wikipedia.org/wiki/JSON_Web_Token",
+      "type": "doc",
+      "source": "Wikipedia"
+    },
+    {
+      "title": "SQLite vs MySQL vs PostgreSQL",
+      "url": "https://www.digitalocean.com/community/tutorials/sqlite-vs-mysql-vs-postgresql-a-comparison-of-relational-database-management-systems",
+      "type": "doc",
+      "source": "DigitalOcean"
+    },
+    {
+      "title": "Go backend roadmap discussion",
+      "url": "https://www.reddit.com/r/golang/",
+      "type": "blog",
+      "source": "r/golang"
+    }
+  ],
+  "m22-t1-s8": [
+    {
+      "title": "Redis university",
+      "url": "https://university.redis.io/",
+      "type": "course",
+      "source": "Redis"
+    },
+    {
+      "title": "JSON Web Token (JWT)",
+      "url": "https://en.wikipedia.org/wiki/JSON_Web_Token",
+      "type": "doc",
+      "source": "Wikipedia"
+    },
+    {
+      "title": "SQLite vs MySQL vs PostgreSQL",
+      "url": "https://www.digitalocean.com/community/tutorials/sqlite-vs-mysql-vs-postgresql-a-comparison-of-relational-database-management-systems",
+      "type": "doc",
+      "source": "DigitalOcean"
+    }
+  ],
+  "m22-t1-s9": [
     {
       "title": "JSON Web Token (JWT)",
       "url": "https://en.wikipedia.org/wiki/JSON_Web_Token",

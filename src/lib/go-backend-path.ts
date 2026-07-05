@@ -70,6 +70,16 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
           "What an API is",
         ],
       },
+      {
+        name: "Topic 0.5: AI-Assisted Development (workflow)",
+        subtopics: [
+          "Using AI coding tools (Cursor / Copilot / Claude Code) effectively",
+          "Prompting for code: context, constraints, iterating",
+          "Reviewing and verifying AI output before trusting it",
+          "Never commit unreviewed AI code; understand what you ship",
+          "Never paste secrets/keys/proprietary code into prompts",
+        ],
+      },
     ],
   },
   {
@@ -351,6 +361,7 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
           "Transactions, ACID, isolation levels",
           "Row locking (`FOR UPDATE`), deadlocks",
           "Connection pooling",
+          "Money handling: `numeric`/decimal type, never float; `shopspring/decimal`",
           "Postgres vs MySQL (trade-offs)",
         ],
       },
@@ -595,6 +606,16 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
           "In-process workers",
           "Redis-backed queues (`asynq`)",
           "Retries, idempotency, dead-letter",
+        ],
+      },
+      {
+        name: "Topic 10.5: Event-Driven & Messaging",
+        subtopics: [
+          "Queue vs pub/sub (when to use which)",
+          "Kafka / NATS (awareness), consumer groups",
+          "At-least-once vs exactly-once delivery",
+          "The outbox pattern",
+          "Idempotent consumers",
         ],
       },
     ],
@@ -989,6 +1010,8 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
           "Append-only ledger for stock?",
           "Background worker for emails?",
           "Connection pooling — what if exhausted?",
+          "Kafka vs Redis queue?",
+          "Float vs decimal for money?",
         ],
       },
       {

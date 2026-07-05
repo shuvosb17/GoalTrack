@@ -33,6 +33,11 @@ const TOPIC_BUNDLES = {
     L("How the web works", "https://developer.mozilla.org/en-US/docs/Learn/Getting_started_with_the_web/How_the_Web_works", "doc", "MDN"),
     L("HTTP overview", "https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview", "doc", "MDN"),
   ],
+  "0-4": [
+    L("Cursor docs", "https://docs.cursor.com/welcome", "doc", "Cursor"),
+    L("GitHub Copilot best practices", "https://docs.github.com/en/copilot/using-github-copilot/best-practices-for-using-github-copilot", "doc", "GitHub"),
+    L("Claude Code overview", "https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview", "doc", "Anthropic"),
+  ],
   "1-0": [
     L("Install Go", "https://go.dev/doc/install", "doc", "go.dev"),
     L("Go modules reference", "https://go.dev/ref/mod", "doc", "go.dev"),
@@ -236,6 +241,11 @@ const TOPIC_BUNDLES = {
   "10-3": [
     L("Background jobs in Go", "https://github.com/hibiken/asynq", "doc", "asynq"),
     L("Queue-based workloads", "https://aws.amazon.com/message-queue/", "doc", "AWS"),
+  ],
+  "10-4": [
+    L("Kafka introduction", "https://kafka.apache.org/intro", "doc", "Apache Kafka"),
+    L("NATS concepts", "https://docs.nats.io/nats-concepts/overview", "doc", "NATS"),
+    L("Transactional outbox pattern", "https://microservices.io/patterns/data/transactional-outbox.html", "doc", "microservices.io"),
   ],
   "11-0": [
     L("Delve debugger", "https://github.com/go-delve/delve", "doc", "GitHub"),

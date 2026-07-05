@@ -91,15 +91,6 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
   // Module 3: Testing & Quality
   [
     {
-      name: "Test Suite Retrofit (prior projects)",
-      tier: "medium",
-      deliverables: [
-        "Add table-driven tests to cli-todo and concurrent-fetcher",
-        ">70% coverage on concurrent-fetcher (report in README)",
-        "Subtests for edge cases; `-coverprofile` artifact in repo",
-      ],
-    },
-    {
       name: "Testify & Mock Exercise",
       tier: "beginner",
       deliverables: [
@@ -108,24 +99,33 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
         "Document red-green-refactor cycle used on one feature",
       ],
     },
+    {
+      name: "Test Suite Retrofit (prior projects)",
+      tier: "medium",
+      deliverables: [
+        "Add table-driven tests to cli-todo and concurrent-fetcher",
+        ">70% coverage on concurrent-fetcher (report in README)",
+        "Subtests for edge cases; `-coverprofile` artifact in repo",
+      ],
+    },
   ],
   // Module 4: HTTP & REST API Development
   [
     {
-      name: "notes-api-inmemory",
+      name: "LinkStash API (in-memory)",
       tier: "beginner",
       deliverables: [
-        "CRUD REST API for notes (in-memory store)",
+        "CRUD REST API for bookmarks/links (in-memory store)",
         "JSON request/response; consistent error envelope",
         "Logging + recovery middleware; httptest for handlers",
         "Chi or stdlib ServeMux with Go 1.22 routing",
       ],
     },
     {
-      name: "REST API Hardening Pass",
+      name: "LinkStash Hardening Pass",
       tier: "medium",
       deliverables: [
-        "Pagination, filtering, validation on notes-api-inmemory",
+        "Pagination, filtering, validation on LinkStash bookmarks",
         "Request ID middleware; CORS configured correctly",
         "OpenAPI-style endpoint table in README",
       ],
@@ -134,13 +134,13 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
   // Module 5: Databases & Persistence
   [
     {
-      name: "notes-api (Postgres + Redis)",
+      name: "LinkStash (Postgres + Redis)",
       tier: "medium",
       deliverables: [
-        "Postgres schema with migrations (golang-migrate)",
+        "Postgres schema with migrations (golang-migrate): links, tags",
         "CRUD via database/sql or pgx; connection pool tuned",
-        "Redis cache-aside for hot reads or session store",
-        "docker-compose for local dev; integration tests",
+        "Full-text search over titles/notes; tag filtering",
+        "Redis cache-aside for hot reads; docker-compose + integration tests",
       ],
     },
     {
@@ -157,37 +157,28 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
   // Module 6: Authentication, Authorization & Security
   [
     {
-      name: "Secure notes-api (JWT + RBAC)",
+      name: "Secure LinkStash (JWT + RBAC)",
       tier: "medium",
       deliverables: [
         "bcrypt password hashing; register/login endpoints",
         "JWT access + refresh tokens; rotation strategy documented",
-        "RBAC: admin / editor / viewer roles on note resources",
+        "RBAC: owner / editor / viewer roles; shared bookmark collections",
         "Login rate limiting; Redis blocklist for revoked tokens",
       ],
     },
     {
-      name: "Security Hardening Checklist",
+      name: "Standalone Auth Microservice",
       tier: "advanced",
       deliverables: [
-        "Input validation on all write endpoints",
-        "Security headers middleware; HTTPS-only cookies if session used",
-        "OWASP Top 10 self-audit checklist filled for notes-api",
+        "bcrypt/Argon2id hashing; JWT access + refresh rotation; RBAC",
+        "Brute-force lockout, email verification, security headers middleware",
+        "Audit log of auth events; OWASP Top 10 self-audit checklist",
+        "Multi-stage Dockerfile, CI pipeline, `/healthz` — pinned repo",
       ],
     },
   ],
   // Module 7: Linux (Deep)
   [
-    {
-      name: "notes-api on Linux VM",
-      tier: "advanced",
-      deliverables: [
-        "Deploy notes-api on WSL or free-tier Linux VM",
-        "systemd unit file; service survives reboot",
-        "nginx reverse proxy with TLS (self-signed or Let's Encrypt)",
-        "Bash deploy script: build, migrate, restart, health check",
-      ],
-    },
     {
       name: "Linux Ops Runbook",
       tier: "medium",
@@ -195,6 +186,16 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
         "Document: permissions fix, log locations, restart procedure",
         "journalctl queries for debugging 5xx errors",
         "tmux session recipe for long-running dev on SSH",
+      ],
+    },
+    {
+      name: "LinkStash on Linux VM",
+      tier: "advanced",
+      deliverables: [
+        "Deploy LinkStash on WSL or free-tier Linux VM",
+        "systemd unit file; service survives reboot",
+        "nginx reverse proxy with TLS (self-signed or Let's Encrypt)",
+        "Bash deploy script: build, migrate, restart, health check",
       ],
     },
   ],
@@ -246,12 +247,12 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
   // Module 10: Observability & Reliability
   [
     {
-      name: "Observability Upgrade (notes-api or capstone)",
+      name: "Observability Upgrade (LinkStash or capstone)",
       tier: "medium",
       deliverables: [
         "Structured logging with `slog` + correlation IDs",
         "Prometheus `/metrics` (latency, errors, in-flight)",
-        "Background email/job worker with retries + dead-letter note",
+        "Background link-health checker (reuses concurrent-fetcher) with retries + dead-letter",
         "`/healthz` and `/readyz` endpoints",
       ],
     },
@@ -267,6 +268,15 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
   // Module 11: Debugging & Profiling
   [
     {
+      name: "Delve Debugging Exercise",
+      tier: "beginner",
+      deliverables: [
+        "Reproduce bug; fix using Delve breakpoints",
+        "Document panic stack trace reading steps",
+        "Goroutine dump analysis write-up (SIGQUIT)",
+      ],
+    },
+    {
       name: "pprof Bottleneck Hunt & Fix",
       tier: "advanced",
       deliverables: [
@@ -276,20 +286,11 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
         "Before/after benchmark numbers after fix",
       ],
     },
-    {
-      name: "Delve Debugging Exercise",
-      tier: "beginner",
-      deliverables: [
-        "Reproduce bug; fix using Delve breakpoints",
-        "Document panic stack trace reading steps",
-        "Goroutine dump analysis write-up (SIGQUIT)",
-      ],
-    },
   ],
   // Module 12: Cloud & Deployment (AWS)
   [
     {
-      name: "Deploy notes-api to AWS",
+      name: "Deploy LinkStash to AWS",
       tier: "advanced",
       deliverables: [
         "Live public URL (ECS Fargate + RDS, or EC2 + compose)",
@@ -336,7 +337,7 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
       name: "K8s Local Stretch (kind/minikube)",
       tier: "beginner",
       deliverables: [
-        "Deployment + Service + Ingress for capstone or notes-api",
+        "Deployment + Service + Ingress for capstone or LinkStash",
         "Local image load or registry push documented",
         "Talking points doc: Pods vs Deployments vs Services",
       ],
@@ -367,6 +368,16 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
       ],
     },
     {
+      name: "Wallet / Ledger Service",
+      tier: "advanced",
+      deliverables: [
+        "Idempotency keys; `FOR UPDATE` row locking; isolation levels",
+        "`shopspring/decimal` money; immutable double-entry ledger",
+        "Transfer + reconciliation endpoints; balance derivation",
+        "Postgres-backed concurrent contention tests — pinned repo",
+      ],
+    },
+    {
       name: "Capstone Architecture RFC",
       tier: "capstone",
       deliverables: [
@@ -379,13 +390,13 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
   // Module 17: AI Integration
   [
     {
-      name: "Capstone AI Feature",
+      name: "RAG Knowledge-Base Service",
       tier: "advanced",
       deliverables: [
-        "One AI endpoint (semantic search via embeddings + pgvector, or summarization)",
+        "pgvector embeddings + retrieval over a document corpus",
         "Prompt templates + structured JSON output validation",
         "Cost/rate-limit handling; cache repeated queries",
-        "Fallback when model unavailable",
+        "Fallback when model unavailable — standalone pinned repo",
       ],
     },
   ],
@@ -447,7 +458,7 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
       name: "DECISIONS.md Everywhere",
       tier: "beginner",
       deliverables: [
-        "DECISIONS.md in cli-todo, notes-api, and capstone",
+        "DECISIONS.md in cli-todo, LinkStash, and capstone",
         "Answer trade-off bank: JWT vs sessions, Redis vs Postgres cache, etc.",
         "Record one 5-minute decision explanation (audio or written)",
       ],
@@ -455,6 +466,18 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
   ],
   // Module 23: Job Hunt & Interview Preparation
   [
+    {
+      name: "Job Hunt Launch Kit",
+      tier: "advanced",
+      deliverables: [
+        "1-page backend resume with trade-off-driven bullets",
+        "GitHub pinned: capstone + auth microservice + wallet/ledger",
+        "Portfolio page or README index linking live demos",
+        "Application tracker; 5–10 quality apps/week plan",
+        "2 technical articles published (Dev.to/LinkedIn)",
+        "Mock interview recording reviewed with notes",
+      ],
+    },
     {
       name: "Inventory Management Platform (Capstone)",
       tier: "capstone",
@@ -464,18 +487,6 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
         "Reports export, Prometheus metrics, structured logging",
         "Docker compose, CI/CD, AWS live URL, OpenAPI + tests >70%",
         "Stretch: gRPC service + AI feature",
-      ],
-    },
-    {
-      name: "Job Hunt Launch Kit",
-      tier: "advanced",
-      deliverables: [
-        "1-page backend resume with trade-off-driven bullets",
-        "GitHub pinned: capstone + url-shortener + best CLI project",
-        "Portfolio page or README index linking live demos",
-        "Application tracker; 5–10 quality apps/week plan",
-        "2 technical articles published (Dev.to/LinkedIn)",
-        "Mock interview recording reviewed with notes",
       ],
     },
   ],
