@@ -18,13 +18,11 @@ import { archiveModule } from "./crud";
 
 const ACHIEVEMENTS: Omit<Achievement, "id">[] = [
   { key: "first_session", title: "First Study Session", description: "Complete your first learning session", icon: "🎯" },
-  { key: "hours_10", title: "10 Hour Club", description: "Invest 10 hours of focused learning", icon: "⏱️" },
-  { key: "hours_50", title: "50 Hour Warrior", description: "Invest 50 hours of focused learning", icon: "💪" },
-  { key: "hours_100", title: "Century Scholar", description: "Invest 100 hours of focused learning", icon: "📚" },
-  { key: "hours_500", title: "500 Hour Master", description: "Invest 500 hours of focused learning", icon: "🏆" },
-  { key: "hours_1000", title: "Millennium Learner", description: "Invest 1000 hours of focused learning", icon: "👑" },
+  { key: "sessions_5", title: "5 Sessions", description: "Log 5 study sessions", icon: "📖" },
+  { key: "first_subtopic", title: "First Win", description: "Complete your first subtopic", icon: "✅" },
+  { key: "streak_3", title: "3-Day Streak", description: "Study 3 days in a row", icon: "⚡" },
   { key: "streak_7", title: "Week Warrior", description: "Maintain a 7-day learning streak", icon: "🔥" },
-  { key: "streak_30", title: "Monthly Champion", description: "Maintain a 30-day learning streak", icon: "⚡" },
+  { key: "streak_30", title: "Monthly Champion", description: "Maintain a 30-day learning streak", icon: "💫" },
   { key: "streak_100", title: "Centurion", description: "Maintain a 100-day learning streak", icon: "🌟" },
   { key: "first_module", title: "Module Master", description: "Complete your first module", icon: "📦" },
   { key: "first_track", title: "Track Conqueror", description: "Complete your first learning track", icon: "🚀" },

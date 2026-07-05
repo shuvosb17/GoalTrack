@@ -41,7 +41,10 @@ export const ACHIEVEMENT_CATEGORY_LABELS: Record<AchievementCategory, string> = 
 
 export const ACHIEVEMENT_CATEGORIES: Record<string, AchievementCategory> = {
   first_session: "getting_started",
-  hours_10: "hours",
+  sessions_5: "getting_started",
+  first_subtopic: "getting_started",
+  streak_3: "getting_started",
+  hours_10: "getting_started",
   hours_50: "hours",
   hours_100: "hours",
   hours_500: "hours",
@@ -53,6 +56,70 @@ export const ACHIEVEMENT_CATEGORIES: Record<string, AchievementCategory> = {
   first_track: "completion",
   interview_ready: "completion",
 };
+
+/** Static achievements (non-dynamic hour checkpoints). */
+export const BASE_ACHIEVEMENT_DEFINITIONS: Omit<Achievement, "id">[] = [
+  {
+    key: "first_session",
+    title: "First Study Session",
+    description: "Complete your first learning session",
+    icon: "🎯",
+  },
+  {
+    key: "sessions_5",
+    title: "5 Sessions",
+    description: "Log 5 study sessions",
+    icon: "📖",
+  },
+  {
+    key: "first_subtopic",
+    title: "First Win",
+    description: "Complete your first subtopic",
+    icon: "✅",
+  },
+  {
+    key: "streak_3",
+    title: "3-Day Streak",
+    description: "Study 3 days in a row",
+    icon: "⚡",
+  },
+  {
+    key: "streak_7",
+    title: "Week Warrior",
+    description: "Maintain a 7-day learning streak",
+    icon: "🔥",
+  },
+  {
+    key: "streak_30",
+    title: "Monthly Champion",
+    description: "Maintain a 30-day learning streak",
+    icon: "💫",
+  },
+  {
+    key: "streak_100",
+    title: "Centurion",
+    description: "Maintain a 100-day learning streak",
+    icon: "🌟",
+  },
+  {
+    key: "first_module",
+    title: "Module Master",
+    description: "Complete your first module",
+    icon: "📦",
+  },
+  {
+    key: "first_track",
+    title: "Track Conqueror",
+    description: "Complete your first learning track",
+    icon: "🚀",
+  },
+  {
+    key: "interview_ready",
+    title: "Interview Ready",
+    description: "BD-CORE readiness 85%+ and all Foundation patterns complete",
+    icon: "🎯",
+  },
+];
 
 /** Canonical low -> high ordering; hour keys are resolved from current goals at runtime. */
 export const ACHIEVEMENT_ORDER_BASE: string[] = [
@@ -132,9 +199,36 @@ export function getHourCheckpointStep(): number {
   return HOUR_CHECKPOINT_STEP;
 }
 
+/** Full catalog for UI lanes — always includes every milestone, merged with DB unlock state. */
+export function getAllAchievementDefinitions(
+  settings: AppSettings | null | undefined
+): Omit<Achievement, "id">[] {
+  const hourDefs = getGoalHourCheckpoints(settings).map((cp) => ({
+    key: cp.key,
+    title: cp.title,
+    description: cp.description,
+    icon: cp.icon,
+  }));
+  const hourKeys = new Set(hourDefs.map((d) => d.key));
+  const base = BASE_ACHIEVEMENT_DEFINITIONS.filter((d) => !hourKeys.has(d.key));
+  return [...base, ...hourDefs];
+}
+
 export function getAchievementOrder(settings?: AppSettings | null): string[] {
   const hourKeys = getGoalHourCheckpoints(settings).map((c) => c.key);
-  return ["first_session", ...hourKeys, "streak_7", "streak_30", "streak_100", "first_module", "first_track", "interview_ready"];
+  return [
+    "first_session",
+    "sessions_5",
+    "first_subtopic",
+    "streak_3",
+    ...hourKeys,
+    "streak_7",
+    "streak_30",
+    "streak_100",
+    "first_module",
+    "first_track",
+    "interview_ready",
+  ];
 }
 
 /** @deprecated Use getAchievementOrder(settings) for full list including goal hour keys. */
@@ -310,6 +404,26 @@ export function getGoalSprintSnapshot(
   };
 }
 
+export async function ensureBaseAchievements(): Promise<void> {
+  const all = await db.achievements.toArray();
+
+  for (const def of BASE_ACHIEVEMENT_DEFINITIONS) {
+    const existing = all.find((a) => a.key === def.key);
+    if (existing) {
+      await db.achievements.update(existing.id, {
+        title: def.title,
+        description: def.description,
+        icon: def.icon,
+      });
+    } else {
+      await db.achievements.add({
+        id: uuid(),
+        ...def,
+      });
+    }
+  }
+}
+
 export async function ensureGoalHourAchievements(settings: AppSettings | null | undefined): Promise<void> {
   const checkpoints = getGoalHourCheckpoints(settings);
   const validKeys = new Set(checkpoints.map((c) => c.key));
@@ -450,6 +564,21 @@ export function getAchievementProgress(
     const current = sessions.length >= 1 ? 1 : 0;
     return { current, target: 1, percent: current * 100, unit: "session" };
   }
+  if (key === "sessions_5") {
+    const current = Math.min(5, sessions.length);
+    return {
+      current,
+      target: 5,
+      percent: Math.min(100, Math.round((sessions.length / 5) * 100)),
+      unit: "sessions",
+    };
+  }
+  if (key === "first_subtopic") {
+    const done = subtopics.some(
+      (s) => !s.archived && (s.status === "completed" || s.status === "mastered")
+    );
+    return { current: done ? 1 : 0, target: 1, percent: done ? 100 : 0, unit: "subtopic" };
+  }
   if (key.startsWith("hours_")) {
     const target = parseHourThreshold(key) ?? 0;
     const current = Math.round(yearHours * 10) / 10;
@@ -491,8 +620,9 @@ export function getAchievementProgress(
 }
 
 export function getAchievementCategory(key: string): AchievementCategory {
+  if (ACHIEVEMENT_CATEGORIES[key]) return ACHIEVEMENT_CATEGORIES[key];
   if (key.startsWith("hours_")) return "hours";
-  return ACHIEVEMENT_CATEGORIES[key] ?? "getting_started";
+  return "getting_started";
 }
 
 export async function checkAchievements(
@@ -504,6 +634,7 @@ export async function checkAchievements(
   yearStart: string = DEFAULT_YEAR_START,
   yearEnd: string = DEFAULT_YEAR_END
 ) {
+  await ensureBaseAchievements();
   await ensureGoalHourAchievements(settings);
   const achievements = await db.achievements.toArray();
   const yearHours = getHoursLoggedThisYear(sessions, yearStart, yearEnd);
@@ -526,6 +657,14 @@ export async function checkAchievements(
   };
 
   if (sessions.length >= 1) await unlock("first_session");
+  if (sessions.length >= 5) await unlock("sessions_5");
+
+  const completedSubtopics = subtopics.filter(
+    (s) => !s.archived && (s.status === "completed" || s.status === "mastered")
+  );
+  if (completedSubtopics.length >= 1) await unlock("first_subtopic");
+
+  if (streaks.longest >= 3) await unlock("streak_3");
 
   for (const cp of getGoalHourCheckpoints(settings)) {
     if (yearHours >= cp.threshold) await unlock(cp.key);

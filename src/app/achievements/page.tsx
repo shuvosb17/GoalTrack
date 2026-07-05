@@ -16,13 +16,14 @@ import {
   getAchievementCategory,
   getAchievementOrderIndex,
   getGoalSprintSnapshot,
-  getCanonicalHourKeys,
+  getAllAchievementDefinitions,
   getHourCheckpointStep,
   ACHIEVEMENT_CATEGORY_LABELS,
   ACHIEVEMENT_CATEGORY_ORDER,
   ACHIEVEMENT_CATEGORY_ACCENT,
   parseHourThreshold,
 } from "@/lib/achievements";
+import type { Achievement } from "@/lib/types";
 import { DEFAULT_YEAR_END, DEFAULT_YEAR_START } from "@/lib/analytics";
 import { resolveTieredGoal } from "@/lib/goals";
 import { format, parseISO } from "date-fns";
@@ -57,26 +58,29 @@ export default function AchievementsPage() {
     [sessions, settings, yearStart, yearEnd]
   );
 
-  const canonicalHourKeys = useMemo(
-    () => getCanonicalHourKeys(settings),
-    [settings]
-  );
+  const catalog = useMemo(() => getAllAchievementDefinitions(settings), [settings]);
 
   const withProgress = useMemo<SprintLaneItem[]>(() => {
-    const seen = new Set<string>();
-    return achievements
-      .filter((ach) => {
-        if (seen.has(ach.key)) return false;
-        seen.add(ach.key);
-        if (!ach.key.startsWith("hours_")) return true;
-        return canonicalHourKeys.has(ach.key);
-      })
-      .map((ach) => ({
+    const byKey = new Map<string, Achievement>();
+    for (const ach of achievements) {
+      if (!byKey.has(ach.key)) byKey.set(ach.key, ach);
+    }
+
+    return catalog.map((def) => {
+      const ach: Achievement = byKey.get(def.key) ?? {
+        id: def.key,
+        key: def.key,
+        title: def.title,
+        description: def.description,
+        icon: def.icon,
+      };
+      return {
         ach,
         progress: getAchievementProgress(ach, sessions, subtopics, modules, tracks, settings, yearStart, yearEnd),
         unlocked: !!ach.unlockedAt,
-      }));
-  }, [achievements, sessions, subtopics, modules, tracks, settings, yearStart, yearEnd, canonicalHourKeys]);
+      };
+    });
+  }, [catalog, achievements, sessions, subtopics, modules, tracks, settings, yearStart, yearEnd]);
 
   const unlocked = withProgress.filter((a) => a.unlocked);
   const locked = withProgress.filter((a) => !a.unlocked);
@@ -91,8 +95,10 @@ export default function AchievementsPage() {
         .sort(sortLaneItems);
       const subtitle =
         cat === "hours"
-          ? `Checkpoints every ${hourStep}h up to ${tiered.stretch}h stretch (min ${tiered.minimum}h · target ${tiered.target}h)`
-          : undefined;
+          ? `100h · 200h · 300h … every ${hourStep}h up to ${tiered.stretch}h stretch`
+          : cat === "getting_started"
+            ? "Early milestones before the hour sprint"
+            : undefined;
       return { cat, items, subtitle };
     }).filter((lane) => lane.items.length > 0);
   }, [withProgress, tiered, hourStep]);
@@ -108,7 +114,7 @@ export default function AchievementsPage() {
         </p>
       </div>
 
-      <RankHero sprint={sprint} unlockedCount={unlocked.length} totalAchievements={achievements.length} />
+      <RankHero sprint={sprint} unlockedCount={unlocked.length} totalAchievements={catalog.length} />
 
       {closestNext && (
         <div className="rounded-2xl border-[0.5px] border-violet-500/25 bg-violet-500/[0.05] p-4 sm:p-5">
