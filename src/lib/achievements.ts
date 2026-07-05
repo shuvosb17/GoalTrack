@@ -30,15 +30,6 @@ export interface GoalHourCheckpoint {
   tier: GoalHourTier;
 }
 
-const TIER_RANK: Record<GoalHourTier, number> = {
-  warmup: 0,
-  quarter: 1,
-  half: 2,
-  minimum: 3,
-  target: 4,
-  stretch: 5,
-};
-
 export type AchievementCategory = "hours" | "streaks" | "completion" | "getting_started";
 
 export const ACHIEVEMENT_CATEGORY_LABELS: Record<AchievementCategory, string> = {
@@ -80,70 +71,73 @@ export function parseHourThreshold(key: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function computeHourStep(stretch: number): number {
+  const candidates = [100, 150, 200, 250, 300, 400, 500];
+  for (const step of candidates) {
+    const count = Math.floor((stretch - 10) / step);
+    if (count >= 4 && count <= 10) return step;
+  }
+  return Math.max(100, Math.round(stretch / 6 / 50) * 50);
+}
+
 export function getGoalHourCheckpoints(settings: AppSettings | null | undefined): GoalHourCheckpoint[] {
   const tiered = resolveTieredGoal(settings);
   const { minimum, target, stretch } = tiered;
+  const step = computeHourStep(stretch);
 
-  const candidates: GoalHourCheckpoint[] = [
-    {
-      key: "hours_10",
-      threshold: 10,
-      tier: "warmup",
-      title: "First 10 Hours",
-      description: "Log your first 10 hours toward this year's goal",
-      icon: "🏃",
-    },
-    {
-      key: `hours_${Math.round(minimum * 0.25)}`,
-      threshold: Math.round(minimum * 0.25),
-      tier: "quarter",
-      title: "Quarter Minimum",
-      description: `Reach 25% of your ${minimum}h minimum goal`,
-      icon: "⚡",
-    },
-    {
-      key: `hours_${Math.round(minimum * 0.5)}`,
-      threshold: Math.round(minimum * 0.5),
-      tier: "half",
-      title: "Halfway to Minimum",
-      description: `Halfway to your ${minimum}h minimum goal`,
-      icon: "💪",
-    },
-    {
-      key: `hours_${minimum}`,
-      threshold: minimum,
-      tier: "minimum",
-      title: `${minimum}h Minimum`,
-      description: `Hit your minimum goal of ${minimum} hours`,
-      icon: "🎯",
-    },
-    {
-      key: `hours_${target}`,
-      threshold: target,
-      tier: "target",
-      title: `${target}h Target`,
-      description: `Reach your target goal of ${target} hours`,
-      icon: "🏆",
-    },
-    {
-      key: `hours_${stretch}`,
-      threshold: stretch,
-      tier: "stretch",
-      title: `${stretch}h Stretch`,
-      description: `Achieve your stretch goal of ${stretch} hours`,
-      icon: "👑",
-    },
-  ];
-
-  const byThreshold = new Map<number, GoalHourCheckpoint>();
-  for (const cp of candidates) {
-    if (cp.threshold <= 0) continue;
-    const existing = byThreshold.get(cp.threshold);
-    if (!existing || TIER_RANK[cp.tier] > TIER_RANK[existing.tier]) {
-      byThreshold.set(cp.threshold, cp);
-    }
+  const thresholds = new Set<number>([10, minimum, target, stretch]);
+  for (let h = step; h < stretch; h += step) {
+    thresholds.add(h);
   }
-  return [...byThreshold.values()].sort((a, b) => a.threshold - b.threshold);
+
+  return [...thresholds]
+    .filter((t) => t > 0)
+    .sort((a, b) => a - b)
+    .map((threshold) => {
+      let tier: GoalHourTier = "quarter";
+      let title = `${threshold}h`;
+      let description = `Log ${threshold} hours toward this year's goal`;
+      let icon = "⏱️";
+
+      if (threshold === 10) {
+        tier = "warmup";
+        title = "First 10 Hours";
+        description = "Log your first 10 hours toward this year's goal";
+        icon = "🏃";
+      } else if (threshold === minimum) {
+        tier = "minimum";
+        title = `${minimum}h Minimum`;
+        description = `Hit your minimum goal of ${minimum} hours`;
+        icon = "🎯";
+      } else if (threshold === target) {
+        tier = "target";
+        title = `${target}h Target`;
+        description = `Reach your target goal of ${target} hours`;
+        icon = "🏆";
+      } else if (threshold === stretch) {
+        tier = "stretch";
+        title = `${stretch}h Stretch`;
+        description = `Achieve your stretch goal of ${stretch} hours`;
+        icon = "👑";
+      }
+
+      return {
+        key: `hours_${threshold}`,
+        threshold,
+        tier,
+        title,
+        description,
+        icon,
+      };
+    });
+}
+
+export function getCanonicalHourKeys(settings: AppSettings | null | undefined): Set<string> {
+  return new Set(getGoalHourCheckpoints(settings).map((c) => c.key));
+}
+
+export function getHourCheckpointStep(settings: AppSettings | null | undefined): number {
+  return computeHourStep(resolveTieredGoal(settings).stretch);
 }
 
 export function getAchievementOrder(settings?: AppSettings | null): string[] {
@@ -348,10 +342,25 @@ export async function ensureGoalHourAchievements(settings: AppSettings | null | 
     }
   }
 
+  const refreshed = await db.achievements.toArray();
+
   for (const a of all) {
-    if (a.key.startsWith("hours_") && !validKeys.has(a.key) && !a.unlockedAt) {
-      await db.achievements.delete(a.id);
+    if (!a.key.startsWith("hours_") || validKeys.has(a.key)) continue;
+
+    const threshold = parseHourThreshold(a.key);
+    const canonical =
+      threshold !== null
+        ? checkpoints.find((c) => c.threshold === threshold)
+        : undefined;
+
+    if (a.unlockedAt && canonical) {
+      const target = refreshed.find((x) => x.key === canonical.key);
+      if (target && !target.unlockedAt) {
+        await db.achievements.update(target.id, { unlockedAt: a.unlockedAt });
+      }
     }
+
+    await db.achievements.delete(a.id);
   }
 }
 
@@ -468,6 +477,7 @@ export function getAchievementProgress(
 }
 
 export function getAchievementCategory(key: string): AchievementCategory {
+  if (key.startsWith("hours_")) return "hours";
   return ACHIEVEMENT_CATEGORIES[key] ?? "getting_started";
 }
 

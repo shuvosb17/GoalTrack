@@ -92,19 +92,19 @@ export function RankHero({ sprint, unlockedCount, totalAchievements }: RankHeroP
           </div>
         </div>
 
-        <div className="relative h-[88px] rounded-xl border border-white/[0.06] bg-[#08080c]/80 px-2 py-4 sm:px-4">
+        <div className="relative h-[112px] rounded-xl border border-white/[0.06] bg-[#08080c]/80 px-2 pt-8 pb-10 sm:px-4">
           {/* Lane stripes */}
           <div
-            className="pointer-events-none absolute inset-x-2 top-3 bottom-3 rounded-lg opacity-[0.07] sm:inset-x-4"
+            className="pointer-events-none absolute inset-x-2 top-6 bottom-10 rounded-lg opacity-[0.07] sm:inset-x-4"
             style={{
               backgroundImage: `repeating-linear-gradient(90deg, transparent 0px, transparent 28px, rgba(255,255,255,0.9) 28px, rgba(255,255,255,0.9) 56px)`,
             }}
           />
 
           {/* Track rail */}
-          <div className="absolute left-4 right-4 top-1/2 h-2 -translate-y-1/2 rounded-full bg-white/[0.07]" />
+          <div className="absolute left-4 right-4 top-[44px] h-2 rounded-full bg-white/[0.07]" />
           <motion.div
-            className="absolute left-4 top-1/2 h-2 -translate-y-1/2 rounded-full"
+            className="absolute left-4 top-[44px] z-[1] h-2 rounded-full"
             style={{
               background: `linear-gradient(90deg, ${mix(TIER_FORECAST_COLORS.minimum.bar, 70)}, ${TIER_FORECAST_COLORS.target.bar} 55%, ${TIER_FORECAST_COLORS.stretch.bar})`,
               boxShadow: `0 0 20px ${mix(rank.accent, 40)}`,
@@ -117,8 +117,8 @@ export function RankHero({ sprint, unlockedCount, totalAchievements }: RankHeroP
           {/* Goal tier markers */}
           {checkpoints.filter((cp) => cp.isGoalTier).map((cp) => (
             <div
-              key={cp.label}
-              className="absolute top-1/2 z-[1] -translate-x-1/2 -translate-y-1/2"
+              key={`${cp.tier}-${cp.hours}`}
+              className="absolute top-[44px] z-[2] -translate-x-1/2 -translate-y-1/2"
               style={{ left: `calc(1rem + (100% - 2rem) * ${cp.percent / 100})` }}
             >
               <div
@@ -129,21 +129,52 @@ export function RankHero({ sprint, unlockedCount, totalAchievements }: RankHeroP
                 }}
               />
               <span
-                className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] font-bold uppercase tracking-wide"
+                className="absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] font-bold uppercase tracking-wide"
                 style={{ color: cp.reached ? cp.color : "rgba(255,255,255,0.35)" }}
               >
                 {cp.label}
               </span>
-              <span
-                className="absolute top-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] tabular-nums text-muted-foreground"
-              >
+              <span className="absolute top-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] tabular-nums text-muted-foreground">
                 {cp.hours}h
               </span>
             </div>
           ))}
 
+          {/* Runner — faces right toward the finish line */}
+          <motion.div
+            className="absolute top-[44px] z-[5] flex -translate-x-1/2 -translate-y-[calc(50%+4px)] flex-col items-center"
+            initial={{ left: "1rem", opacity: 0 }}
+            animate={{ left: `calc(1rem + (100% - 2rem) * ${runnerPos / 100})`, opacity: 1 }}
+            transition={{ duration: 1, ease: "easeOut" }}
+          >
+            <span
+              className="inline-block text-2xl sm:text-3xl"
+              style={{
+                transform: "scaleX(-1)",
+                filter: `drop-shadow(0 0 10px ${mix(rank.accent, 80)})`,
+              }}
+            >
+              🏃
+            </span>
+          </motion.div>
+
+          {/* Hours label below track to avoid overlapping runner */}
+          <motion.div
+            className="absolute top-[58px] z-[6] -translate-x-1/2"
+            initial={{ left: "1rem", opacity: 0 }}
+            animate={{ left: `calc(1rem + (100% - 2rem) * ${runnerPos / 100})`, opacity: 1 }}
+            transition={{ duration: 1, ease: "easeOut" }}
+          >
+            <span
+              className="rounded-full px-1.5 py-0.5 text-[9px] font-bold tabular-nums"
+              style={{ color: rank.accent, backgroundColor: mix(rank.accent, 16) }}
+            >
+              {loggedHours}h
+            </span>
+          </motion.div>
+
           {/* Rank checkpoints (small dots below track) */}
-          <div className="absolute bottom-1 left-4 right-4 flex h-3 items-center">
+          <div className="absolute bottom-2 left-4 right-4 h-3">
             {ACHIEVEMENT_RANKS.map((r, i) => {
               const hours = rankThresholds[i] ?? 0;
               const pos = tiered.stretch > 0 ? (hours / tiered.stretch) * 100 : 0;
@@ -151,7 +182,7 @@ export function RankHero({ sprint, unlockedCount, totalAchievements }: RankHeroP
               return (
                 <div
                   key={r.name}
-                  className="absolute -translate-x-1/2"
+                  className="absolute top-0 -translate-x-1/2"
                   style={{ left: `${pos}%` }}
                 >
                   <div
@@ -166,33 +197,12 @@ export function RankHero({ sprint, unlockedCount, totalAchievements }: RankHeroP
             })}
           </div>
 
-          {/* Runner */}
-          <motion.div
-            className="absolute top-1/2 z-20 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
-            initial={{ left: "1rem", opacity: 0 }}
-            animate={{ left: `calc(1rem + (100% - 2rem) * ${runnerPos / 100})`, opacity: 1 }}
-            transition={{ duration: 1, ease: "easeOut" }}
-          >
-            <span
-              className="text-2xl sm:text-3xl"
-              style={{ filter: `drop-shadow(0 0 10px ${mix(rank.accent, 80)})` }}
-            >
-              🏃
-            </span>
-            <span
-              className="mt-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold tabular-nums"
-              style={{ color: rank.accent, backgroundColor: mix(rank.accent, 16) }}
-            >
-              {loggedHours}h
-            </span>
-          </motion.div>
-
           {/* Finish line */}
-          <div className="absolute right-3 top-2 bottom-2 w-px bg-gradient-to-b from-transparent via-amber-400/40 to-transparent" />
-          <span className="absolute right-1 top-1 text-sm opacity-80">🏁</span>
+          <div className="absolute right-3 top-4 bottom-8 w-px bg-gradient-to-b from-transparent via-amber-400/40 to-transparent" />
+          <span className="absolute right-1 top-2 text-sm opacity-80">🏁</span>
         </div>
 
-        <div className="relative mt-3 hidden h-4 sm:block">
+        <div className="relative mt-3 h-4 hidden sm:block">
           {ACHIEVEMENT_RANKS.map((r, i) => {
             const hours = rankThresholds[i] ?? 0;
             const pos = tiered.stretch > 0 ? (hours / tiered.stretch) * 100 : 0;

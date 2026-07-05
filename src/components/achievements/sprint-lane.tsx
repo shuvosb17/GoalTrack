@@ -153,11 +153,15 @@ function SprintNode({
         <span className="absolute -right-1 top-8 text-base opacity-70">🏁</span>
       )}
 
-      <div className="relative flex h-14 w-14 items-center justify-center">
-        {state === "current" && <ProgressRing percent={item.progress.percent} accent={accent} />}
+      <div className="relative flex h-[60px] w-[60px] items-center justify-center">
+        {state === "current" && (
+          <div className="absolute inset-0 z-0 flex items-center justify-center">
+            <ProgressRing percent={item.progress.percent} accent={accent} />
+          </div>
+        )}
         <div
           className={cn(
-            "relative z-10 flex h-[52px] w-[52px] items-center justify-center rounded-full transition-all",
+            "relative z-10 flex h-11 w-11 items-center justify-center rounded-full transition-all",
             state === "locked" && "bg-white/[0.03]"
           )}
           style={
@@ -215,31 +219,26 @@ function SprintNode({
   );
 }
 
-const RING_R = 26;
+const RING_R = 28;
 const RING_C = 2 * Math.PI * RING_R;
 
 function ProgressRing({ percent, accent }: { percent: number; accent: string }) {
   const pct = Math.min(100, Math.max(0, percent));
   const offset = RING_C * (1 - pct / 100);
   return (
-    <svg
-      width={58}
-      height={58}
-      viewBox="0 0 58 58"
-      className="absolute inset-0 m-auto animate-[pulse_2.2s_ease-in-out_infinite]"
-    >
-      <circle cx={29} cy={29} r={RING_R} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={2.5} />
+    <svg width={60} height={60} viewBox="0 0 60 60" className="pointer-events-none">
+      <circle cx={30} cy={30} r={RING_R} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={2} />
       <circle
-        cx={29}
-        cy={29}
+        cx={30}
+        cy={30}
         r={RING_R}
         fill="none"
         stroke={accent}
-        strokeWidth={2.5}
+        strokeWidth={2}
         strokeLinecap="round"
         strokeDasharray={RING_C}
         strokeDashoffset={offset}
-        transform="rotate(-90 29 29)"
+        transform="rotate(-90 30 30)"
       />
     </svg>
   );

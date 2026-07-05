@@ -16,6 +16,8 @@ import {
   getAchievementCategory,
   getAchievementOrderIndex,
   getGoalSprintSnapshot,
+  getCanonicalHourKeys,
+  getHourCheckpointStep,
   ACHIEVEMENT_CATEGORY_LABELS,
   ACHIEVEMENT_CATEGORY_ORDER,
   ACHIEVEMENT_CATEGORY_ACCENT,
@@ -55,19 +57,31 @@ export default function AchievementsPage() {
     [sessions, settings, yearStart, yearEnd]
   );
 
+  const canonicalHourKeys = useMemo(
+    () => getCanonicalHourKeys(settings),
+    [settings]
+  );
+
   const withProgress = useMemo<SprintLaneItem[]>(
     () =>
-      achievements.map((ach) => ({
-        ach,
-        progress: getAchievementProgress(ach, sessions, subtopics, modules, tracks, settings, yearStart, yearEnd),
-        unlocked: !!ach.unlockedAt,
-      })),
-    [achievements, sessions, subtopics, modules, tracks, settings, yearStart, yearEnd]
+      achievements
+        .filter((ach) => {
+          if (!ach.key.startsWith("hours_")) return true;
+          return canonicalHourKeys.has(ach.key);
+        })
+        .map((ach) => ({
+          ach,
+          progress: getAchievementProgress(ach, sessions, subtopics, modules, tracks, settings, yearStart, yearEnd),
+          unlocked: !!ach.unlockedAt,
+        })),
+    [achievements, sessions, subtopics, modules, tracks, settings, yearStart, yearEnd, canonicalHourKeys]
   );
 
   const unlocked = withProgress.filter((a) => a.unlocked);
   const locked = withProgress.filter((a) => !a.unlocked);
   const closestNext = [...locked].sort((a, b) => b.progress.percent - a.progress.percent)[0];
+
+  const hourStep = getHourCheckpointStep(settings);
 
   const lanes = useMemo(() => {
     return ACHIEVEMENT_CATEGORY_ORDER.map((cat) => {
@@ -76,11 +90,11 @@ export default function AchievementsPage() {
         .sort(sortLaneItems);
       const subtitle =
         cat === "hours"
-          ? `Checkpoints tied to your ${tiered.minimum}h min · ${tiered.target}h target · ${tiered.stretch}h stretch`
+          ? `Checkpoints every ${hourStep}h up to ${tiered.stretch}h stretch (min ${tiered.minimum}h · target ${tiered.target}h)`
           : undefined;
       return { cat, items, subtitle };
     }).filter((lane) => lane.items.length > 0);
-  }, [withProgress, tiered]);
+  }, [withProgress, tiered, hourStep]);
 
   return (
     <div className="space-y-8">
