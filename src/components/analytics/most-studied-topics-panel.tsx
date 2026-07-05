@@ -46,12 +46,8 @@ function formatHours(h: number) {
 }
 
 function sectionLabel(filter: string): string {
-  if (filter === ALL_TOPICS) return "Ranked by hours";
-  return `${filter} · ranked by hours`;
-}
-
-function sumItemHours(items: TopStudyItem[]): number {
-  return roundHours(items.reduce((sum, i) => sum + i.hours, 0));
+  if (filter === ALL_TOPICS) return "ALL TOPICS · RANKED BY HOURS";
+  return `${filter.toUpperCase()} · RANKED BY HOURS`;
 }
 
 function buildTrackBreakdown(items: TopStudyItem[]) {
@@ -86,9 +82,9 @@ function AnimatedBarFill({ pct, color }: { pct: number; color: string }) {
   }, [pct]);
 
   return (
-    <div className="mt-2 h-[3px] overflow-hidden rounded-full bg-white/[0.06]">
+    <div className="mt-2.5 h-[5px] overflow-hidden rounded-full bg-white/[0.06]">
       <div
-        className="h-full rounded-full opacity-80"
+        className="h-full rounded-full"
         style={{
           width: `${width}%`,
           background: color,
@@ -102,12 +98,12 @@ function AnimatedBarFill({ pct, color }: { pct: number; color: string }) {
 function DonutChart({
   data,
   activeFilter,
-  scopedTotal,
+  heroTotal,
   centerLabel,
 }: {
   data: { name: string; hours: number; color: string }[];
   activeFilter: string;
-  scopedTotal: number;
+  heroTotal: number;
   centerLabel: string;
 }) {
   return (
@@ -141,7 +137,7 @@ function DonutChart({
           className="text-2xl font-medium tabular-nums leading-none sm:text-[28px]"
           style={{ color: PURPLE_HERO }}
         >
-          {formatHours(scopedTotal)}h
+          {formatHours(heroTotal)}h
         </p>
         <p className="mt-1.5 max-w-[120px] truncate text-center text-[11px] text-muted-foreground">
           {centerLabel}
@@ -162,7 +158,9 @@ function TopicBreakdown({
 }) {
   return (
     <div className="flex h-full flex-col">
-      <p className="mb-4 text-xs font-medium text-muted-foreground">Topic breakdown</p>
+      <p className="mb-4 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+        Topic breakdown
+      </p>
       <ul className="space-y-3.5">
         {entries.map((entry) => {
           const pct =
@@ -194,6 +192,12 @@ function TopicBreakdown({
                   {pct}%
                 </span>
               </div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${pct}%`, background: entry.color }}
+                />
+              </div>
             </li>
           );
         })}
@@ -216,11 +220,6 @@ function RankedList({
           const colors = getTrackColors(item.trackName);
           const tag = TYPE_TAG_STYLES[item.level];
           const pct = Math.max(0, (item.hours / maxHours) * 100);
-          const showTypeTag = item.level === "module";
-          const secondaryLine =
-            item.level === "track"
-              ? "track-level log"
-              : item.moduleName ?? item.trackName ?? null;
 
           return (
             <div
@@ -228,42 +227,36 @@ function RankedList({
               className="rounded-xl border-[0.5px] border-white/[0.08] px-3.5 py-3 transition-colors hover:border-white/[0.14] hover:bg-white/[0.03]"
             >
               <div className="flex items-start gap-2.5">
-                <div className="flex w-6 shrink-0 flex-col items-center gap-1 pt-0.5">
-                  <span
-                    className="h-2 w-2 rounded-full"
-                    style={{ background: colors.dot }}
-                    aria-hidden
-                  />
-                  <span className="text-[10px] tabular-nums text-muted-foreground/70">
-                    {i + 1}
-                  </span>
-                </div>
+                <span className="w-5 shrink-0 text-right text-[11px] tabular-nums text-muted-foreground">
+                  {i + 1}
+                </span>
+                <span
+                  className="mt-1.5 h-2 w-2 shrink-0 rounded-full"
+                  style={{ background: colors.dot }}
+                />
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-[13px] font-medium leading-snug">{item.name}</p>
-                    <div className="shrink-0 text-right leading-none">
-                      <span className="text-[15px] font-medium tabular-nums">
-                        {formatHours(item.hours)}
+                  <p className="text-[13px] font-medium leading-snug">{item.name}</p>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                    {item.level === "track" ? (
+                      <span className="text-[11px] text-muted-foreground">track-level log</span>
+                    ) : item.level !== "module" && (item.moduleName ?? item.trackName) ? (
+                      <span className="text-[11px] text-muted-foreground">
+                        {item.moduleName ?? item.trackName}
                       </span>
-                      <span className="ml-0.5 text-[11px] text-muted-foreground">h</span>
-                    </div>
+                    ) : null}
+                    <span
+                      className="rounded-full px-1.5 py-px text-[10px] font-medium lowercase"
+                      style={{ background: tag.bg, color: tag.text }}
+                    >
+                      {tag.label}
+                    </span>
                   </div>
-                  {secondaryLine && (
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">
-                      {secondaryLine}
-                      {showTypeTag && (
-                        <>
-                          <span className="mx-1 text-muted-foreground/40">·</span>
-                          <span
-                            className="inline rounded-full px-1.5 py-px text-[10px] font-medium lowercase"
-                            style={{ background: tag.bg, color: tag.text }}
-                          >
-                            {tag.label}
-                          </span>
-                        </>
-                      )}
-                    </p>
-                  )}
+                </div>
+                <div className="shrink-0 text-right leading-none">
+                  <span className="text-[15px] font-medium tabular-nums">
+                    {formatHours(item.hours)}
+                  </span>
+                  <span className="ml-0.5 text-[11px] text-muted-foreground">h</span>
                 </div>
               </div>
               <AnimatedBarFill pct={pct} color={colors.bar} />
@@ -298,10 +291,11 @@ export function MostStudiedTopicsPanel({ items }: MostStudiedTopicsPanelProps) {
   }, [items, activeFilter]);
 
   const maxHours = visibleItems[0]?.hours ?? 1;
-  const allTracksTotal = sumItemHours(items);
-  const scopedTotal = sumItemHours(visibleItems);
-  const donutCenterLabel =
-    activeFilter === ALL_TOPICS ? "total" : activeFilter;
+  const totalMs = items.reduce((sum, i) => sum + i.hours * 3600000, 0);
+  const heroTotal = roundHours(totalMs / 3600000);
+
+  const donutTotal = heroTotal;
+  const donutCenterLabel = activeFilter === ALL_TOPICS ? "total" : activeFilter;
 
   const filterChipsRow = (
     <div className="flex flex-wrap gap-2">
@@ -349,14 +343,22 @@ export function MostStudiedTopicsPanel({ items }: MostStudiedTopicsPanelProps) {
             </h2>
             <p className="mt-1 text-xs text-muted-foreground">
               All logged hours · any status
-              {activeFilter !== ALL_TOPICS && items.length > 0 && (
-                <span className="ml-2 text-muted-foreground/80">
-                  · {formatHours(allTracksTotal)}h all tracks
-                </span>
-              )}
             </p>
           </div>
-          <div className="hidden shrink-0 lg:block">{filterChipsRow}</div>
+          <div className="flex flex-wrap items-end gap-4 lg:gap-6">
+            {items.length > 0 && (
+              <div className="text-right">
+                <p
+                  className="text-3xl font-medium tabular-nums leading-none sm:text-[40px]"
+                  style={{ color: PURPLE_HERO }}
+                >
+                  {formatHours(heroTotal)}h
+                </p>
+                <p className="mt-1 text-[11px] text-muted-foreground">total this list</p>
+              </div>
+            )}
+            <div className="hidden shrink-0 lg:block">{filterChipsRow}</div>
+          </div>
         </div>
 
         {items.length === 0 ? (
@@ -376,7 +378,7 @@ export function MostStudiedTopicsPanel({ items }: MostStudiedTopicsPanelProps) {
                   <DonutChart
                     data={categoryBreakdown}
                     activeFilter={activeFilter}
-                    scopedTotal={scopedTotal}
+                    heroTotal={heroTotal}
                     centerLabel={donutCenterLabel}
                   />
                 </div>
@@ -385,14 +387,14 @@ export function MostStudiedTopicsPanel({ items }: MostStudiedTopicsPanelProps) {
                 <div className="border-white/[0.06] md:px-0 lg:border-x lg:px-8 xl:px-10">
                   <TopicBreakdown
                     entries={categoryBreakdown}
-                    donutTotal={allTracksTotal}
+                    donutTotal={donutTotal}
                     activeFilter={activeFilter}
                   />
                 </div>
 
                 {/* Right — Rankings */}
                 <div className="min-w-0 md:col-span-2 lg:col-span-1">
-                  <p className="mb-3 text-xs font-medium text-muted-foreground">
+                  <p className="mb-3 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                     {sectionLabel(activeFilter)}
                   </p>
                   {visibleItems.length === 0 ? (
@@ -408,7 +410,7 @@ export function MostStudiedTopicsPanel({ items }: MostStudiedTopicsPanelProps) {
 
             {categoryBreakdown.length === 0 && (
               <div>
-                <p className="mb-3 text-xs font-medium text-muted-foreground">
+                <p className="mb-3 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                   {sectionLabel(activeFilter)}
                 </p>
                 {visibleItems.length === 0 ? (
