@@ -21,6 +21,51 @@ export interface GoPathModule {
 export const GO_BACKEND_PATH_MARKER =
   "Module 0: Developer Environment & Foundations";
 
+/** Bengali Git & GitHub curriculum (Topic 0.3 subtopics). */
+export const GIT_GITHUB_SUBTOPICS = [
+  // শুরু
+  "00 কিছু কথা",
+  "01 গিট কি?",
+  "02 গিটহাব কি?",
+  // গিট
+  "00 গিট সেটআপ",
+  "01 গিট কনফিগার",
+  "02 গিট রিপোজিটরি সেটআপ",
+  "03 স্ট্যাটাস চেক করা",
+  "04 স্টেজিং এরিয়াতে নেওয়া",
+  "05 ফাইল কমিট করা",
+  "06 ফাইল মডিফাই করে আবার কমিট",
+  "07 পুনরায় মডিফাই করে কমিট",
+  "08 কমিট লগ চেক",
+  "09 পূর্বের ভার্শনে যাওয়া",
+  "10 ব্রাঞ্চ তৈরি",
+  "11 ব্রাঞ্চ এ চেকআউট",
+  "12 নতুন ব্রাঞ্চে মডিফিকেশন",
+  "13 ব্রাঞ্চ মেইনে মার্জ",
+  "14 কমিটের সাথে কমিটের পার্থক্য",
+  // গিটহাব
+  "00 গিটহাবের সাথে লিঙ্ক",
+  "01 গিটহাবে পুশ",
+  "02 SSH কী সেটআপ",
+  "03 গিটহাব থেকে পুল",
+  "04 নিজের প্রোজেক্টে পুল রিকোয়েস্ট",
+  "05 গিটহাব থেকে প্রোজেক্ট ক্লোন",
+  "06 অন্য প্রোজেক্টে পুল রিকোয়েস্ট",
+  // প্রোজেক্টে কন্ট্রিবিউট
+  "00 প্রোজেক্ট খোঁজা",
+  "01 প্রোজেক্ট ফর্ক",
+  "02 কন্ট্রিবিউট",
+  "03 এখনো শেষ হয়নি",
+  "04 সেলিব্রেট 🎉",
+  // এক্সপ্লোর গিট
+  "00 গিট রিস্টোর",
+  "01 গিট স্ট্যাশ",
+  "02 গিট রিসেট",
+  "03 গিট রিভার্ট",
+  "04 গিট রিবেস",
+  "05 গিট চেরিপিক",
+] as const;
+
 export const GO_BACKEND_PATH: GoPathModule[] = [
   {
     name: "Module 0: Developer Environment & Foundations",
@@ -47,19 +92,7 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
       },
       {
         name: "Topic 0.3: Git & GitHub",
-        subtopics: [
-          "What version control is and why",
-          "`git init`, `git clone`",
-          "Working dir → staging → commit",
-          "`git add/commit/status/log/diff`",
-          "Branches: `branch`, `switch`, `merge`",
-          "Remotes: `push`, `pull`, `fetch`",
-          "Pull requests & code review flow",
-          "Merge conflicts and resolution",
-          "`.gitignore`",
-          "Commit hygiene",
-          "Trunk-based vs GitFlow",
-        ],
+        subtopics: [...GIT_GITHUB_SUBTOPICS],
       },
       {
         name: "Topic 0.4: How the Web Works (conceptual; deep dive in Module 8)",
