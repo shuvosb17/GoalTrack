@@ -13,7 +13,7 @@ import { updateSubtopicStatus, updateTopicStatus } from "@/lib/crud";
 import { getGoalScopeTopics } from "@/lib/goal-milestones";
 import { getTopicProgress } from "@/lib/analytics";
 import type { GoalMilestoneStats, Module, ProgressStatus, Subtopic, Topic } from "@/lib/types";
-import { STATUS_LABELS, todayISO } from "@/lib/utils";
+import { STATUS_LABELS, STATUS_COLORS, todayISO } from "@/lib/utils";
 
 interface GoalScopeSyncPanelProps {
   stats: GoalMilestoneStats;
@@ -114,12 +114,17 @@ export function GoalScopeSyncPanel({ stats, topics, subtopics, modules }: GoalSc
                         }
                       }}
                     >
-                      <SelectTrigger className="h-7 w-[118px] text-[10px]">
+                      <SelectTrigger
+                        className="h-7 w-[118px] text-[10px]"
+                        style={{ color: STATUS_COLORS[topic.status ?? "not_started"] }}
+                      >
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {ALL_STATUSES.map((s) => (
-                          <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
+                          <SelectItem key={s} value={s} style={{ color: STATUS_COLORS[s] }}>
+                            {STATUS_LABELS[s]}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -133,12 +138,17 @@ export function GoalScopeSyncPanel({ stats, topics, subtopics, modules }: GoalSc
                             value={sub.status}
                             onValueChange={(v) => updateSubtopicStatus(sub.id, v as ProgressStatus, sub.dueDate ?? todayISO())}
                           >
-                            <SelectTrigger className="h-7 w-[118px] text-[10px]">
+                            <SelectTrigger
+                              className="h-7 w-[118px] text-[10px]"
+                              style={{ color: STATUS_COLORS[sub.status] }}
+                            >
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                               {ALL_STATUSES.map((s) => (
-                                <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
+                                <SelectItem key={s} value={s} style={{ color: STATUS_COLORS[s] }}>
+                                  {STATUS_LABELS[s]}
+                                </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>

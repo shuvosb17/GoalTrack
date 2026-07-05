@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { IconActivity } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
-import { cn, STATUS_LABELS } from "@/lib/utils";
+import { cn, STATUS_LABELS, STATUS_COLORS } from "@/lib/utils";
 import type { ProgressStatus } from "@/lib/types";
 import { StatusDonutRing } from "./status-donut-ring";
 
@@ -17,10 +17,10 @@ const STATUS_VISUAL: Record<
   ProgressStatus,
   { color: string; Icon: typeof Loader2 }
 > = {
-  not_started: { color: "#71717a", Icon: CircleDashed },
-  in_progress: { color: "#FAC775", Icon: Loader2 },
-  completed: { color: "#378ADD", Icon: CheckCircle2 },
-  mastered: { color: "#7F77DD", Icon: Sparkles },
+  not_started: { color: STATUS_COLORS.not_started, Icon: CircleDashed },
+  in_progress: { color: STATUS_COLORS.in_progress, Icon: Loader2 },
+  completed: { color: STATUS_COLORS.completed, Icon: CheckCircle2 },
+  mastered: { color: STATUS_COLORS.mastered, Icon: Sparkles },
 };
 
 interface StatusSummaryHeaderProps {

@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { STATUS_LABELS } from "@/lib/utils";
+import { STATUS_LABELS, STATUS_COLORS } from "@/lib/utils";
 import { ALL_STATUSES, formatDeadline } from "@/lib/status";
 import type { ProgressStatus, StatusTopicEntry, GoalMilestone } from "@/lib/types";
 import { getActiveGoalsForTopic } from "@/lib/goal-milestones";
@@ -18,10 +18,10 @@ import { Flag, BookmarkCheck } from "lucide-react";
 type CardVisualStatus = "overdue" | "in_progress" | "completed" | "mastered";
 
 const CARD_STATUS_COLORS: Record<CardVisualStatus, string> = {
-  overdue: "#E24B4A",
-  in_progress: "#FAC775",
-  completed: "#97C459",
-  mastered: "#97C459",
+  overdue: "#ef4444",
+  in_progress: STATUS_COLORS.in_progress,
+  completed: STATUS_COLORS.completed,
+  mastered: STATUS_COLORS.mastered,
 };
 
 function resolveCardVisualStatus(entry: StatusTopicEntry): CardVisualStatus {
@@ -180,12 +180,15 @@ export function StatusTimelineCard({
             value={entry.focalSubtopic?.status ?? status}
             onValueChange={(v) => onStatusChange(entry, v as ProgressStatus)}
           >
-            <SelectTrigger className="h-7 w-[118px] border-white/[0.08] bg-white/[0.02] text-xs">
+            <SelectTrigger
+              className="h-7 w-[118px] border-white/[0.08] bg-white/[0.02] text-xs"
+              style={{ color: STATUS_COLORS[entry.focalSubtopic?.status ?? status] }}
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {ALL_STATUSES.map((s) => (
-                <SelectItem key={s} value={s}>
+                <SelectItem key={s} value={s} style={{ color: STATUS_COLORS[s] }}>
                   {STATUS_LABELS[s]}
                 </SelectItem>
               ))}

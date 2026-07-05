@@ -22,7 +22,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { TimerControls } from "@/components/timer/timer-controls";
-import { STATUS_LABELS, DIFFICULTY_LABELS, DIFFICULTY_COLORS, cn } from "@/lib/utils";
+import { STATUS_LABELS, STATUS_COLORS, DIFFICULTY_LABELS, DIFFICULTY_COLORS, cn } from "@/lib/utils";
 import { formatDeadline, getDaysUntilDue, getSubtopicDueDate } from "@/lib/in-progress";
 import { todayISO } from "@/lib/utils";
 import { db } from "@/lib/db";
@@ -296,12 +296,18 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                     }
                                                   }}
                                                 >
-                                                  <SelectTrigger className="h-6 w-[110px] text-[10px]" onClick={(e) => e.stopPropagation()}>
+                                                  <SelectTrigger
+                                                    className="h-6 w-[110px] text-[10px]"
+                                                    style={{ color: STATUS_COLORS[topic.status ?? "not_started"] }}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                  >
                                                     <SelectValue />
                                                   </SelectTrigger>
                                                   <SelectContent>
                                                     {Object.entries(STATUS_LABELS).map(([k, v]) => (
-                                                      <SelectItem key={k} value={k}>{v}</SelectItem>
+                                                      <SelectItem key={k} value={k} style={{ color: STATUS_COLORS[k as ProgressStatus] }}>
+                                                        {v}
+                                                      </SelectItem>
                                                     ))}
                                                   </SelectContent>
                                                 </Select>
@@ -375,12 +381,17 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                               });
                                                             }
                                                           }}>
-                                                            <SelectTrigger className="h-7 w-full text-xs sm:w-[7.5rem]">
+                                                            <SelectTrigger
+                                                              className="h-7 w-full text-xs sm:w-[7.5rem]"
+                                                              style={{ color: STATUS_COLORS[sub.status] }}
+                                                            >
                                                               <SelectValue />
                                                             </SelectTrigger>
                                                             <SelectContent>
                                                               {Object.entries(STATUS_LABELS).map(([k, v]) => (
-                                                                <SelectItem key={k} value={k}>{v}</SelectItem>
+                                                                <SelectItem key={k} value={k} style={{ color: STATUS_COLORS[k as ProgressStatus] }}>
+                                                                  {v}
+                                                                </SelectItem>
                                                               ))}
                                                             </SelectContent>
                                                           </Select>

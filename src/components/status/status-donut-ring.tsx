@@ -1,5 +1,7 @@
 "use client";
 
+import { STATUS_COLORS } from "@/lib/utils";
+
 const SIZE = 88;
 const STROKE = 10;
 const R = (SIZE - STROKE) / 2;
@@ -18,9 +20,9 @@ interface StatusDonutRingProps {
 }
 
 const SEGMENTS = [
-  { key: "completed" as const, color: "#378ADD" },
-  { key: "in_progress" as const, color: "#FAC775" },
-  { key: "mastered" as const, color: "#7F77DD" },
+  { key: "completed" as const, color: STATUS_COLORS.completed },
+  { key: "in_progress" as const, color: STATUS_COLORS.in_progress },
+  { key: "mastered" as const, color: STATUS_COLORS.mastered },
 ];
 
 export function StatusDonutRing({

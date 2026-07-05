@@ -244,17 +244,17 @@ export const STATUS_LABELS: Record<ProgressStatus, string> = {
 };
 
 export const STATUS_COLORS: Record<ProgressStatus, string> = {
-  not_started: "#71717a",
-  in_progress: "#f59e0b",
+  not_started: "#ef4444",
+  in_progress: "#facc15",
   completed: "#3b82f6",
-  mastered: "#8b5cf6",
+  mastered: "#1e3a8a",
 };
 
 export const STATUS_BG: Record<ProgressStatus, string> = {
-  not_started: "bg-zinc-500/10 border-zinc-500/20 text-zinc-400",
-  in_progress: "bg-amber-500/10 border-amber-500/20 text-amber-400",
+  not_started: "bg-red-500/10 border-red-500/20 text-red-400",
+  in_progress: "bg-yellow-500/10 border-yellow-500/20 text-yellow-400",
   completed: "bg-blue-500/10 border-blue-500/20 text-blue-400",
-  mastered: "bg-violet-500/10 border-violet-500/20 text-violet-400",
+  mastered: "bg-blue-900/20 border-blue-800/30 text-blue-300",
 };
 
 export const DIFFICULTY_LABELS: Record<import("./types").Difficulty, string> = {
