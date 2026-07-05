@@ -33,6 +33,11 @@ function sortLaneItems(a: SprintLaneItem, b: SprintLaneItem): number {
   if (cat === "hours") {
     return (parseHourThreshold(a.ach.key) ?? 0) - (parseHourThreshold(b.ach.key) ?? 0);
   }
+  if (cat === "streaks") {
+    const aDays = parseInt(a.ach.key.split("_")[1] ?? "0", 10);
+    const bDays = parseInt(b.ach.key.split("_")[1] ?? "0", 10);
+    return aDays - bDays;
+  }
   return getAchievementOrderIndex(a.ach.key) - getAchievementOrderIndex(b.ach.key);
 }
 
@@ -98,7 +103,11 @@ export default function AchievementsPage() {
           ? `100h · 200h · 300h … every ${hourStep}h up to ${tiered.stretch}h stretch`
           : cat === "getting_started"
             ? "Early milestones before the hour sprint"
-            : undefined;
+            : cat === "streaks"
+              ? "7 → 14 → 21 → 30 days … up to a full year unbroken"
+              : cat === "completion"
+                ? "Subtopics, modules, tracks — finish line at Interview Ready"
+                : undefined;
       return { cat, items, subtitle };
     }).filter((lane) => lane.items.length > 0);
   }, [withProgress, tiered, hourStep]);

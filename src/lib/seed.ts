@@ -1,6 +1,7 @@
 import { v4 as uuid } from "uuid";
 import { db } from "./db";
 import type { Track, Module, Topic, Subtopic, Achievement, AppSettings, LeetcodeProblem, CsReviewItem } from "./types";
+import { getAllAchievementDefinitions } from "./achievements";
 import { DEFAULT_TIERED_GOAL } from "./types/metrics";
 import { nowISO } from "./utils";
 import { CS_FUNDAMENTALS, LEETCODE_PATTERNS, coreProblemKey, coreCsItemKey } from "./leetcode-patterns";
@@ -16,18 +17,11 @@ import { formatGoProjectTopicName } from "./go-backend-projects";
 import { importMdIntoModule } from "./md-import";
 import { archiveModule } from "./crud";
 
-const ACHIEVEMENTS: Omit<Achievement, "id">[] = [
-  { key: "first_session", title: "First Study Session", description: "Complete your first learning session", icon: "🎯" },
-  { key: "sessions_5", title: "5 Sessions", description: "Log 5 study sessions", icon: "📖" },
-  { key: "first_subtopic", title: "First Win", description: "Complete your first subtopic", icon: "✅" },
-  { key: "streak_3", title: "3-Day Streak", description: "Study 3 days in a row", icon: "⚡" },
-  { key: "streak_7", title: "Week Warrior", description: "Maintain a 7-day learning streak", icon: "🔥" },
-  { key: "streak_30", title: "Monthly Champion", description: "Maintain a 30-day learning streak", icon: "💫" },
-  { key: "streak_100", title: "Centurion", description: "Maintain a 100-day learning streak", icon: "🌟" },
-  { key: "first_module", title: "Module Master", description: "Complete your first module", icon: "📦" },
-  { key: "first_track", title: "Track Conqueror", description: "Complete your first learning track", icon: "🚀" },
-  { key: "interview_ready", title: "Interview Ready", description: "BD-CORE readiness 85%+ and all Foundation patterns complete", icon: "🎯" },
-];
+const ACHIEVEMENTS: Omit<Achievement, "id">[] = getAllAchievementDefinitions({
+  tieredGoal: DEFAULT_TIERED_GOAL,
+  yearStart: `${DEFAULT_TIERED_GOAL.year}-01-01`,
+  yearEnd: `${DEFAULT_TIERED_GOAL.year}-12-31`,
+} as AppSettings);
 
 function buildSeedData() {
   const now = nowISO();

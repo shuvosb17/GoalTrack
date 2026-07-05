@@ -8,8 +8,6 @@ import type { TieredGoal } from "./types/metrics";
 import { nowISO } from "./utils";
 import { format, parseISO } from "date-fns";
 
-const STREAK_THRESHOLDS = [7, 30, 100];
-
 const GOAL_TIER_COLORS = {
   warmup: "#94a3b8",
   quarter: "#38bdf8",
@@ -39,25 +37,83 @@ export const ACHIEVEMENT_CATEGORY_LABELS: Record<AchievementCategory, string> = 
   completion: "Completion",
 };
 
-export const ACHIEVEMENT_CATEGORIES: Record<string, AchievementCategory> = {
-  first_session: "getting_started",
-  sessions_5: "getting_started",
-  first_subtopic: "getting_started",
-  streak_3: "getting_started",
-  hours_10: "getting_started",
-  hours_50: "hours",
-  hours_100: "hours",
-  hours_500: "hours",
-  hours_1000: "hours",
-  streak_7: "streaks",
-  streak_30: "streaks",
-  streak_100: "streaks",
-  first_module: "completion",
-  first_track: "completion",
-  interview_ready: "completion",
+const STREAK_LANE_THRESHOLDS = [7, 14, 21, 30, 60, 90, 100, 180, 365] as const;
+
+const STREAK_LANE_META: Record<number, { title: string; description: string; icon: string }> = {
+  7: { title: "Week Warrior", description: "Maintain a 7-day learning streak", icon: "🔥" },
+  14: { title: "Two-Week Flame", description: "Maintain a 14-day learning streak", icon: "🔥" },
+  21: { title: "Three-Week Run", description: "Maintain a 21-day learning streak", icon: "⚡" },
+  30: { title: "Monthly Champion", description: "Maintain a 30-day learning streak", icon: "💫" },
+  60: { title: "Two-Month Drive", description: "Maintain a 60-day learning streak", icon: "💪" },
+  90: { title: "Quarter Streak", description: "Maintain a 90-day learning streak", icon: "🏅" },
+  100: { title: "Centurion", description: "Maintain a 100-day learning streak", icon: "🌟" },
+  180: { title: "Half-Year Hero", description: "Maintain a 180-day learning streak", icon: "🌠" },
+  365: { title: "Year Unbroken", description: "Maintain a 365-day learning streak", icon: "👑" },
 };
 
-/** Static achievements (non-dynamic hour checkpoints). */
+export const COMPLETION_LANE_KEYS = [
+  "subtopics_10",
+  "subtopics_25",
+  "first_module",
+  "modules_3",
+  "subtopics_50",
+  "first_track",
+  "tracks_2",
+  "modules_5",
+  "subtopics_100",
+  "tracks_all",
+  "interview_ready",
+] as const;
+
+const COMPLETION_LANE_META: Record<
+  (typeof COMPLETION_LANE_KEYS)[number],
+  { title: string; description: string; icon: string }
+> = {
+  subtopics_10: { title: "10 Subtopics", description: "Complete 10 subtopics", icon: "✅" },
+  subtopics_25: { title: "25 Subtopics", description: "Complete 25 subtopics", icon: "📋" },
+  first_module: { title: "Module Master", description: "Complete your first module", icon: "📦" },
+  modules_3: { title: "3 Modules", description: "Complete 3 modules", icon: "📦" },
+  subtopics_50: { title: "50 Subtopics", description: "Complete 50 subtopics", icon: "📝" },
+  first_track: { title: "Track Conqueror", description: "Complete your first learning track", icon: "🚀" },
+  tracks_2: { title: "2 Tracks", description: "Complete 2 learning tracks", icon: "🛤️" },
+  modules_5: { title: "5 Modules", description: "Complete 5 modules", icon: "🏗️" },
+  subtopics_100: { title: "100 Subtopics", description: "Complete 100 subtopics", icon: "🏆" },
+  tracks_all: { title: "All Tracks", description: "Complete every active learning track", icon: "🌍" },
+  interview_ready: {
+    title: "Interview Ready",
+    description: "BD-CORE readiness 85%+ and all Foundation patterns complete",
+    icon: "🎯",
+  },
+};
+
+const GETTING_STARTED_KEYS = new Set([
+  "first_session",
+  "sessions_5",
+  "first_subtopic",
+  "streak_3",
+  "hours_10",
+]);
+
+export function getStreakCheckpointDefinitions(): Omit<Achievement, "id">[] {
+  return STREAK_LANE_THRESHOLDS.map((days) => {
+    const meta = STREAK_LANE_META[days];
+    return {
+      key: `streak_${days}`,
+      title: meta.title,
+      description: meta.description,
+      icon: meta.icon,
+    };
+  });
+}
+
+export function getCompletionCheckpointDefinitions(): Omit<Achievement, "id">[] {
+  return COMPLETION_LANE_KEYS.map((key) => {
+    const meta = COMPLETION_LANE_META[key];
+    return { key, ...meta };
+  });
+}
+
+/** Getting-started milestones only (streak/completion lanes have their own catalogs). */
 export const BASE_ACHIEVEMENT_DEFINITIONS: Omit<Achievement, "id">[] = [
   {
     key: "first_session",
@@ -83,43 +139,43 @@ export const BASE_ACHIEVEMENT_DEFINITIONS: Omit<Achievement, "id">[] = [
     description: "Study 3 days in a row",
     icon: "⚡",
   },
-  {
-    key: "streak_7",
-    title: "Week Warrior",
-    description: "Maintain a 7-day learning streak",
-    icon: "🔥",
-  },
-  {
-    key: "streak_30",
-    title: "Monthly Champion",
-    description: "Maintain a 30-day learning streak",
-    icon: "💫",
-  },
-  {
-    key: "streak_100",
-    title: "Centurion",
-    description: "Maintain a 100-day learning streak",
-    icon: "🌟",
-  },
-  {
-    key: "first_module",
-    title: "Module Master",
-    description: "Complete your first module",
-    icon: "📦",
-  },
-  {
-    key: "first_track",
-    title: "Track Conqueror",
-    description: "Complete your first learning track",
-    icon: "🚀",
-  },
-  {
-    key: "interview_ready",
-    title: "Interview Ready",
-    description: "BD-CORE readiness 85%+ and all Foundation patterns complete",
-    icon: "🎯",
-  },
 ];
+
+export function getBaseAchievementDefinitions(): Omit<Achievement, "id">[] {
+  return [
+    ...BASE_ACHIEVEMENT_DEFINITIONS,
+    ...getStreakCheckpointDefinitions(),
+    ...getCompletionCheckpointDefinitions(),
+  ];
+}
+
+function countCompletedSubtopics(subtopics: Subtopic[]): number {
+  return subtopics.filter(
+    (s) => !s.archived && (s.status === "completed" || s.status === "mastered")
+  ).length;
+}
+
+function countCompletedModules(modules: Module[], subtopics: Subtopic[]): number {
+  return modules.filter((m) => {
+    const subs = subtopics.filter((s) => s.moduleId === m.id && !s.archived);
+    return subs.length > 0 && subs.every((s) => s.status === "completed" || s.status === "mastered");
+  }).length;
+}
+
+function countCompletedTracks(tracks: Track[], subtopics: Subtopic[]): number {
+  return tracks.filter((t) => {
+    const subs = subtopics.filter((s) => s.trackId === t.id && !s.archived);
+    return subs.length > 0 && subs.every((s) => s.status === "completed" || s.status === "mastered");
+  }).length;
+}
+
+function countCompletedActiveTracks(tracks: Track[], subtopics: Subtopic[]): number {
+  return tracks.filter((t) => {
+    if (t.archived) return false;
+    const subs = subtopics.filter((s) => s.trackId === t.id && !s.archived);
+    return subs.length > 0 && subs.every((s) => s.status === "completed" || s.status === "mastered");
+  }).length;
+}
 
 /** Canonical low -> high ordering; hour keys are resolved from current goals at runtime. */
 export const ACHIEVEMENT_ORDER_BASE: string[] = [
@@ -210,7 +266,7 @@ export function getAllAchievementDefinitions(
     icon: cp.icon,
   }));
   const hourKeys = new Set(hourDefs.map((d) => d.key));
-  const base = BASE_ACHIEVEMENT_DEFINITIONS.filter((d) => !hourKeys.has(d.key));
+  const base = getBaseAchievementDefinitions().filter((d) => !hourKeys.has(d.key));
   return [...base, ...hourDefs];
 }
 
@@ -222,12 +278,8 @@ export function getAchievementOrder(settings?: AppSettings | null): string[] {
     "first_subtopic",
     "streak_3",
     ...hourKeys,
-    "streak_7",
-    "streak_30",
-    "streak_100",
-    "first_module",
-    "first_track",
-    "interview_ready",
+    ...STREAK_LANE_THRESHOLDS.map((d) => `streak_${d}`),
+    ...COMPLETION_LANE_KEYS,
   ];
 }
 
@@ -406,8 +458,9 @@ export function getGoalSprintSnapshot(
 
 export async function ensureBaseAchievements(): Promise<void> {
   const all = await db.achievements.toArray();
+  const defs = getBaseAchievementDefinitions();
 
-  for (const def of BASE_ACHIEVEMENT_DEFINITIONS) {
+  for (const def of defs) {
     const existing = all.find((a) => a.key === def.key);
     if (existing) {
       await db.achievements.update(existing.id, {
@@ -594,23 +647,62 @@ export function getAchievementProgress(
     return {
       current: streaks.longest,
       target,
-      percent: Math.min(100, Math.round((streaks.longest / target) * 100)),
+      percent: target > 0 ? Math.min(100, Math.round((streaks.longest / target) * 100)) : 0,
       unit: "days",
     };
   }
+  if (key.startsWith("subtopics_")) {
+    const target = parseInt(key.split("_")[1] ?? "0", 10);
+    const current = countCompletedSubtopics(subtopics);
+    return {
+      current,
+      target,
+      percent: target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0,
+      unit: "subtopics",
+    };
+  }
+  if (key.startsWith("modules_")) {
+    const target = parseInt(key.split("_")[1] ?? "0", 10);
+    const current = countCompletedModules(modules, subtopics);
+    return {
+      current,
+      target,
+      percent: target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0,
+      unit: "modules",
+    };
+  }
+  if (key.startsWith("tracks_") && key !== "tracks_all") {
+    const target = parseInt(key.split("_")[1] ?? "0", 10);
+    const current = countCompletedTracks(tracks, subtopics);
+    return {
+      current,
+      target,
+      percent: target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0,
+      unit: "tracks",
+    };
+  }
   if (key === "first_module") {
-    const done = modules.filter((m) => {
-      const subs = subtopics.filter((s) => s.moduleId === m.id && !s.archived);
-      return subs.length > 0 && subs.every((s) => s.status === "completed" || s.status === "mastered");
-    }).length;
+    const done = countCompletedModules(modules, subtopics);
     return { current: done >= 1 ? 1 : 0, target: 1, percent: done >= 1 ? 100 : 0, unit: "module" };
   }
   if (key === "first_track") {
-    const done = tracks.filter((t) => {
-      const subs = subtopics.filter((s) => s.trackId === t.id && !s.archived);
-      return subs.length > 0 && subs.every((s) => s.status === "completed" || s.status === "mastered");
-    }).length;
+    const done = countCompletedTracks(tracks, subtopics);
     return { current: done >= 1 ? 1 : 0, target: 1, percent: done >= 1 ? 100 : 0, unit: "track" };
+  }
+  if (key === "tracks_all") {
+    const target = Math.max(
+      1,
+      tracks.filter(
+        (t) => !t.archived && subtopics.some((s) => s.trackId === t.id && !s.archived)
+      ).length
+    );
+    const current = countCompletedActiveTracks(tracks, subtopics);
+    return {
+      current,
+      target,
+      percent: Math.min(100, Math.round((current / target) * 100)),
+      unit: "tracks",
+    };
   }
   if (key === "interview_ready") {
     const unlocked = achievement.unlockedAt ? 1 : 0;
@@ -620,8 +712,19 @@ export function getAchievementProgress(
 }
 
 export function getAchievementCategory(key: string): AchievementCategory {
-  if (ACHIEVEMENT_CATEGORIES[key]) return ACHIEVEMENT_CATEGORIES[key];
+  if (GETTING_STARTED_KEYS.has(key)) return "getting_started";
+  if (key.startsWith("streak_")) return "streaks";
   if (key.startsWith("hours_")) return "hours";
+  if (
+    key.startsWith("subtopics_") ||
+    key.startsWith("modules_") ||
+    key.startsWith("tracks_") ||
+    key === "first_module" ||
+    key === "first_track" ||
+    key === "interview_ready"
+  ) {
+    return "completion";
+  }
   return "getting_started";
 }
 
@@ -670,21 +773,31 @@ export async function checkAchievements(
     if (yearHours >= cp.threshold) await unlock(cp.key);
   }
 
-  for (const threshold of STREAK_THRESHOLDS) {
+  for (const threshold of STREAK_LANE_THRESHOLDS) {
     if (streaks.longest >= threshold) await unlock(`streak_${threshold}`);
   }
 
-  const completedModules = modules.filter((m) => {
-    const subs = subtopics.filter((s) => s.moduleId === m.id && !s.archived);
-    return subs.length > 0 && subs.every((s) => s.status === "completed" || s.status === "mastered");
-  });
-  if (completedModules.length >= 1) await unlock("first_module");
+  const completedModules = countCompletedModules(modules, subtopics);
+  if (completedModules >= 1) await unlock("first_module");
+  if (completedModules >= 3) await unlock("modules_3");
+  if (completedModules >= 5) await unlock("modules_5");
 
-  const completedTracks = tracks.filter((t) => {
-    const subs = subtopics.filter((s) => s.trackId === t.id && !s.archived);
-    return subs.length > 0 && subs.every((s) => s.status === "completed" || s.status === "mastered");
-  });
-  if (completedTracks.length >= 1) await unlock("first_track");
+  const completedTracks = countCompletedTracks(tracks, subtopics);
+  if (completedTracks >= 1) await unlock("first_track");
+  if (completedTracks >= 2) await unlock("tracks_2");
+
+  const activeTrackTarget = tracks.filter(
+    (t) => !t.archived && subtopics.some((s) => s.trackId === t.id && !s.archived)
+  ).length;
+  if (activeTrackTarget > 0 && countCompletedActiveTracks(tracks, subtopics) >= activeTrackTarget) {
+    await unlock("tracks_all");
+  }
+
+  const completedSubtopicCount = countCompletedSubtopics(subtopics);
+  if (completedSubtopicCount >= 10) await unlock("subtopics_10");
+  if (completedSubtopicCount >= 25) await unlock("subtopics_25");
+  if (completedSubtopicCount >= 50) await unlock("subtopics_50");
+  if (completedSubtopicCount >= 100) await unlock("subtopics_100");
 
   for (const cp of getGoalHourCheckpoints(settings)) {
     if (yearHours >= cp.threshold) {
