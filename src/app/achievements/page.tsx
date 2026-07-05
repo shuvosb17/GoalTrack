@@ -2,12 +2,11 @@
 
 import { useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Lock } from "lucide-react";
 import { IconTrophy, IconTarget } from "@tabler/icons-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { SectionHeading } from "@/components/shared/section-heading";
+import { RankHero } from "@/components/achievements/rank-hero";
+import { SprintLane, type SprintLaneItem } from "@/components/achievements/sprint-lane";
 import {
   useAchievements, useMilestones, useSessions, useAllSubtopics, useAllModules, useTracks,
 } from "@/hooks/use-data";
@@ -15,71 +14,13 @@ import {
   checkAchievements,
   getAchievementProgress,
   getAchievementCategory,
+  getAchievementOrderIndex,
+  getAchievementRank,
   ACHIEVEMENT_CATEGORY_LABELS,
-  type AchievementCategory,
+  ACHIEVEMENT_CATEGORY_ORDER,
+  ACHIEVEMENT_CATEGORY_ACCENT,
 } from "@/lib/achievements";
 import { format, parseISO } from "date-fns";
-import type { Achievement } from "@/lib/types";
-
-const CATEGORY_ORDER: AchievementCategory[] = ["getting_started", "hours", "streaks", "completion"];
-
-function AchievementCard({
-  ach,
-  progress,
-  unlocked,
-  index,
-}: {
-  ach: Achievement;
-  progress: ReturnType<typeof getAchievementProgress>;
-  unlocked: boolean;
-  index: number;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.96 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: index * 0.03 }}
-    >
-      <Card
-        className={
-          unlocked
-            ? "border-[0.5px] border-violet-500/30 bg-violet-500/[0.06]"
-            : "border-[0.5px] border-white/[0.08] bg-white/[0.02] opacity-90"
-        }
-      >
-        <CardContent className="pt-5 pb-5">
-          <div className="flex items-start gap-3">
-            {unlocked ? (
-              <span className="text-3xl">{ach.icon}</span>
-            ) : (
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/[0.04]">
-                <Lock className="h-4 w-4 text-muted-foreground" />
-              </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <h3 className="font-semibold">{ach.title}</h3>
-              <p className="mt-0.5 text-xs text-muted-foreground">{ach.description}</p>
-              {!unlocked && (
-                <div className="mt-3 space-y-1">
-                  <div className="flex justify-between text-[10px] text-muted-foreground">
-                    <span>{progress.current}{progress.unit ? ` ${progress.unit}` : ""} / {progress.target}</span>
-                    <span>{progress.percent}%</span>
-                  </div>
-                  <Progress value={progress.percent} className="h-1" />
-                </div>
-              )}
-              {unlocked && ach.unlockedAt && (
-                <Badge variant="outline" className="mt-2 text-[10px] border-emerald-500/30 text-emerald-400">
-                  Unlocked {format(parseISO(ach.unlockedAt), "MMM d, yyyy")}
-                </Badge>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-}
 
 export default function AchievementsPage() {
   const achievements = useAchievements();
@@ -93,7 +34,7 @@ export default function AchievementsPage() {
     checkAchievements(sessions, subtopics, modules, tracks);
   }, [sessions, subtopics, modules, tracks]);
 
-  const withProgress = useMemo(
+  const withProgress = useMemo<SprintLaneItem[]>(
     () =>
       achievements.map((ach) => ({
         ach,
@@ -106,23 +47,21 @@ export default function AchievementsPage() {
   const unlocked = withProgress.filter((a) => a.unlocked);
   const locked = withProgress.filter((a) => !a.unlocked);
   const closestNext = [...locked].sort((a, b) => b.progress.percent - a.progress.percent)[0];
-  const latestUnlock = [...unlocked]
-    .filter((a) => a.ach.unlockedAt)
-    .sort((a, b) => (b.ach.unlockedAt ?? "").localeCompare(a.ach.unlockedAt ?? ""))[0];
-
-  const byCategory = useMemo(() => {
-    const map = new Map<AchievementCategory, typeof withProgress>();
-    for (const cat of CATEGORY_ORDER) map.set(cat, []);
-    for (const item of withProgress) {
-      const cat = getAchievementCategory(item.ach.key);
-      map.get(cat)?.push(item);
-    }
-    return CATEGORY_ORDER.map((cat) => ({ cat, items: map.get(cat) ?? [] })).filter((g) => g.items.length > 0);
-  }, [withProgress]);
 
   const completionPct = achievements.length
     ? Math.round((unlocked.length / achievements.length) * 100)
     : 0;
+
+  const rank = getAchievementRank(unlocked.length, achievements.length);
+
+  const lanes = useMemo(() => {
+    return ACHIEVEMENT_CATEGORY_ORDER.map((cat) => {
+      const items = withProgress
+        .filter((item) => getAchievementCategory(item.ach.key) === cat)
+        .sort((a, b) => getAchievementOrderIndex(a.ach.key) - getAchievementOrderIndex(b.ach.key));
+      return { cat, items };
+    }).filter((lane) => lane.items.length > 0);
+  }, [withProgress]);
 
   return (
     <div className="space-y-8">
@@ -131,60 +70,61 @@ export default function AchievementsPage() {
           <IconTrophy className="h-7 w-7 text-primary" stroke={1.5} /> Achievements
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Milestones unlocked from your learning activity.
+          Sprint from rookie to legend — every session moves you down the track.
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {[
-          { label: "Unlocked", value: `${unlocked.length}/${achievements.length}` },
-          { label: "Completion", value: `${completionPct}%` },
-          {
-            label: "Latest unlock",
-            value: latestUnlock?.ach.title.split(" ")[0] ?? "—",
-          },
-          {
-            label: "Closest next",
-            value: closestNext ? `${closestNext.progress.percent}%` : "—",
-          },
-        ].map((item) => (
-          <div key={item.label} className="rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.02] p-3 sm:p-4 text-center">
-            <p className="metric-value truncate text-xl tabular-nums sm:text-2xl">{item.value}</p>
-            <p className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">{item.label}</p>
-          </div>
-        ))}
-      </div>
+      <RankHero
+        rank={rank}
+        unlockedCount={unlocked.length}
+        total={achievements.length}
+        completionPct={completionPct}
+      />
 
       {closestNext && (
-        <div className="rounded-xl border-[0.5px] border-violet-500/25 bg-violet-500/[0.05] p-4">
-          <p className="mb-2 flex items-center gap-2 text-xs font-medium text-violet-300">
+        <div className="rounded-2xl border-[0.5px] border-violet-500/25 bg-violet-500/[0.05] p-4 sm:p-5">
+          <p className="mb-3 flex items-center gap-2 text-xs font-medium text-violet-300">
             <IconTarget className="h-3.5 w-3.5" stroke={1.5} />
-            Closest to unlocking
+            Next checkpoint
           </p>
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="font-medium">{closestNext.ach.title}</p>
-              <p className="text-xs text-muted-foreground">{closestNext.ach.description}</p>
+          <div className="flex items-center gap-4">
+            <span className="text-3xl">{closestNext.ach.icon}</span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="font-medium">{closestNext.ach.title}</p>
+                <span className="metric-value shrink-0 text-2xl tabular-nums text-violet-300">
+                  {closestNext.progress.percent}%
+                </span>
+              </div>
+              <p className="mt-0.5 text-xs text-muted-foreground">{closestNext.ach.description}</p>
+              <div className="mt-3 flex items-center gap-3">
+                <Progress value={closestNext.progress.percent} className="h-1.5 flex-1" />
+                <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                  {closestNext.progress.current}
+                  {closestNext.progress.unit ? ` ${closestNext.progress.unit}` : ""} / {closestNext.progress.target}
+                </span>
+              </div>
             </div>
-            <span className="metric-value text-2xl tabular-nums text-violet-300">{closestNext.progress.percent}%</span>
           </div>
-          <Progress value={closestNext.progress.percent} className="mt-2 h-1.5" />
         </div>
       )}
 
-      {byCategory.map(({ cat, items }) => (
-        <div key={cat}>
-          <SectionHeading>{ACHIEVEMENT_CATEGORY_LABELS[cat]}</SectionHeading>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {items.map(({ ach, progress, unlocked }, i) => (
-              <AchievementCard key={ach.id} ach={ach} progress={progress} unlocked={unlocked} index={i} />
-            ))}
-          </div>
+      <div>
+        <SectionHeading>Race lanes</SectionHeading>
+        <div className="grid gap-4">
+          {lanes.map(({ cat, items }) => (
+            <SprintLane
+              key={cat}
+              label={ACHIEVEMENT_CATEGORY_LABELS[cat]}
+              accent={ACHIEVEMENT_CATEGORY_ACCENT[cat]}
+              items={items}
+            />
+          ))}
         </div>
-      ))}
+      </div>
 
       <div>
-        <SectionHeading>Milestone timeline</SectionHeading>
+        <SectionHeading>Recent unlocks</SectionHeading>
         {milestones.length === 0 ? (
           <p className="text-sm text-muted-foreground">Milestones appear as you progress.</p>
         ) : (

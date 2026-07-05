@@ -32,6 +32,117 @@ export const ACHIEVEMENT_CATEGORIES: Record<string, AchievementCategory> = {
   interview_ready: "completion",
 };
 
+/** Canonical low -> high ordering across all achievements. */
+export const ACHIEVEMENT_ORDER: string[] = [
+  "first_session",
+  "hours_10",
+  "hours_50",
+  "hours_100",
+  "hours_500",
+  "hours_1000",
+  "streak_7",
+  "streak_30",
+  "streak_100",
+  "first_module",
+  "first_track",
+  "interview_ready",
+];
+
+/** Order of categories as race lanes (easiest first). */
+export const ACHIEVEMENT_CATEGORY_ORDER: AchievementCategory[] = [
+  "getting_started",
+  "hours",
+  "streaks",
+  "completion",
+];
+
+/** Accent color per category, used for lane glows and fills. */
+export const ACHIEVEMENT_CATEGORY_ACCENT: Record<AchievementCategory, string> = {
+  getting_started: "#38bdf8",
+  hours: "#a78bfa",
+  streaks: "#fb923c",
+  completion: "#34d399",
+};
+
+/** Position of an achievement within its category (low -> high), 0-based. */
+export function getAchievementTierIndex(key: string): number {
+  const category = getAchievementCategory(key);
+  const withinCategory = ACHIEVEMENT_ORDER.filter(
+    (k) => getAchievementCategory(k) === category
+  );
+  const idx = withinCategory.indexOf(key);
+  return idx === -1 ? 0 : idx;
+}
+
+/** Global low -> high rank derived from unlocked count. */
+export function getAchievementOrderIndex(key: string): number {
+  const idx = ACHIEVEMENT_ORDER.indexOf(key);
+  return idx === -1 ? ACHIEVEMENT_ORDER.length : idx;
+}
+
+export interface AchievementRankDef {
+  name: string;
+  icon: string;
+  accent: string;
+  minUnlocked: number;
+}
+
+/** Ordered ranks (low -> high). Thresholds spread across the 12 achievements. */
+export const ACHIEVEMENT_RANKS: AchievementRankDef[] = [
+  { name: "Rookie", icon: "🌱", accent: "#94a3b8", minUnlocked: 0 },
+  { name: "Rising", icon: "⚡", accent: "#38bdf8", minUnlocked: 2 },
+  { name: "Grinder", icon: "🔥", accent: "#a78bfa", minUnlocked: 5 },
+  { name: "Elite", icon: "💎", accent: "#f472b6", minUnlocked: 8 },
+  { name: "Legend", icon: "👑", accent: "#fbbf24", minUnlocked: 11 },
+];
+
+export interface AchievementRank {
+  index: number;
+  name: string;
+  icon: string;
+  accent: string;
+  current: number;
+  total: number;
+  minUnlocked: number;
+  nextThreshold: number | null;
+  nextName: string | null;
+  toNext: number;
+  percentToNext: number;
+  isMax: boolean;
+}
+
+export function getAchievementRank(unlockedCount: number, total: number): AchievementRank {
+  let index = 0;
+  for (let i = 0; i < ACHIEVEMENT_RANKS.length; i++) {
+    if (unlockedCount >= ACHIEVEMENT_RANKS[i].minUnlocked) index = i;
+  }
+  const rank = ACHIEVEMENT_RANKS[index];
+  const next = ACHIEVEMENT_RANKS[index + 1] ?? null;
+  const isMax = next === null;
+
+  const spanStart = rank.minUnlocked;
+  const spanEnd = next ? next.minUnlocked : total;
+  const span = Math.max(1, spanEnd - spanStart);
+  const percentToNext = isMax
+    ? 100
+    : Math.min(100, Math.round(((unlockedCount - spanStart) / span) * 100));
+
+  return {
+    index,
+    name: rank.name,
+    icon: rank.icon,
+    accent: rank.accent,
+    current: unlockedCount,
+    total,
+    minUnlocked: rank.minUnlocked,
+    nextThreshold: next ? next.minUnlocked : null,
+    nextName: next ? next.name : null,
+    toNext: next ? Math.max(0, next.minUnlocked - unlockedCount) : 0,
+    percentToNext,
+    isMax,
+  };
+}
+
 export interface AchievementProgress {
   current: number;
   target: number;
