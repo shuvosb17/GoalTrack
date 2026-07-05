@@ -1,12 +1,43 @@
 import { v4 as uuid } from "uuid";
 import { db } from "./db";
-import { getTotalHours } from "./analytics";
+import { getTotalHours, DEFAULT_YEAR_END, DEFAULT_YEAR_START } from "./analytics";
+import { getHoursLoggedThisYear, resolveTieredGoal } from "./goals";
 import { calculateStreaks } from "./utils";
-import type { Achievement, LearningSession, Subtopic, Module, Track } from "./types";
+import type { Achievement, AppSettings, LearningSession, Subtopic, Module, Track } from "./types";
+import type { TieredGoal } from "./types/metrics";
 import { nowISO } from "./utils";
+import { format, parseISO } from "date-fns";
 
-const HOUR_THRESHOLDS = [10, 50, 100, 500, 1000];
 const STREAK_THRESHOLDS = [7, 30, 100];
+
+const GOAL_TIER_COLORS = {
+  warmup: "#94a3b8",
+  quarter: "#38bdf8",
+  half: "#60a5fa",
+  minimum: "#34d399",
+  target: "#a78bfa",
+  stretch: "#fbbf24",
+} as const;
+
+export type GoalHourTier = keyof typeof GOAL_TIER_COLORS;
+
+export interface GoalHourCheckpoint {
+  key: string;
+  threshold: number;
+  title: string;
+  description: string;
+  icon: string;
+  tier: GoalHourTier;
+}
+
+const TIER_RANK: Record<GoalHourTier, number> = {
+  warmup: 0,
+  quarter: 1,
+  half: 2,
+  minimum: 3,
+  target: 4,
+  stretch: 5,
+};
 
 export type AchievementCategory = "hours" | "streaks" | "completion" | "getting_started";
 
@@ -32,14 +63,9 @@ export const ACHIEVEMENT_CATEGORIES: Record<string, AchievementCategory> = {
   interview_ready: "completion",
 };
 
-/** Canonical low -> high ordering across all achievements. */
-export const ACHIEVEMENT_ORDER: string[] = [
+/** Canonical low -> high ordering; hour keys are resolved from current goals at runtime. */
+export const ACHIEVEMENT_ORDER_BASE: string[] = [
   "first_session",
-  "hours_10",
-  "hours_50",
-  "hours_100",
-  "hours_500",
-  "hours_1000",
   "streak_7",
   "streak_30",
   "streak_100",
@@ -47,6 +73,86 @@ export const ACHIEVEMENT_ORDER: string[] = [
   "first_track",
   "interview_ready",
 ];
+
+export function parseHourThreshold(key: string): number | null {
+  if (!key.startsWith("hours_")) return null;
+  const n = parseInt(key.split("_")[1] ?? "", 10);
+  return Number.isFinite(n) ? n : null;
+}
+
+export function getGoalHourCheckpoints(settings: AppSettings | null | undefined): GoalHourCheckpoint[] {
+  const tiered = resolveTieredGoal(settings);
+  const { minimum, target, stretch } = tiered;
+
+  const candidates: GoalHourCheckpoint[] = [
+    {
+      key: "hours_10",
+      threshold: 10,
+      tier: "warmup",
+      title: "First 10 Hours",
+      description: "Log your first 10 hours toward this year's goal",
+      icon: "🏃",
+    },
+    {
+      key: `hours_${Math.round(minimum * 0.25)}`,
+      threshold: Math.round(minimum * 0.25),
+      tier: "quarter",
+      title: "Quarter Minimum",
+      description: `Reach 25% of your ${minimum}h minimum goal`,
+      icon: "⚡",
+    },
+    {
+      key: `hours_${Math.round(minimum * 0.5)}`,
+      threshold: Math.round(minimum * 0.5),
+      tier: "half",
+      title: "Halfway to Minimum",
+      description: `Halfway to your ${minimum}h minimum goal`,
+      icon: "💪",
+    },
+    {
+      key: `hours_${minimum}`,
+      threshold: minimum,
+      tier: "minimum",
+      title: `${minimum}h Minimum`,
+      description: `Hit your minimum goal of ${minimum} hours`,
+      icon: "🎯",
+    },
+    {
+      key: `hours_${target}`,
+      threshold: target,
+      tier: "target",
+      title: `${target}h Target`,
+      description: `Reach your target goal of ${target} hours`,
+      icon: "🏆",
+    },
+    {
+      key: `hours_${stretch}`,
+      threshold: stretch,
+      tier: "stretch",
+      title: `${stretch}h Stretch`,
+      description: `Achieve your stretch goal of ${stretch} hours`,
+      icon: "👑",
+    },
+  ];
+
+  const byThreshold = new Map<number, GoalHourCheckpoint>();
+  for (const cp of candidates) {
+    if (cp.threshold <= 0) continue;
+    const existing = byThreshold.get(cp.threshold);
+    if (!existing || TIER_RANK[cp.tier] > TIER_RANK[existing.tier]) {
+      byThreshold.set(cp.threshold, cp);
+    }
+  }
+  return [...byThreshold.values()].sort((a, b) => a.threshold - b.threshold);
+}
+
+export function getAchievementOrder(settings?: AppSettings | null): string[] {
+  const hourKeys = getGoalHourCheckpoints(settings).map((c) => c.key);
+  return ["first_session", ...hourKeys, "streak_7", "streak_30", "streak_100", "first_module", "first_track", "interview_ready"];
+}
+
+/** @deprecated Use getAchievementOrder(settings) for full list including goal hour keys. */
+export const ACHIEVEMENT_ORDER: string[] = getAchievementOrder();
 
 /** Order of categories as race lanes (easiest first). */
 export const ACHIEVEMENT_CATEGORY_ORDER: AchievementCategory[] = [
@@ -65,19 +171,37 @@ export const ACHIEVEMENT_CATEGORY_ACCENT: Record<AchievementCategory, string> = 
 };
 
 /** Position of an achievement within its category (low -> high), 0-based. */
-export function getAchievementTierIndex(key: string): number {
+export function getAchievementTierIndex(key: string, settings?: AppSettings | null): number {
   const category = getAchievementCategory(key);
-  const withinCategory = ACHIEVEMENT_ORDER.filter(
+  if (category === "hours") {
+    const hourKeys = getGoalHourCheckpoints(settings).map((c) => c.key);
+    const idx = hourKeys.indexOf(key);
+    return idx === -1 ? parseHourThreshold(key) ?? 0 : idx;
+  }
+  const withinCategory = getAchievementOrder(settings).filter(
     (k) => getAchievementCategory(k) === category
   );
   const idx = withinCategory.indexOf(key);
   return idx === -1 ? 0 : idx;
 }
 
-/** Global low -> high rank derived from unlocked count. */
-export function getAchievementOrderIndex(key: string): number {
-  const idx = ACHIEVEMENT_ORDER.indexOf(key);
-  return idx === -1 ? ACHIEVEMENT_ORDER.length : idx;
+/** Global low -> high rank derived from unlocked count (legacy badge stat). */
+export function getAchievementOrderIndex(key: string, settings?: AppSettings | null): number {
+  const order = getAchievementOrder(settings);
+  const idx = order.indexOf(key);
+  return idx === -1 ? order.length : idx;
+}
+
+function resolveYearHours(
+  sessions: LearningSession[],
+  settings?: AppSettings | null,
+  yearStart?: string,
+  yearEnd?: string
+): number {
+  if (yearStart && yearEnd) {
+    return getHoursLoggedThisYear(sessions, yearStart, yearEnd);
+  }
+  return getTotalHours(sessions) / 3600000;
 }
 
 export interface AchievementRankDef {
@@ -87,14 +211,149 @@ export interface AchievementRankDef {
   minUnlocked: number;
 }
 
-/** Ordered ranks (low -> high). Thresholds spread across the 12 achievements. */
+/** Ordered ranks aligned to goal tiers (hours logged this year). */
 export const ACHIEVEMENT_RANKS: AchievementRankDef[] = [
   { name: "Rookie", icon: "🌱", accent: "#94a3b8", minUnlocked: 0 },
-  { name: "Rising", icon: "⚡", accent: "#38bdf8", minUnlocked: 2 },
-  { name: "Grinder", icon: "🔥", accent: "#a78bfa", minUnlocked: 5 },
-  { name: "Elite", icon: "💎", accent: "#f472b6", minUnlocked: 8 },
-  { name: "Legend", icon: "👑", accent: "#fbbf24", minUnlocked: 11 },
+  { name: "Rising", icon: "⚡", accent: "#38bdf8", minUnlocked: 10 },
+  { name: "Grinder", icon: "🔥", accent: "#34d399", minUnlocked: -1 },
+  { name: "Elite", icon: "💎", accent: "#a78bfa", minUnlocked: -2 },
+  { name: "Legend", icon: "👑", accent: "#fbbf24", minUnlocked: -3 },
 ];
+
+export interface GoalSprintCheckpoint {
+  label: string;
+  hours: number;
+  percent: number;
+  reached: boolean;
+  tier: GoalHourTier | "rank";
+  color: string;
+  isGoalTier?: boolean;
+}
+
+export interface GoalSprintSnapshot {
+  tiered: TieredGoal;
+  loggedHours: number;
+  yearEndLabel: string;
+  runnerPercent: number;
+  targetPercent: number;
+  minimumPercent: number;
+  activeTierLabel: string;
+  hoursToTarget: number;
+  checkpoints: GoalSprintCheckpoint[];
+  rank: AchievementRank;
+}
+
+function goalRankThresholds(tiered: TieredGoal): number[] {
+  return [0, 10, tiered.minimum, tiered.target, tiered.stretch];
+}
+
+export function getGoalSprintRank(loggedHours: number, tiered: TieredGoal): AchievementRank {
+  const thresholds = goalRankThresholds(tiered);
+  let index = 0;
+  for (let i = 0; i < ACHIEVEMENT_RANKS.length; i++) {
+    const minHours = thresholds[i] ?? 0;
+    if (loggedHours >= minHours) index = i;
+  }
+  const rank = ACHIEVEMENT_RANKS[index];
+  const next = ACHIEVEMENT_RANKS[index + 1] ?? null;
+  const spanStart = thresholds[index] ?? 0;
+  const spanEnd = next ? thresholds[index + 1] ?? tiered.stretch : tiered.stretch;
+  const span = Math.max(1, spanEnd - spanStart);
+  const isMax = next === null;
+  const percentToNext = isMax
+    ? 100
+    : Math.min(100, Math.round(((loggedHours - spanStart) / span) * 100));
+
+  return {
+    index,
+    name: rank.name,
+    icon: rank.icon,
+    accent: rank.accent,
+    current: Math.round(loggedHours),
+    total: tiered.stretch,
+    minUnlocked: spanStart,
+    nextThreshold: isMax ? null : spanEnd,
+    nextName: next?.name ?? null,
+    toNext: isMax ? 0 : Math.max(0, Math.round(spanEnd - loggedHours)),
+    percentToNext,
+    isMax,
+  };
+}
+
+export function getGoalSprintSnapshot(
+  sessions: LearningSession[],
+  settings: AppSettings | null | undefined,
+  yearStart: string,
+  yearEnd: string
+): GoalSprintSnapshot {
+  const tiered = resolveTieredGoal(settings);
+  const loggedHours = Math.round(getHoursLoggedThisYear(sessions, yearStart, yearEnd) * 10) / 10;
+  const stretch = Math.max(1, tiered.stretch);
+  const runnerPercent = Math.min(100, Math.round((loggedHours / stretch) * 100));
+  const targetPercent = Math.min(100, Math.round((loggedHours / Math.max(1, tiered.target)) * 100));
+  const minimumPercent = Math.min(100, Math.round((loggedHours / Math.max(1, tiered.minimum)) * 100));
+
+  let activeTierLabel = "Building momentum";
+  if (loggedHours >= tiered.stretch) activeTierLabel = "Stretch goal reached";
+  else if (loggedHours >= tiered.target) activeTierLabel = "On Target — pushing to Stretch";
+  else if (loggedHours >= tiered.minimum) activeTierLabel = "Minimum secured — racing to Target";
+  else activeTierLabel = "Sprinting toward Minimum";
+
+  const hourCheckpoints = getGoalHourCheckpoints(settings);
+  const checkpoints: GoalSprintCheckpoint[] = hourCheckpoints.map((cp) => ({
+    label: cp.tier === "minimum" ? "Min" : cp.tier === "target" ? "Target" : cp.tier === "stretch" ? "Stretch" : `${cp.threshold}h`,
+    hours: cp.threshold,
+    percent: Math.min(100, (cp.threshold / stretch) * 100),
+    reached: loggedHours >= cp.threshold,
+    tier: cp.tier,
+    color: GOAL_TIER_COLORS[cp.tier],
+    isGoalTier: cp.tier === "minimum" || cp.tier === "target" || cp.tier === "stretch",
+  }));
+
+  return {
+    tiered,
+    loggedHours,
+    yearEndLabel: format(parseISO(yearEnd), "MMM yyyy"),
+    runnerPercent,
+    targetPercent,
+    minimumPercent,
+    activeTierLabel,
+    hoursToTarget: Math.max(0, Math.round((tiered.target - loggedHours) * 10) / 10),
+    checkpoints,
+    rank: getGoalSprintRank(loggedHours, tiered),
+  };
+}
+
+export async function ensureGoalHourAchievements(settings: AppSettings | null | undefined): Promise<void> {
+  const checkpoints = getGoalHourCheckpoints(settings);
+  const validKeys = new Set(checkpoints.map((c) => c.key));
+  const all = await db.achievements.toArray();
+
+  for (const cp of checkpoints) {
+    const existing = all.find((a) => a.key === cp.key);
+    if (existing) {
+      await db.achievements.update(existing.id, {
+        title: cp.title,
+        description: cp.description,
+        icon: cp.icon,
+      });
+    } else {
+      await db.achievements.add({
+        id: uuid(),
+        key: cp.key,
+        title: cp.title,
+        description: cp.description,
+        icon: cp.icon,
+      });
+    }
+  }
+
+  for (const a of all) {
+    if (a.key.startsWith("hours_") && !validKeys.has(a.key) && !a.unlockedAt) {
+      await db.achievements.delete(a.id);
+    }
+  }
+}
 
 export interface AchievementRank {
   index: number;
@@ -155,9 +414,12 @@ export function getAchievementProgress(
   sessions: LearningSession[],
   subtopics: Subtopic[],
   modules: Module[],
-  tracks: Track[]
+  tracks: Track[],
+  settings?: AppSettings | null,
+  yearStart?: string,
+  yearEnd?: string
 ): AchievementProgress {
-  const totalHours = getTotalHours(sessions) / 3600000;
+  const yearHours = resolveYearHours(sessions, settings, yearStart, yearEnd);
   const streaks = calculateStreaks(sessions.map((s) => s.date));
   const key = achievement.key;
 
@@ -166,11 +428,12 @@ export function getAchievementProgress(
     return { current, target: 1, percent: current * 100, unit: "session" };
   }
   if (key.startsWith("hours_")) {
-    const target = parseInt(key.split("_")[1] ?? "0", 10);
+    const target = parseHourThreshold(key) ?? 0;
+    const current = Math.round(yearHours * 10) / 10;
     return {
-      current: Math.round(totalHours * 10) / 10,
+      current,
       target,
-      percent: Math.min(100, Math.round((totalHours / target) * 100)),
+      percent: target > 0 ? Math.min(100, Math.round((yearHours / target) * 100)) : 0,
       unit: "h",
     };
   }
@@ -212,10 +475,14 @@ export async function checkAchievements(
   sessions: LearningSession[],
   subtopics: Subtopic[],
   modules: Module[],
-  tracks: Track[]
+  tracks: Track[],
+  settings?: AppSettings | null,
+  yearStart: string = DEFAULT_YEAR_START,
+  yearEnd: string = DEFAULT_YEAR_END
 ) {
+  await ensureGoalHourAchievements(settings);
   const achievements = await db.achievements.toArray();
-  const totalHours = getTotalHours(sessions) / 3600000;
+  const yearHours = getHoursLoggedThisYear(sessions, yearStart, yearEnd);
   const streaks = calculateStreaks(sessions.map((s) => s.date));
   const newlyUnlocked: string[] = [];
 
@@ -236,8 +503,8 @@ export async function checkAchievements(
 
   if (sessions.length >= 1) await unlock("first_session");
 
-  for (const threshold of HOUR_THRESHOLDS) {
-    if (totalHours >= threshold) await unlock(`hours_${threshold}`);
+  for (const cp of getGoalHourCheckpoints(settings)) {
+    if (yearHours >= cp.threshold) await unlock(cp.key);
   }
 
   for (const threshold of STREAK_THRESHOLDS) {
@@ -256,13 +523,17 @@ export async function checkAchievements(
   });
   if (completedTracks.length >= 1) await unlock("first_track");
 
-  for (const threshold of HOUR_THRESHOLDS) {
-    if (totalHours >= threshold) {
-      const existing = await db.milestones.where("title").equals(`${threshold} Hours`).count();
+  for (const cp of getGoalHourCheckpoints(settings)) {
+    if (yearHours >= cp.threshold) {
+      const existing = await db.milestones.where("title").equals(cp.title).count();
       if (existing === 0) {
         await db.milestones.add({
-          id: uuid(), type: "hours", title: `${threshold} Hours`, description: `Invested ${threshold} hours of learning`,
-          date: nowISO(), value: threshold,
+          id: uuid(),
+          type: "hours",
+          title: cp.title,
+          description: cp.description,
+          date: nowISO(),
+          value: cp.threshold,
         });
       }
     }

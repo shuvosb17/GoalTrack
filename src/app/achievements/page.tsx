@@ -8,19 +8,30 @@ import { SectionHeading } from "@/components/shared/section-heading";
 import { RankHero } from "@/components/achievements/rank-hero";
 import { SprintLane, type SprintLaneItem } from "@/components/achievements/sprint-lane";
 import {
-  useAchievements, useMilestones, useSessions, useAllSubtopics, useAllModules, useTracks,
+  useAchievements, useMilestones, useSessions, useAllSubtopics, useAllModules, useTracks, useSettings,
 } from "@/hooks/use-data";
 import {
   checkAchievements,
   getAchievementProgress,
   getAchievementCategory,
   getAchievementOrderIndex,
-  getAchievementRank,
+  getGoalSprintSnapshot,
   ACHIEVEMENT_CATEGORY_LABELS,
   ACHIEVEMENT_CATEGORY_ORDER,
   ACHIEVEMENT_CATEGORY_ACCENT,
+  parseHourThreshold,
 } from "@/lib/achievements";
+import { DEFAULT_YEAR_END, DEFAULT_YEAR_START } from "@/lib/analytics";
+import { resolveTieredGoal } from "@/lib/goals";
 import { format, parseISO } from "date-fns";
+
+function sortLaneItems(a: SprintLaneItem, b: SprintLaneItem): number {
+  const cat = getAchievementCategory(a.ach.key);
+  if (cat === "hours") {
+    return (parseHourThreshold(a.ach.key) ?? 0) - (parseHourThreshold(b.ach.key) ?? 0);
+  }
+  return getAchievementOrderIndex(a.ach.key) - getAchievementOrderIndex(b.ach.key);
+}
 
 export default function AchievementsPage() {
   const achievements = useAchievements();
@@ -29,39 +40,47 @@ export default function AchievementsPage() {
   const subtopics = useAllSubtopics();
   const modules = useAllModules();
   const tracks = useTracks();
+  const settings = useSettings();
+
+  const yearStart = settings?.yearStart ?? DEFAULT_YEAR_START;
+  const yearEnd = settings?.yearEnd ?? DEFAULT_YEAR_END;
+  const tiered = resolveTieredGoal(settings);
 
   useEffect(() => {
-    checkAchievements(sessions, subtopics, modules, tracks);
-  }, [sessions, subtopics, modules, tracks]);
+    checkAchievements(sessions, subtopics, modules, tracks, settings, yearStart, yearEnd);
+  }, [sessions, subtopics, modules, tracks, settings, yearStart, yearEnd]);
+
+  const sprint = useMemo(
+    () => getGoalSprintSnapshot(sessions, settings, yearStart, yearEnd),
+    [sessions, settings, yearStart, yearEnd]
+  );
 
   const withProgress = useMemo<SprintLaneItem[]>(
     () =>
       achievements.map((ach) => ({
         ach,
-        progress: getAchievementProgress(ach, sessions, subtopics, modules, tracks),
+        progress: getAchievementProgress(ach, sessions, subtopics, modules, tracks, settings, yearStart, yearEnd),
         unlocked: !!ach.unlockedAt,
       })),
-    [achievements, sessions, subtopics, modules, tracks]
+    [achievements, sessions, subtopics, modules, tracks, settings, yearStart, yearEnd]
   );
 
   const unlocked = withProgress.filter((a) => a.unlocked);
   const locked = withProgress.filter((a) => !a.unlocked);
   const closestNext = [...locked].sort((a, b) => b.progress.percent - a.progress.percent)[0];
 
-  const completionPct = achievements.length
-    ? Math.round((unlocked.length / achievements.length) * 100)
-    : 0;
-
-  const rank = getAchievementRank(unlocked.length, achievements.length);
-
   const lanes = useMemo(() => {
     return ACHIEVEMENT_CATEGORY_ORDER.map((cat) => {
       const items = withProgress
         .filter((item) => getAchievementCategory(item.ach.key) === cat)
-        .sort((a, b) => getAchievementOrderIndex(a.ach.key) - getAchievementOrderIndex(b.ach.key));
-      return { cat, items };
+        .sort(sortLaneItems);
+      const subtitle =
+        cat === "hours"
+          ? `Checkpoints tied to your ${tiered.minimum}h min · ${tiered.target}h target · ${tiered.stretch}h stretch`
+          : undefined;
+      return { cat, items, subtitle };
     }).filter((lane) => lane.items.length > 0);
-  }, [withProgress]);
+  }, [withProgress, tiered]);
 
   return (
     <div className="space-y-8">
@@ -70,16 +89,11 @@ export default function AchievementsPage() {
           <IconTrophy className="h-7 w-7 text-primary" stroke={1.5} /> Achievements
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Sprint from rookie to legend — every session moves you down the track.
+          Your sprint to {tiered.target}h — every session pushes you closer on the track.
         </p>
       </div>
 
-      <RankHero
-        rank={rank}
-        unlockedCount={unlocked.length}
-        total={achievements.length}
-        completionPct={completionPct}
-      />
+      <RankHero sprint={sprint} unlockedCount={unlocked.length} totalAchievements={achievements.length} />
 
       {closestNext && (
         <div className="rounded-2xl border-[0.5px] border-violet-500/25 bg-violet-500/[0.05] p-4 sm:p-5">
@@ -111,13 +125,17 @@ export default function AchievementsPage() {
 
       <div>
         <SectionHeading>Race lanes</SectionHeading>
-        <div className="grid gap-4">
-          {lanes.map(({ cat, items }) => (
+        <p className="-mt-3 mb-4 text-xs text-muted-foreground">
+          Scroll each lane — low achievements on the left, higher tiers toward the finish line.
+        </p>
+        <div className="grid gap-5">
+          {lanes.map(({ cat, items, subtitle }) => (
             <SprintLane
               key={cat}
               label={ACHIEVEMENT_CATEGORY_LABELS[cat]}
               accent={ACHIEVEMENT_CATEGORY_ACCENT[cat]}
               items={items}
+              subtitle={subtitle}
             />
           ))}
         </div>

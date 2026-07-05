@@ -1,91 +1,152 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ACHIEVEMENT_RANKS, type AchievementRank } from "@/lib/achievements";
+import { ACHIEVEMENT_RANKS, type GoalSprintSnapshot } from "@/lib/achievements";
+import { TIER_FORECAST_COLORS } from "@/lib/goal-forecast-ui";
 
 interface RankHeroProps {
-  rank: AchievementRank;
+  sprint: GoalSprintSnapshot;
   unlockedCount: number;
-  total: number;
-  completionPct: number;
+  totalAchievements: number;
 }
 
 function mix(accent: string, pct: number) {
   return `color-mix(in srgb, ${accent} ${pct}%, transparent)`;
 }
 
-export function RankHero({ rank, unlockedCount, total, completionPct }: RankHeroProps) {
-  const runnerPos = Math.min(100, Math.max(0, completionPct));
+export function RankHero({ sprint, unlockedCount, totalAchievements }: RankHeroProps) {
+  const { rank, tiered, loggedHours, runnerPercent, targetPercent, activeTierLabel, hoursToTarget, yearEndLabel, checkpoints } = sprint;
+  const runnerPos = runnerPercent;
+
+  const rankThresholds = [0, 10, tiered.minimum, tiered.target, tiered.stretch];
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl border-[0.5px] p-5 sm:p-6"
+      className="relative overflow-hidden rounded-2xl border-[0.5px] p-5 sm:p-7"
       style={{
-        borderColor: mix(rank.accent, 30),
-        background: `radial-gradient(120% 140% at 0% 0%, ${mix(rank.accent, 10)}, transparent 55%), #101014`,
+        borderColor: mix(rank.accent, 35),
+        background: `radial-gradient(140% 120% at 0% 0%, ${mix(rank.accent, 12)}, transparent 50%), radial-gradient(100% 80% at 100% 100%, ${mix(TIER_FORECAST_COLORS.target.bar, 8)}, transparent 45%), #0c0c10`,
       }}
     >
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-        {/* Rank badge */}
-        <div className="flex items-center gap-4">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.04]"
+        style={{
+          backgroundImage: `repeating-linear-gradient(90deg, transparent, transparent 48px, rgba(255,255,255,0.5) 48px, rgba(255,255,255,0.5) 49px)`,
+        }}
+      />
+
+      <div className="relative flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+        <div className="flex items-start gap-4">
           <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
+            initial={{ scale: 0.85, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: "spring", stiffness: 200, damping: 16 }}
-            className="flex h-16 w-16 items-center justify-center rounded-2xl text-3xl sm:h-20 sm:w-20 sm:text-4xl"
+            className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-2xl text-4xl sm:h-20 sm:w-20"
             style={{
-              backgroundColor: mix(rank.accent, 16),
-              border: `1.5px solid ${mix(rank.accent, 45)}`,
-              boxShadow: `0 0 30px ${mix(rank.accent, 28)}`,
+              backgroundColor: mix(rank.accent, 18),
+              border: `2px solid ${mix(rank.accent, 50)}`,
+              boxShadow: `0 0 40px ${mix(rank.accent, 32)}`,
             }}
           >
             {rank.icon}
           </motion.div>
           <div>
-            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Current rank</p>
-            <h2 className="mt-0.5 text-2xl font-semibold sm:text-3xl" style={{ color: rank.accent }}>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Sprint rank</p>
+            <h2 className="mt-0.5 text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: rank.accent }}>
               {rank.name}
             </h2>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1.5 max-w-md text-sm text-muted-foreground">{activeTierLabel}</p>
+            <p className="mt-1 text-xs text-muted-foreground/80">
               {rank.isMax ? (
-                <span>Top rank reached — {unlockedCount}/{total} unlocked</span>
+                <>Legend status — all goal tiers conquered by {yearEndLabel}</>
               ) : (
-                <span>
-                  <span className="font-medium text-foreground/90">{rank.toNext} more</span> to reach{" "}
-                  <span className="font-medium" style={{ color: rank.accent }}>{rank.nextName}</span>
-                </span>
+                <>
+                  <span className="font-medium text-foreground/90">{rank.toNext}h</span> to reach{" "}
+                  <span className="font-semibold" style={{ color: rank.accent }}>{rank.nextName}</span>
+                </>
               )}
             </p>
           </div>
         </div>
 
-        {/* Compact stats */}
-        <div className="grid grid-cols-3 gap-4 sm:gap-6">
-          <Stat value={`${unlockedCount}/${total}`} label="Unlocked" />
-          <Stat value={`${completionPct}%`} label="Completion" />
-          <Stat value={rank.isMax ? "MAX" : `${rank.percentToNext}%`} label="To next rank" />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:gap-4">
+          <Stat value={`${loggedHours}h`} label="Logged this year" accent={rank.accent} />
+          <Stat value={`${tiered.target}h`} label="Your target" accent={TIER_FORECAST_COLORS.target.bar} />
+          <Stat value={`${targetPercent}%`} label="Target progress" accent={TIER_FORECAST_COLORS.target.bar} />
+          <Stat value={`${unlockedCount}/${totalAchievements}`} label="Badges unlocked" />
         </div>
       </div>
 
-      {/* Overall sprint track */}
-      <div className="mt-8">
-        <div className="relative mx-1 mt-2">
-          <div className="absolute left-0 right-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-white/[0.06]" />
-          <motion.div
-            className="absolute left-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full"
+      {/* Long goal sprint track */}
+      <div className="relative mt-10">
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Goal sprint track</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              0h → {tiered.stretch}h stretch · {hoursToTarget > 0 ? `${hoursToTarget}h to target` : "Target reached"}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 text-[10px]">
+            <GoalPill label={`Min ${tiered.minimum}h`} color={TIER_FORECAST_COLORS.minimum.bar} active={loggedHours >= tiered.minimum} />
+            <GoalPill label={`Target ${tiered.target}h`} color={TIER_FORECAST_COLORS.target.bar} active={loggedHours >= tiered.target} />
+            <GoalPill label={`Stretch ${tiered.stretch}h`} color={TIER_FORECAST_COLORS.stretch.bar} active={loggedHours >= tiered.stretch} />
+          </div>
+        </div>
+
+        <div className="relative h-[88px] rounded-xl border border-white/[0.06] bg-[#08080c]/80 px-2 py-4 sm:px-4">
+          {/* Lane stripes */}
+          <div
+            className="pointer-events-none absolute inset-x-2 top-3 bottom-3 rounded-lg opacity-[0.07] sm:inset-x-4"
             style={{
-              background: `linear-gradient(90deg, ${mix(rank.accent, 45)}, ${rank.accent})`,
-              boxShadow: `0 0 14px ${mix(rank.accent, 45)}`,
+              backgroundImage: `repeating-linear-gradient(90deg, transparent 0px, transparent 28px, rgba(255,255,255,0.9) 28px, rgba(255,255,255,0.9) 56px)`,
             }}
-            initial={{ width: 0 }}
-            animate={{ width: `${runnerPos}%` }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
           />
 
-          {/* Rank checkpoints */}
-          <div className="relative flex h-6 items-center">
+          {/* Track rail */}
+          <div className="absolute left-4 right-4 top-1/2 h-2 -translate-y-1/2 rounded-full bg-white/[0.07]" />
+          <motion.div
+            className="absolute left-4 top-1/2 h-2 -translate-y-1/2 rounded-full"
+            style={{
+              background: `linear-gradient(90deg, ${mix(TIER_FORECAST_COLORS.minimum.bar, 70)}, ${TIER_FORECAST_COLORS.target.bar} 55%, ${TIER_FORECAST_COLORS.stretch.bar})`,
+              boxShadow: `0 0 20px ${mix(rank.accent, 40)}`,
+            }}
+            initial={{ width: 0 }}
+            animate={{ width: `calc((100% - 2rem) * ${runnerPos / 100})` }}
+            transition={{ duration: 1, ease: "easeOut" }}
+          />
+
+          {/* Goal tier markers */}
+          {checkpoints.filter((cp) => cp.isGoalTier).map((cp) => (
+            <div
+              key={cp.label}
+              className="absolute top-1/2 z-[1] -translate-x-1/2 -translate-y-1/2"
+              style={{ left: `calc(1rem + (100% - 2rem) * ${cp.percent / 100})` }}
+            >
+              <div
+                className="h-4 w-1 rounded-full"
+                style={{
+                  backgroundColor: cp.reached ? cp.color : "rgba(255,255,255,0.2)",
+                  boxShadow: cp.reached ? `0 0 12px ${mix(cp.color, 60)}` : "none",
+                }}
+              />
+              <span
+                className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] font-bold uppercase tracking-wide"
+                style={{ color: cp.reached ? cp.color : "rgba(255,255,255,0.35)" }}
+              >
+                {cp.label}
+              </span>
+              <span
+                className="absolute top-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] tabular-nums text-muted-foreground"
+              >
+                {cp.hours}h
+              </span>
+            </div>
+          ))}
+
+          {/* Rank checkpoints (small dots below track) */}
+          <div className="absolute bottom-1 left-4 right-4 flex h-3 items-center">
             {ACHIEVEMENT_RANKS.map((r, i) => {
-              const pos = total > 0 ? Math.min(100, (r.minUnlocked / total) * 100) : 0;
+              const hours = rankThresholds[i] ?? 0;
+              const pos = tiered.stretch > 0 ? (hours / tiered.stretch) * 100 : 0;
               const reached = i <= rank.index;
               return (
                 <div
@@ -94,11 +155,10 @@ export function RankHero({ rank, unlockedCount, total, completionPct }: RankHero
                   style={{ left: `${pos}%` }}
                 >
                   <div
-                    className="h-3 w-3 rounded-full border transition-colors"
+                    className="h-2 w-2 rounded-full border"
                     style={{
-                      backgroundColor: reached ? r.accent : "#15151a",
-                      borderColor: reached ? r.accent : "rgba(255,255,255,0.15)",
-                      boxShadow: reached ? `0 0 10px ${mix(r.accent, 60)}` : "none",
+                      backgroundColor: reached ? r.accent : "#121218",
+                      borderColor: reached ? r.accent : "rgba(255,255,255,0.12)",
                     }}
                   />
                 </div>
@@ -106,31 +166,46 @@ export function RankHero({ rank, unlockedCount, total, completionPct }: RankHero
             })}
           </div>
 
-          {/* Runner marker */}
+          {/* Runner */}
           <motion.div
-            className="absolute top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 text-lg"
-            initial={{ left: 0, opacity: 0 }}
-            animate={{ left: `${runnerPos}%`, opacity: 1 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            style={{ filter: `drop-shadow(0 0 6px ${mix(rank.accent, 70)})` }}
+            className="absolute top-1/2 z-20 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
+            initial={{ left: "1rem", opacity: 0 }}
+            animate={{ left: `calc(1rem + (100% - 2rem) * ${runnerPos / 100})`, opacity: 1 }}
+            transition={{ duration: 1, ease: "easeOut" }}
           >
-            🏃
+            <span
+              className="text-2xl sm:text-3xl"
+              style={{ filter: `drop-shadow(0 0 10px ${mix(rank.accent, 80)})` }}
+            >
+              🏃
+            </span>
+            <span
+              className="mt-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold tabular-nums"
+              style={{ color: rank.accent, backgroundColor: mix(rank.accent, 16) }}
+            >
+              {loggedHours}h
+            </span>
           </motion.div>
+
+          {/* Finish line */}
+          <div className="absolute right-3 top-2 bottom-2 w-px bg-gradient-to-b from-transparent via-amber-400/40 to-transparent" />
+          <span className="absolute right-1 top-1 text-sm opacity-80">🏁</span>
         </div>
 
-        <div className="relative mt-2 h-4">
+        <div className="relative mt-3 hidden h-4 sm:block">
           {ACHIEVEMENT_RANKS.map((r, i) => {
-            const pos = total > 0 ? Math.min(100, (r.minUnlocked / total) * 100) : 0;
+            const hours = rankThresholds[i] ?? 0;
+            const pos = tiered.stretch > 0 ? (hours / tiered.stretch) * 100 : 0;
             const isFirst = i === 0;
             const isLast = i === ACHIEVEMENT_RANKS.length - 1;
             return (
               <span
                 key={r.name}
-                className="absolute text-[9.5px] font-medium sm:text-[10px]"
+                className="absolute text-[9.5px] font-medium"
                 style={{
                   left: `${pos}%`,
                   transform: isFirst ? "none" : isLast ? "translateX(-100%)" : "translateX(-50%)",
-                  color: i <= rank.index ? r.accent : "rgba(255,255,255,0.35)",
+                  color: i <= rank.index ? r.accent : "rgba(255,255,255,0.3)",
                 }}
               >
                 {r.name}
@@ -143,11 +218,28 @@ export function RankHero({ rank, unlockedCount, total, completionPct }: RankHero
   );
 }
 
-function Stat({ value, label }: { value: string; label: string }) {
+function Stat({ value, label, accent }: { value: string; label: string; accent?: string }) {
   return (
-    <div className="text-center lg:text-right">
-      <p className="metric-value text-xl tabular-nums sm:text-2xl">{value}</p>
-      <p className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5 text-center sm:px-4">
+      <p className="metric-value text-lg tabular-nums sm:text-xl" style={accent ? { color: accent } : undefined}>
+        {value}
+      </p>
+      <p className="mt-1 text-[9px] uppercase tracking-wide text-muted-foreground">{label}</p>
     </div>
+  );
+}
+
+function GoalPill({ label, color, active }: { label: string; color: string; active: boolean }) {
+  return (
+    <span
+      className="rounded-full px-2 py-0.5 font-medium"
+      style={{
+        color: active ? color : "rgba(255,255,255,0.4)",
+        backgroundColor: active ? mix(color, 14) : "rgba(255,255,255,0.04)",
+        border: `1px solid ${active ? mix(color, 35) : "rgba(255,255,255,0.08)"}`,
+      }}
+    >
+      {label}
+    </span>
   );
 }
