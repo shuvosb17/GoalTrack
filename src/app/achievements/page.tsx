@@ -102,7 +102,7 @@ export default function AchievementsPage() {
         cat === "hours"
           ? `10h · 100h · 200h · 300h … every ${hourStep}h up to ${tiered.stretch}h stretch`
           : cat === "getting_started"
-            ? "Early milestones before the hour sprint"
+            ? "Build momentum — cleared milestones unlock the next gates"
             : cat === "streaks"
               ? "7 → 14 → 21 → 30 days … up to a full year unbroken"
               : cat === "completion"

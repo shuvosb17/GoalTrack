@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { Check, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { getAchievementProgress } from "@/lib/achievements";
+import { SPRINT_LANE_COMPACT_MAX, type getAchievementProgress } from "@/lib/achievements";
 import type { Achievement } from "@/lib/types";
 
 export interface SprintLaneItem {
@@ -40,7 +40,8 @@ export function SprintLane({ label, accent, items, subtitle }: SprintLaneProps) 
     total > 1 ? Math.min(100, Math.max(0, (fillNodeUnits / (total - 1)) * 100)) : unlockedCount === total ? 100 : 0;
 
   const complete = unlockedCount === total;
-  const trackWidth = Math.max(total * NODE_MIN_WIDTH, 100);
+  const compact = total <= SPRINT_LANE_COMPACT_MAX;
+  const scrollWidth = total * NODE_MIN_WIDTH;
 
   return (
     <div className="overflow-hidden rounded-2xl border-[0.5px] border-white/[0.08] bg-[#0a0a0e]">
@@ -66,8 +67,16 @@ export function SprintLane({ label, accent, items, subtitle }: SprintLaneProps) 
         </div>
       </div>
 
-      <div className="overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:thin]">
-        <div className="relative inline-block px-5 py-8" style={{ minWidth: trackWidth, width: trackWidth }}>
+      <div
+        className={cn(
+          "pb-2 [-ms-overflow-style:none] [scrollbar-width:thin]",
+          compact ? "overflow-x-hidden" : "overflow-x-auto"
+        )}
+      >
+        <div
+          className={cn("relative px-5 py-8", compact ? "w-full" : "inline-block")}
+          style={compact ? undefined : { minWidth: scrollWidth, width: scrollWidth }}
+        >
           {/* Lane surface */}
           <div
             className="pointer-events-none absolute inset-x-5 top-[46px] h-[52px] rounded-xl border border-white/[0.05]"
@@ -85,12 +94,12 @@ export function SprintLane({ label, accent, items, subtitle }: SprintLaneProps) 
           {/* Track rails */}
           <div
             className="absolute top-[68px] h-[3px] rounded-full bg-white/[0.08]"
-            style={{ left: `${NODE_MIN_WIDTH / 2}px`, right: `${NODE_MIN_WIDTH / 2}px` }}
+            style={{ left: compact ? "2.5rem" : `${NODE_MIN_WIDTH / 2}px`, right: compact ? "2.5rem" : `${NODE_MIN_WIDTH / 2}px` }}
           />
           <motion.div
             className="absolute top-[68px] h-[3px] rounded-full"
             style={{
-              left: `${NODE_MIN_WIDTH / 2}px`,
+              left: compact ? "2.5rem" : `${NODE_MIN_WIDTH / 2}px`,
               background: `linear-gradient(90deg, ${mix(accent, 50)}, ${accent})`,
               boxShadow: `0 0 16px ${mix(accent, 50)}`,
             }}
@@ -98,15 +107,22 @@ export function SprintLane({ label, accent, items, subtitle }: SprintLaneProps) 
             animate={{
               width:
                 total > 1
-                  ? `calc((100% - ${NODE_MIN_WIDTH}px) * ${fillPercent / 100})`
+                  ? compact
+                    ? `calc((100% - 5rem) * ${fillPercent / 100})`
+                    : `calc((100% - ${NODE_MIN_WIDTH}px) * ${fillPercent / 100})`
                   : fillPercent >= 100
-                    ? `calc(100% - ${NODE_MIN_WIDTH}px)`
+                    ? compact
+                      ? "calc(100% - 5rem)"
+                      : `calc(100% - ${NODE_MIN_WIDTH}px)`
                     : 0,
             }}
             transition={{ duration: 0.85, ease: "easeOut" }}
           />
 
-          <div className="relative flex" style={{ minWidth: trackWidth - 40 }}>
+          <div
+            className={cn("relative flex w-full", !compact && "min-w-0")}
+            style={compact ? undefined : { minWidth: scrollWidth - 40 }}
+          >
             {items.map((item, i) => {
               const isCurrent = i === currentIndex;
               const state = item.unlocked ? "unlocked" : isCurrent ? "current" : "locked";
@@ -118,6 +134,7 @@ export function SprintLane({ label, accent, items, subtitle }: SprintLaneProps) 
                   accent={accent}
                   index={i}
                   isLast={i === total - 1}
+                  compact={compact}
                 />
               );
             })}
@@ -134,17 +151,22 @@ function SprintNode({
   accent,
   index,
   isLast,
+  compact,
 }: {
   item: SprintLaneItem;
   state: "unlocked" | "current" | "locked";
   accent: string;
   index: number;
   isLast: boolean;
+  compact: boolean;
 }) {
   return (
     <motion.div
-      className="relative flex shrink-0 flex-col items-center px-1 text-center"
-      style={{ width: NODE_MIN_WIDTH }}
+      className={cn(
+        "relative flex flex-col items-center px-1 text-center",
+        compact ? "min-w-0 flex-1" : "shrink-0"
+      )}
+      style={compact ? undefined : { width: NODE_MIN_WIDTH }}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04 }}

@@ -92,7 +92,14 @@ const GETTING_STARTED_KEYS = new Set([
   "sessions_10",
   "first_subtopic",
   "streak_3",
+  "subtopics_3",
+  "sessions_25",
+  "streak_5",
+  "hours_5",
 ]);
+
+/** Lanes with at most this many nodes stretch to full card width instead of leaving empty space. */
+export const SPRINT_LANE_COMPACT_MAX = 10;
 
 export function getStreakCheckpointDefinitions(): Omit<Achievement, "id">[] {
   return STREAK_LANE_THRESHOLDS.map((days) => {
@@ -144,6 +151,30 @@ export const BASE_ACHIEVEMENT_DEFINITIONS: Omit<Achievement, "id">[] = [
     title: "3-Day Streak",
     description: "Study 3 days in a row",
     icon: "⚡",
+  },
+  {
+    key: "subtopics_3",
+    title: "3 Subtopics",
+    description: "Complete 3 subtopics",
+    icon: "📝",
+  },
+  {
+    key: "sessions_25",
+    title: "25 Sessions",
+    description: "Log 25 study sessions",
+    icon: "📗",
+  },
+  {
+    key: "streak_5",
+    title: "5-Day Streak",
+    description: "Study 5 days in a row",
+    icon: "🔥",
+  },
+  {
+    key: "hours_5",
+    title: "First 5 Hours",
+    description: "Log 5 hours toward this year's goal",
+    icon: "⏳",
   },
 ];
 
@@ -284,6 +315,10 @@ export function getAchievementOrder(settings?: AppSettings | null): string[] {
     "sessions_10",
     "first_subtopic",
     "streak_3",
+    "subtopics_3",
+    "sessions_25",
+    "streak_5",
+    "hours_5",
     ...hourKeys,
     ...STREAK_LANE_THRESHOLDS.map((d) => `streak_${d}`),
     ...COMPLETION_LANE_KEYS,
@@ -642,6 +677,41 @@ export function getAchievementProgress(
       unit: "sessions",
     };
   }
+  if (key === "sessions_25") {
+    const current = Math.min(25, sessions.length);
+    return {
+      current,
+      target: 25,
+      percent: Math.min(100, Math.round((sessions.length / 25) * 100)),
+      unit: "sessions",
+    };
+  }
+  if (key === "subtopics_3") {
+    const current = Math.min(3, countCompletedSubtopics(subtopics));
+    return {
+      current,
+      target: 3,
+      percent: Math.min(100, Math.round((current / 3) * 100)),
+      unit: "subtopics",
+    };
+  }
+  if (key === "streak_5") {
+    return {
+      current: streaks.longest,
+      target: 5,
+      percent: Math.min(100, Math.round((streaks.longest / 5) * 100)),
+      unit: "days",
+    };
+  }
+  if (key === "hours_5") {
+    const current = Math.round(yearHours * 10) / 10;
+    return {
+      current,
+      target: 5,
+      percent: Math.min(100, Math.round((yearHours / 5) * 100)),
+      unit: "h",
+    };
+  }
   if (key === "first_subtopic") {
     const done = subtopics.some(
       (s) => !s.archived && (s.status === "completed" || s.status === "mastered")
@@ -783,8 +853,13 @@ export async function checkAchievements(
     (s) => !s.archived && (s.status === "completed" || s.status === "mastered")
   );
   if (completedSubtopics.length >= 1) await unlock("first_subtopic");
+  if (completedSubtopics.length >= 3) await unlock("subtopics_3");
 
   if (streaks.longest >= 3) await unlock("streak_3");
+  if (streaks.longest >= 5) await unlock("streak_5");
+
+  if (sessions.length >= 25) await unlock("sessions_25");
+  if (yearHours >= 5) await unlock("hours_5");
 
   for (const cp of getGoalHourCheckpoints(settings)) {
     if (yearHours >= cp.threshold) await unlock(cp.key);
