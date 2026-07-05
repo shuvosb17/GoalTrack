@@ -65,28 +65,20 @@ export const ACHIEVEMENT_ORDER_BASE: string[] = [
   "interview_ready",
 ];
 
+const HOUR_CHECKPOINT_STEP = 100;
+
 export function parseHourThreshold(key: string): number | null {
   if (!key.startsWith("hours_")) return null;
   const n = parseInt(key.split("_")[1] ?? "", 10);
   return Number.isFinite(n) ? n : null;
 }
 
-function computeHourStep(stretch: number): number {
-  const candidates = [100, 150, 200, 250, 300, 400, 500];
-  for (const step of candidates) {
-    const count = Math.floor((stretch - 10) / step);
-    if (count >= 4 && count <= 10) return step;
-  }
-  return Math.max(100, Math.round(stretch / 6 / 50) * 50);
-}
-
 export function getGoalHourCheckpoints(settings: AppSettings | null | undefined): GoalHourCheckpoint[] {
   const tiered = resolveTieredGoal(settings);
   const { minimum, target, stretch } = tiered;
-  const step = computeHourStep(stretch);
 
   const thresholds = new Set<number>([10, minimum, target, stretch]);
-  for (let h = step; h < stretch; h += step) {
+  for (let h = HOUR_CHECKPOINT_STEP; h <= stretch; h += HOUR_CHECKPOINT_STEP) {
     thresholds.add(h);
   }
 
@@ -136,8 +128,8 @@ export function getCanonicalHourKeys(settings: AppSettings | null | undefined): 
   return new Set(getGoalHourCheckpoints(settings).map((c) => c.key));
 }
 
-export function getHourCheckpointStep(settings: AppSettings | null | undefined): number {
-  return computeHourStep(resolveTieredGoal(settings).stretch);
+export function getHourCheckpointStep(): number {
+  return HOUR_CHECKPOINT_STEP;
 }
 
 export function getAchievementOrder(settings?: AppSettings | null): string[] {
@@ -321,7 +313,29 @@ export function getGoalSprintSnapshot(
 export async function ensureGoalHourAchievements(settings: AppSettings | null | undefined): Promise<void> {
   const checkpoints = getGoalHourCheckpoints(settings);
   const validKeys = new Set(checkpoints.map((c) => c.key));
-  const all = await db.achievements.toArray();
+  let all = await db.achievements.toArray();
+
+  const hourGroups = new Map<string, typeof all>();
+  for (const a of all) {
+    if (!a.key.startsWith("hours_")) continue;
+    const group = hourGroups.get(a.key) ?? [];
+    group.push(a);
+    hourGroups.set(a.key, group);
+  }
+
+  for (const [, group] of hourGroups) {
+    if (group.length <= 1) continue;
+    const keeper = group.find((a) => a.unlockedAt) ?? group[0];
+    for (const a of group) {
+      if (a.id === keeper.id) continue;
+      if (a.unlockedAt && !keeper.unlockedAt) {
+        await db.achievements.update(keeper.id, { unlockedAt: a.unlockedAt });
+      }
+      await db.achievements.delete(a.id);
+    }
+  }
+
+  all = await db.achievements.toArray();
 
   for (const cp of checkpoints) {
     const existing = all.find((a) => a.key === cp.key);

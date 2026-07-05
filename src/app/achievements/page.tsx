@@ -62,26 +62,27 @@ export default function AchievementsPage() {
     [settings]
   );
 
-  const withProgress = useMemo<SprintLaneItem[]>(
-    () =>
-      achievements
-        .filter((ach) => {
-          if (!ach.key.startsWith("hours_")) return true;
-          return canonicalHourKeys.has(ach.key);
-        })
-        .map((ach) => ({
-          ach,
-          progress: getAchievementProgress(ach, sessions, subtopics, modules, tracks, settings, yearStart, yearEnd),
-          unlocked: !!ach.unlockedAt,
-        })),
-    [achievements, sessions, subtopics, modules, tracks, settings, yearStart, yearEnd, canonicalHourKeys]
-  );
+  const withProgress = useMemo<SprintLaneItem[]>(() => {
+    const seen = new Set<string>();
+    return achievements
+      .filter((ach) => {
+        if (seen.has(ach.key)) return false;
+        seen.add(ach.key);
+        if (!ach.key.startsWith("hours_")) return true;
+        return canonicalHourKeys.has(ach.key);
+      })
+      .map((ach) => ({
+        ach,
+        progress: getAchievementProgress(ach, sessions, subtopics, modules, tracks, settings, yearStart, yearEnd),
+        unlocked: !!ach.unlockedAt,
+      }));
+  }, [achievements, sessions, subtopics, modules, tracks, settings, yearStart, yearEnd, canonicalHourKeys]);
 
   const unlocked = withProgress.filter((a) => a.unlocked);
   const locked = withProgress.filter((a) => !a.unlocked);
   const closestNext = [...locked].sort((a, b) => b.progress.percent - a.progress.percent)[0];
 
-  const hourStep = getHourCheckpointStep(settings);
+  const hourStep = getHourCheckpointStep();
 
   const lanes = useMemo(() => {
     return ACHIEVEMENT_CATEGORY_ORDER.map((cat) => {

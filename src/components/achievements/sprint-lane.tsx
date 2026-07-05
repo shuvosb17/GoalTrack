@@ -67,7 +67,7 @@ export function SprintLane({ label, accent, items, subtitle }: SprintLaneProps) 
       </div>
 
       <div className="overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:thin]">
-        <div className="relative px-5 py-8" style={{ minWidth: trackWidth }}>
+        <div className="relative inline-block px-5 py-8" style={{ minWidth: trackWidth, width: trackWidth }}>
           {/* Lane surface */}
           <div
             className="pointer-events-none absolute inset-x-5 top-[46px] h-[52px] rounded-xl border border-white/[0.05]"
