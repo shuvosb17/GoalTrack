@@ -72,22 +72,40 @@ export function getLevelLabel(level: JournalHierarchyLevel) {
   return LEVEL_LABELS[level];
 }
 
-/** Parent links (track/module) surface when browsing deeper in the tree. */
+/** Parent links surface when browsing deeper; child links surface when a parent path is selected. */
 export function linkVisibleForScope(link: JournalLink, scope: JournalHierarchy): boolean {
   if (scope.trackId && link.trackId !== scope.trackId) return false;
   if (!scope.trackId) return true;
 
+  // Track-level link: visible for any scope within this track.
   if (!link.moduleId) return true;
-  if (!scope.moduleId) return false;
-  if (link.moduleId !== scope.moduleId) return false;
 
+  if (scope.moduleId) {
+    if (link.moduleId !== scope.moduleId) return false;
+  } else {
+    // Track-only scope: include all links in the track.
+    return true;
+  }
+
+  // Module-level link: visible for any scope within this module.
   if (!link.topicId) return true;
-  if (!scope.topicId) return false;
-  if (link.topicId !== scope.topicId) return false;
 
+  if (scope.topicId) {
+    if (link.topicId !== scope.topicId) return false;
+  } else {
+    // Module-only scope: include all links in the module.
+    return true;
+  }
+
+  // Topic-level link: visible for any scope within this topic.
   if (!link.subtopicId) return true;
-  if (!scope.subtopicId) return false;
-  return link.subtopicId === scope.subtopicId;
+
+  if (scope.subtopicId) {
+    return link.subtopicId === scope.subtopicId;
+  }
+
+  // Topic scope without subtopic: include all subtopic links under the topic.
+  return true;
 }
 
 export function getLinkPathLabel(
