@@ -161,7 +161,7 @@ function TopicBreakdown({
       <p className="mb-4 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
         Topic breakdown
       </p>
-      <ul className="space-y-3.5">
+      <ul className="space-y-3">
         {entries.map((entry) => {
           const pct =
             donutTotal > 0 ? Math.round((entry.hours / donutTotal) * 100) : 0;
@@ -297,38 +297,10 @@ export function MostStudiedTopicsPanel({ items }: MostStudiedTopicsPanelProps) {
   const donutTotal = heroTotal;
   const donutCenterLabel = activeFilter === ALL_TOPICS ? "total" : activeFilter;
 
-  const filterChipsRow = (
-    <div className="flex flex-wrap gap-2">
-      {filterChips.map((chip) => {
-        const active = activeFilter === chip;
-        return (
-          <button
-            key={chip}
-            type="button"
-            onClick={() => setActiveFilter(chip)}
-            className={cn(
-              "rounded-full border px-3.5 py-1.5 text-xs font-medium transition-all duration-200",
-              active
-                ? "border-transparent shadow-sm"
-                : "border-white/[0.12] bg-transparent text-muted-foreground hover:border-white/[0.22] hover:text-foreground"
-            )}
-            style={
-              active
-                ? { background: CHIP_ACTIVE_BG, color: CHIP_ACTIVE_TEXT }
-                : undefined
-            }
-          >
-            {chip}
-          </button>
-        );
-      })}
-    </div>
-  );
-
   return (
     <Card className="relative overflow-hidden border-[0.5px] border-white/[0.08]">
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-32 opacity-15 lg:opacity-10"
+        className="pointer-events-none absolute inset-x-0 top-0 h-32 opacity-30"
         style={{
           background:
             "radial-gradient(ellipse 70% 100% at 50% -30%, rgba(83,74,183,0.35), transparent)",
@@ -336,8 +308,8 @@ export function MostStudiedTopicsPanel({ items }: MostStudiedTopicsPanelProps) {
       />
       <CardContent className="relative pt-6 pb-6">
         {/* Header */}
-        <div className="mb-5 flex flex-col gap-4 lg:mb-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="min-w-0">
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+          <div>
             <h2 className="text-xl font-medium tracking-tight text-foreground sm:text-[22px]">
               Study Tracker
             </h2>
@@ -345,20 +317,17 @@ export function MostStudiedTopicsPanel({ items }: MostStudiedTopicsPanelProps) {
               All logged hours · any status
             </p>
           </div>
-          <div className="flex flex-wrap items-end gap-4 lg:gap-6">
-            {items.length > 0 && (
-              <div className="text-right">
-                <p
-                  className="text-3xl font-medium tabular-nums leading-none sm:text-[40px]"
-                  style={{ color: PURPLE_HERO }}
-                >
-                  {formatHours(heroTotal)}h
-                </p>
-                <p className="mt-1 text-[11px] text-muted-foreground">total this list</p>
-              </div>
-            )}
-            <div className="hidden shrink-0 lg:block">{filterChipsRow}</div>
-          </div>
+          {items.length > 0 && (
+            <div className="text-right">
+              <p
+                className="text-3xl font-medium tabular-nums leading-none sm:text-[40px]"
+                style={{ color: PURPLE_HERO }}
+              >
+                {formatHours(heroTotal)}h
+              </p>
+              <p className="mt-1 text-[11px] text-muted-foreground">total this list</p>
+            </div>
+          )}
         </div>
 
         {items.length === 0 ? (
@@ -367,8 +336,32 @@ export function MostStudiedTopicsPanel({ items }: MostStudiedTopicsPanelProps) {
           </p>
         ) : (
           <>
-            {/* Filter chips — mobile / tablet */}
-            <div className="mb-5 lg:hidden">{filterChipsRow}</div>
+            {/* Filter chips */}
+            <div className="mb-8 flex flex-wrap gap-2">
+              {filterChips.map((chip) => {
+                const active = activeFilter === chip;
+                return (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => setActiveFilter(chip)}
+                    className={cn(
+                      "rounded-full border px-3.5 py-1.5 text-xs font-medium transition-all duration-200",
+                      active
+                        ? "border-transparent shadow-sm"
+                        : "border-white/[0.12] bg-transparent text-muted-foreground hover:border-white/[0.22] hover:text-foreground"
+                    )}
+                    style={
+                      active
+                        ? { background: CHIP_ACTIVE_BG, color: CHIP_ACTIVE_TEXT }
+                        : undefined
+                    }
+                  >
+                    {chip}
+                  </button>
+                );
+              })}
+            </div>
 
             {/* 3-column dashboard: donut | breakdown | rankings */}
             {categoryBreakdown.length > 0 && (
@@ -383,7 +376,7 @@ export function MostStudiedTopicsPanel({ items }: MostStudiedTopicsPanelProps) {
                   />
                 </div>
 
-                {/* Center — Breakdown */}
+                {/* Center — Breakdown (tablet: pairs with donut in row 1) */}
                 <div className="border-white/[0.06] md:px-0 lg:border-x lg:px-8 xl:px-10">
                   <TopicBreakdown
                     entries={categoryBreakdown}
@@ -392,7 +385,7 @@ export function MostStudiedTopicsPanel({ items }: MostStudiedTopicsPanelProps) {
                   />
                 </div>
 
-                {/* Right — Rankings */}
+                {/* Right — Rankings (tablet+: full width row 2 on md, column on lg) */}
                 <div className="min-w-0 md:col-span-2 lg:col-span-1">
                   <p className="mb-3 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                     {sectionLabel(activeFilter)}
