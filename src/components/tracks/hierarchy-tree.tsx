@@ -38,7 +38,7 @@ import { isTopicDueForReview, getReviewDueLabel } from "@/lib/metrics";
 import { useReviewStore } from "@/stores/review-store";
 import { TopicConfidenceDialog, type TopicConfidenceMode } from "@/components/tracks/topic-confidence-dialog";
 import { SetDeadlineDialog } from "@/components/tracks/set-deadline-dialog";
-import { lightenAccent } from "@/lib/deadline-picker";
+import { InProgressTrackCard } from "@/components/tracks/in-progress-track-card";
 import type { Track, Module, Topic, Subtopic, ProgressStatus, Difficulty } from "@/lib/types";
 import { getModuleProgress, getTopicProgress, getTrackProgress } from "@/lib/analytics";
 import { useSessions } from "@/hooks/use-data";
@@ -235,6 +235,13 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                           const reviewDue = isTopicDueForReview(topic);
                                           const reviewLabel = getReviewDueLabel(topic);
                                           const isProjectTopic = topic.name.startsWith(GO_BACKEND_PROJECT_TOPIC_PREFIX);
+                                          const activeSubtopic = topicSubs.find((s) => s.status === "in_progress");
+                                          const topicInProgress = topic.status === "in_progress";
+                                          const topicDueDays = topic.dueDate ? getDaysUntilDue(topic.dueDate) : null;
+                                          const topicDueLabel =
+                                            topic.dueDate && topicDueDays !== null
+                                              ? formatDeadline(topicDueDays, topic.dueDate)
+                                              : null;
 
                                           return (
                                             <div
@@ -269,7 +276,7 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                 </Select>
                                                 <span className="text-xs text-muted-foreground w-8 text-right">{topicProgress.percentage}%</span>
                                                 <Progress value={topicProgress.percentage} className="h-1 w-12 hidden sm:block" />
-                                                {(topic.status === "in_progress" || topicProgress.inProgress > 0) && (
+                                                {!topicInProgress && (topicProgress.inProgress > 0) && (
                                                   <Badge variant="warning" className="text-[10px]">Active</Badge>
                                                 )}
                                                 {reviewDue && (
@@ -280,32 +287,34 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                 {reviewLabel && !reviewDue && (
                                                   <span className="hidden text-[10px] text-muted-foreground sm:inline">{reviewLabel}</span>
                                                 )}
-                                                <Select
-                                                  value={topic.status ?? "not_started"}
-                                                  onValueChange={(v) => {
-                                                    const status = v as ProgressStatus;
-                                                    if (status === "in_progress") {
-                                                      updateTopicStatus(topic.id, status, topic.dueDate ?? todayISO());
-                                                      setStatusDialog({
-                                                        id: topic.id,
-                                                        type: "topic",
-                                                        dueDate: topic.dueDate ?? todayISO(),
-                                                        accentColor: track.color,
-                                                      });
-                                                    } else {
-                                                      updateTopicStatus(topic.id, status);
-                                                    }
-                                                  }}
-                                                >
-                                                  <SelectTrigger className="h-6 w-[110px] text-[10px]" onClick={(e) => e.stopPropagation()}>
-                                                    <SelectValue />
-                                                  </SelectTrigger>
-                                                  <SelectContent>
-                                                    {Object.entries(STATUS_LABELS).map(([k, v]) => (
-                                                      <SelectItem key={k} value={k}>{v}</SelectItem>
-                                                    ))}
-                                                  </SelectContent>
-                                                </Select>
+                                                {!topicInProgress && (
+                                                  <Select
+                                                    value={topic.status ?? "not_started"}
+                                                    onValueChange={(v) => {
+                                                      const status = v as ProgressStatus;
+                                                      if (status === "in_progress") {
+                                                        updateTopicStatus(topic.id, status, topic.dueDate ?? todayISO());
+                                                        setStatusDialog({
+                                                          id: topic.id,
+                                                          type: "topic",
+                                                          dueDate: topic.dueDate ?? todayISO(),
+                                                          accentColor: track.color,
+                                                        });
+                                                      } else {
+                                                        updateTopicStatus(topic.id, status);
+                                                      }
+                                                    }}
+                                                  >
+                                                    <SelectTrigger className="h-6 w-[110px] text-[10px]" onClick={(e) => e.stopPropagation()}>
+                                                      <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                      {Object.entries(STATUS_LABELS).map(([k, v]) => (
+                                                        <SelectItem key={k} value={k}>{v}</SelectItem>
+                                                      ))}
+                                                    </SelectContent>
+                                                  </Select>
+                                                )}
                                                 {reviewDue && (
                                                   <>
                                                     <Button
@@ -333,12 +342,14 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                     </Button>
                                                   </>
                                                 )}
-                                                <TimerControls
-                                                  path={{ trackId: track.id, moduleId: mod.id, topicId: topic.id }}
-                                                  label={`${mod.name} → ${topic.name}`}
-                                                  compact
-                                                  loggedMs={getTopicLoggedMs(topic.id, subtopics, sessions)}
-                                                />
+                                                {!topicInProgress && (
+                                                  <TimerControls
+                                                    path={{ trackId: track.id, moduleId: mod.id, topicId: topic.id }}
+                                                    label={`${mod.name} → ${topic.name}`}
+                                                    compact
+                                                    loggedMs={getTopicLoggedMs(topic.id, subtopics, sessions)}
+                                                  />
+                                                )}
                                                 <div className="flex gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
                                                   <Button size="icon" variant="ghost" className="h-5 w-5" onClick={(e) => { e.stopPropagation(); setEditDialog({ type: "topic", id: topic.id, name: topic.name, difficulty: topic.difficulty }); }}>
                                                     <Pencil className="h-3 w-3" />
@@ -355,11 +366,108 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                 </Button>
                                               </div>
 
+                                              {topicInProgress && (
+                                                <div className="px-2 pb-2 sm:px-3">
+                                                  <InProgressTrackCard
+                                                    title={topic.name}
+                                                    breadcrumb={`${track.name} / ${mod.name}`}
+                                                    status={topic.status ?? "in_progress"}
+                                                    onStatusChange={(status) => {
+                                                      if (status === "in_progress") {
+                                                        setStatusDialog({
+                                                          id: topic.id,
+                                                          type: "topic",
+                                                          dueDate: topic.dueDate ?? todayISO(),
+                                                          accentColor: track.color,
+                                                        });
+                                                      } else {
+                                                        void updateTopicStatus(topic.id, status);
+                                                      }
+                                                    }}
+                                                    timerPath={{ trackId: track.id, moduleId: mod.id, topicId: topic.id }}
+                                                    timerLabel={`${mod.name} → ${topic.name}`}
+                                                    dueLabel={topicDueLabel}
+                                                    dueSoon={topicDueDays !== null && topicDueDays >= 0 && topicDueDays <= 2}
+                                                    onEditDeadline={() =>
+                                                      setStatusDialog({
+                                                        id: topic.id,
+                                                        type: "topic",
+                                                        dueDate: topic.dueDate ?? todayISO(),
+                                                        accentColor: track.color,
+                                                      })
+                                                    }
+                                                    showSubtopicRow={topicSubs.length > 0}
+                                                    subtopicDetail={
+                                                      activeSubtopic?.name ??
+                                                      (topicSubs.length > 0 ? "No active subtopic" : undefined)
+                                                    }
+                                                    subtopicPercent={activeSubtopic ? 0 : 0}
+                                                    topicDetail={
+                                                      topicSubs.length > 0
+                                                        ? `${topic.name} (${topicProgress.completed}/${topicSubs.length} done)`
+                                                        : topic.name
+                                                    }
+                                                    topicPercent={topicProgress.percentage}
+                                                  />
+                                                </div>
+                                              )}
+
                                               <AnimatePresence>
                                                 {expanded.has(topic.id) && (
                                                   <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }}>
                                                     <div className="mt-1 max-h-[min(24rem,calc(2.75rem*8))] space-y-1 overflow-y-auto overscroll-contain pr-1">
-                                                      {topicSubs.map((sub) => (
+                                                      {topicSubs.map((sub) => {
+                                                        const subDue = getSubtopicDueDate(sub, topic);
+                                                        const subDueDays = subDue ? getDaysUntilDue(subDue) : null;
+                                                        const subDueLabel =
+                                                          subDue && subDueDays !== null ? formatDeadline(subDueDays, subDue) : null;
+                                                        const subInProgress = sub.status === "in_progress";
+
+                                                        if (subInProgress && !topicInProgress) {
+                                                          return (
+                                                            <div key={sub.id} className="py-1">
+                                                              <InProgressTrackCard
+                                                                compact
+                                                                title={toPlainLearningLabel(sub.name)}
+                                                                breadcrumb={`${track.name} / ${mod.name} / ${topic.name}`}
+                                                                status={sub.status}
+                                                                onStatusChange={(status) => {
+                                                                  if (status === "in_progress") {
+                                                                    setStatusDialog({
+                                                                      id: sub.id,
+                                                                      type: "subtopic",
+                                                                      dueDate: sub.dueDate ?? topic.dueDate ?? todayISO(),
+                                                                      accentColor: track.color,
+                                                                    });
+                                                                  } else {
+                                                                    void updateSubtopicStatus(sub.id, status);
+                                                                  }
+                                                                }}
+                                                                timerPath={{
+                                                                  trackId: track.id,
+                                                                  moduleId: mod.id,
+                                                                  topicId: topic.id,
+                                                                  subtopicId: sub.id,
+                                                                }}
+                                                                timerLabel={`${topic.name} → ${toPlainLearningLabel(sub.name)}`}
+                                                                dueLabel={subDueLabel}
+                                                                dueSoon={subDueDays !== null && subDueDays >= 0 && subDueDays <= 2}
+                                                                onEditDeadline={() =>
+                                                                  setStatusDialog({
+                                                                    id: sub.id,
+                                                                    type: "subtopic",
+                                                                    dueDate: subDue ?? todayISO(),
+                                                                    accentColor: track.color,
+                                                                  })
+                                                                }
+                                                                topicDetail={`${topic.name} (${topicProgress.completed}/${topicSubs.length} done)`}
+                                                                topicPercent={topicProgress.percentage}
+                                                              />
+                                                            </div>
+                                                          );
+                                                        }
+
+                                                        return (
                                                         <div
                                                           key={sub.id}
                                                           className="group grid grid-cols-1 gap-2 rounded-md border border-transparent px-2 py-1.5 hover:border-white/[0.06] hover:bg-secondary/20 sm:grid-cols-[7.5rem_minmax(0,1fr)_auto] sm:items-start sm:gap-2"
@@ -445,7 +553,8 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                           </div>
                                                           </div>
                                                         </div>
-                                                      ))}
+                                                        );
+                                                      })}
                                                     </div>
                                                   </motion.div>
                                                 )}
@@ -636,12 +745,7 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
         onDueDateChange={(dateKey) => {
           if (statusDialog) setStatusDialog({ ...statusDialog, dueDate: dateKey });
         }}
-        accent={statusDialog?.accentColor ?? "#534AB7"}
-        accentLight={
-          statusDialog?.accentColor
-            ? lightenAccent(statusDialog.accentColor)
-            : "#8478e8"
-        }
+        accent={statusDialog?.accentColor ?? "#FAC775"}
         onSave={async () => {
           if (!statusDialog) return;
           if (statusDialog.type === "topic") {
