@@ -30,6 +30,10 @@ export async function renameTopic(id: string, name: string) {
   await db.topics.update(id, { name, updatedAt: nowISO() });
 }
 
+export async function renameSubtopic(id: string, name: string) {
+  await db.subtopics.update(id, { name, updatedAt: nowISO() });
+}
+
 export async function deleteModule(id: string) {
   const subs = await db.subtopics.where("moduleId").equals(id).toArray();
   const topicIds = (await db.topics.where("moduleId").equals(id).toArray()).map((t) => t.id);

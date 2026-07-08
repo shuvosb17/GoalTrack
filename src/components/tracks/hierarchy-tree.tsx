@@ -30,7 +30,7 @@ import {
   createModule, createTopic, createSubtopic, updateSubtopicStatus, updateTopicStatus,
   updateSubtopicDueDate,
   updateTopicDifficulty, updateSubtopicDifficulty,
-  renameModule, renameTopic, deleteModule, deleteTopic,
+  renameModule, renameTopic, renameSubtopic, deleteModule, deleteTopic,
   archiveModule, unarchiveModule, archiveTopic, unarchiveTopic,
   archiveSubtopic, deleteSubtopic, duplicateSubtopic, reorderItems, snoozeTopicReview,
 } from "@/lib/crud";
@@ -84,7 +84,7 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
     dueDate: string;
     accentColor?: string;
   } | null>(null);
-  const [editDialog, setEditDialog] = useState<{ type: "module" | "topic"; id: string; name: string; difficulty?: Difficulty } | null>(null);
+  const [editDialog, setEditDialog] = useState<{ type: "module" | "topic" | "subtopic"; id: string; name: string; difficulty?: Difficulty } | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<{ type: "module" | "topic"; id: string; name: string } | null>(null);
   const [confidenceDialog, setConfidenceDialog] = useState<{ id: string; name: string; mode: TopicConfidenceMode } | null>(null);
   const [archivedOpen, setArchivedOpen] = useState<Set<string>>(new Set());
@@ -130,6 +130,10 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
     if (editDialog.type === "topic") {
       await renameTopic(editDialog.id, editDialog.name.trim());
       if (editDialog.difficulty) await updateTopicDifficulty(editDialog.id, editDialog.difficulty);
+    }
+    if (editDialog.type === "subtopic") {
+      await renameSubtopic(editDialog.id, editDialog.name.trim());
+      if (editDialog.difficulty) await updateSubtopicDifficulty(editDialog.id, editDialog.difficulty);
     }
     setEditDialog(null);
   };
@@ -449,6 +453,7 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                             allowManual
                                                           />
                                                           <div className="flex gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+                                                            <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => setEditDialog({ type: "subtopic", id: sub.id, name: sub.name, difficulty: sub.difficulty })}><Pencil className="h-3 w-3" /></Button>
                                                             <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => duplicateSubtopic(sub)}><Copy className="h-3 w-3" /></Button>
                                                             <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => archiveSubtopic(sub.id)}><Archive className="h-3 w-3" /></Button>
                                                             <Button size="icon" variant="ghost" className="h-5 w-5 text-destructive" onClick={() => deleteSubtopic(sub.id)}><Trash2 className="h-3 w-3" /></Button>
@@ -596,7 +601,7 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
             onChange={(e) => editDialog && setEditDialog({ ...editDialog, name: e.target.value })}
             onKeyDown={(e) => e.key === "Enter" && handleEdit()}
           />
-          {editDialog?.type === "topic" && (
+          {(editDialog?.type === "topic" || editDialog?.type === "subtopic") && (
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">Difficulty</label>
               <Select
