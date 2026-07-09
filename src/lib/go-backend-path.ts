@@ -21,6 +21,9 @@ export interface GoPathModule {
 export const GO_BACKEND_PATH_MARKER =
   "Module 0: Developer Environment & Foundations";
 
+/** Bump when Development Go path curriculum shape changes. */
+export const GO_BACKEND_CURRICULUM_VERSION = 2;
+
 /** Bengali Git & GitHub curriculum (Topic 0.3 subtopics). */
 export const GIT_GITHUB_SUBTOPICS = [
   // শুরু
@@ -101,16 +104,6 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
           "IP, ports, DNS (intro)",
           "Request/response cycle",
           "What an API is",
-        ],
-      },
-      {
-        name: "Topic 0.5: AI-Assisted Development (workflow)",
-        subtopics: [
-          "Using AI coding tools (Cursor / Copilot / Claude Code) effectively",
-          "Prompting for code: context, constraints, iterating",
-          "Reviewing and verifying AI output before trusting it",
-          "Never commit unreviewed AI code; understand what you ship",
-          "Never paste secrets/keys/proprietary code into prompts",
         ],
       },
     ],
@@ -360,6 +353,29 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
           "Protobuf (awareness)",
         ],
       },
+      {
+        name: "Topic 4.7: HTTP Clients & Consuming APIs",
+        subtopics: [
+          "`http.Client` (never use the default client with no timeout)",
+          "Building requests: `http.NewRequestWithContext`, methods, query params",
+          "Timeouts, context cancellation, connection reuse (keep-alive)",
+          "Auth to third-party APIs: API keys, Bearer tokens, headers",
+          "Parsing responses: status-code handling, decoding JSON, error bodies",
+          "Retries with backoff and jitter; which requests are safe to retry",
+          "Handling upstream pagination and rate limits (429 + `Retry-After`)",
+        ],
+      },
+      {
+        name: "Topic 4.8: Webhooks",
+        subtopics: [
+          "What webhooks are (inbound HTTP callbacks vs polling)",
+          "Receiving and routing webhook events",
+          "Signature verification (HMAC shared secret) and replay protection",
+          "Idempotency and deduplication via event IDs",
+          "Respond fast (2xx) then process async (hand off to a worker/queue)",
+          "Retries and out-of-order delivery from providers",
+        ],
+      },
     ],
   },
   {
@@ -394,7 +410,6 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
           "Transactions, ACID, isolation levels",
           "Row locking (`FOR UPDATE`), deadlocks",
           "Connection pooling",
-          "Money handling: `numeric`/decimal type, never float; `shopspring/decimal`",
           "Postgres vs MySQL (trade-offs)",
         ],
       },
@@ -511,6 +526,7 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
           "ssh + ssh-agent + key management",
           "`scp`, `rsync`",
           "curl mastery (methods, headers, data, auth, following redirects, timing)",
+          "`jq` for parsing/filtering JSON responses on the command line",
           "`wget`, `netstat`/`ss`, `ping`",
         ],
       },
@@ -522,7 +538,11 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
       },
       {
         name: "Topic 7.7: Archiving & Compression",
-        subtopics: ["tar", "gzip", "`zip`/`unzip`"],
+        subtopics: [
+          "tar",
+          "gzip",
+          "`zip`/`unzip`",
+        ],
       },
       {
         name: "Topic 7.8: Shell Scripting",
@@ -589,6 +609,8 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
           "Running: ports, volumes, env",
           "Multi-stage builds (static Go binaries)",
           "`.dockerignore`, layers & caching",
+          "`docker exec` / shell into containers; logs & debugging",
+          "Publish images to a registry (Docker Hub / GHCR / ECR) with `docker push`",
           "Why containerize (trade-offs)",
         ],
       },
@@ -612,6 +634,8 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
           "Structured logging (`slog`)",
           "Levels, correlation IDs",
           "What not to log (secrets/PII)",
+          "Log storage & routing: console, files, syslog; rotation for long-running services",
+          "Log security: PII filtering/obfuscation, safe error-response logging, encryption at rest",
         ],
       },
       {
@@ -627,7 +651,9 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
       {
         name: "Topic 10.3: Tracing & Health",
         subtopics: [
-          "OpenTelemetry (awareness)",
+          "Distributed tracing concepts: spans, trace IDs, context propagation",
+          "OpenTelemetry SDK in Go: instrument HTTP handlers and outbound calls",
+          "Export traces to Jaeger; read a trace to find the latency bottleneck",
           "`/healthz`, `/readyz`",
           "Graceful degradation",
         ],
@@ -639,16 +665,6 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
           "In-process workers",
           "Redis-backed queues (`asynq`)",
           "Retries, idempotency, dead-letter",
-        ],
-      },
-      {
-        name: "Topic 10.5: Event-Driven & Messaging",
-        subtopics: [
-          "Queue vs pub/sub (when to use which)",
-          "Kafka / NATS (awareness), consumer groups",
-          "At-least-once vs exactly-once delivery",
-          "The outbox pattern",
-          "Idempotent consumers",
         ],
       },
     ],
@@ -687,45 +703,143 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
     ],
   },
   {
-    name: "Module 12: Cloud & Deployment (AWS)",
+    name: "Module 12: Cloud & Deployment (AWS) — Hands-on",
     topics: [
       {
-        name: "Topic 12.1: Cloud Fundamentals",
+        name: "Topic 12.1: Cloud Computing",
         subtopics: [
-          "IaaS/PaaS/SaaS",
-          "Regions, availability zones",
+          "IaaS / PaaS / SaaS and where AWS fits",
+          "AWS accounts, Free Tier, and billing alerts",
+          "Regions, availability zones, and latency trade-offs",
           "Shared responsibility model",
+          "Cost models: on-demand vs reserved vs spot (awareness)",
+          "Cost traps for beginners (idle EC2, public data transfer, NAT Gateway)",
         ],
       },
       {
-        name: "Topic 12.2: Core AWS",
+        name: "Topic 12.2: Networking — VPCs",
         subtopics: [
-          "IAM (users, roles, policies, least privilege)",
-          "EC2 (security groups, SSH)",
-          "S3 (buckets, objects)",
-          "RDS (managed Postgres)",
-          "ElastiCache (managed Redis — awareness)",
-          "ECR (registry)",
-          "ECS Fargate vs EC2",
-          "ECS vs EKS (talking level)",
-          "CloudWatch (logs/metrics)",
+          "VPC, CIDR blocks, and isolation",
+          "Public vs private subnets",
+          "Route tables, Internet Gateway, NAT Gateway (when you need it)",
+          "Security groups vs network ACLs (conceptual)",
+          "Why apps sit in private subnets behind a public load balancer",
+          "Building a VPC suitable for a secure app deployment",
+          "Diagram: client → ALB → app subnet → RDS subnet",
         ],
       },
       {
-        name: "Topic 12.3: Networking & Delivery",
+        name: "Topic 12.3: IAM — Identity and Access Management",
         subtopics: [
-          "Reverse proxy (nginx — ties to Module 8)",
-          "ALB",
-          "Route 53 basics",
-          "TLS certificates (ACM)",
+          "Root account hygiene (MFA; never use root for daily work)",
+          "IAM users, groups, roles, and policies",
+          "Least-privilege policies for deployed apps",
+          "Instance / task roles vs long-lived access keys",
+          "Cross-service access patterns (ECS → S3, Lambda → RDS)",
+          "Documenting who can do what in your project README",
         ],
       },
       {
-        name: "Topic 12.4: Infrastructure as Code (awareness)",
+        name: "Topic 12.4: EC2 — Elastic Compute Cloud",
         subtopics: [
-          "What IaC is",
-          "Terraform basics",
+          "AMIs, instance types, key pairs",
+          "Launching and connecting via SSH (ties to M7)",
+          "Security groups as instance firewalls",
+          "User data / bootstrap scripts for Go binaries",
+          "Elastic IPs and when not to use them",
+          "Scaling concepts (manual → ASG awareness)",
+          "Production workflow: build → deploy → health check → rollback",
+        ],
+      },
+      {
+        name: "Topic 12.5: RDS — Relational Database Service",
+        subtopics: [
+          "Managed PostgreSQL on RDS (matches M5)",
+          "Instance sizing, storage, and Multi-AZ (awareness)",
+          "Automated backups and restore basics",
+          "Security: private subnet, security groups, no public DB",
+          "Connecting a Go app (`database/sql` / pgx) to RDS",
+          "Parameter groups and connection limits (awareness)",
+        ],
+      },
+      {
+        name: "Topic 12.6: Monitoring — CloudWatch",
+        subtopics: [
+          "Metrics, logs, and alarms",
+          "Shipping application logs from EC2/ECS",
+          "Alerts for CPU, 5xx, and disk/memory (where available)",
+          "Dashboards for a healthy production system",
+          "Ties to M10 (Prometheus locally vs CloudWatch on AWS)",
+        ],
+      },
+      {
+        name: "Topic 12.7: DNS — Route 53",
+        subtopics: [
+          "Hosted zones and common record types (A, CNAME, ALIAS)",
+          "Pointing a domain at ALB or CloudFront",
+          "Health checks and simple failover (awareness)",
+          "Reliable user access to apps hosted on AWS",
+        ],
+      },
+      {
+        name: "Topic 12.8: S3 — Simple Storage Service",
+        subtopics: [
+          "Buckets, objects, prefixes, and regions",
+          "Object permissions and bucket policies",
+          "Block Public Access and least-privilege access",
+          "Production patterns: app uploads, static assets, backups",
+          "Capstone use case: file uploads / report exports",
+        ],
+      },
+      {
+        name: "Topic 12.9: CDN — CloudFront",
+        subtopics: [
+          "Why a CDN (latency, caching, TLS at the edge)",
+          "CloudFront in front of S3 and/or ALB",
+          "Cache behaviors and invalidation basics",
+          "Speeding up global delivery of static assets and APIs (where appropriate)",
+        ],
+      },
+      {
+        name: "Topic 12.10: ECS — Elastic Container Service",
+        subtopics: [
+          "Containers on AWS without deep Kubernetes (ties to M9)",
+          "ECR: build, tag, push Go images",
+          "Task definitions, services, and desired count",
+          "ECS on EC2 vs **Fargate** (choose one primary path; know both)",
+          "Application Load Balancer (ALB) in front of ECS services",
+          "Health checks, rolling updates, and scaling services",
+          "ECS vs EKS (talking level — deep K8s waits for M14 / on the job)",
+          "ElastiCache (managed Redis) — awareness for cache/rate-limit in prod",
+        ],
+      },
+      {
+        name: "Topic 12.11: Serverless Functions — Lambda",
+        subtopics: [
+          "When Lambda fits vs always-on ECS (trade-offs)",
+          "Deploying a Go or managed-runtime function",
+          "API Gateway → Lambda for small production APIs",
+          "Triggers, timeouts, cold starts (awareness)",
+          "IAM roles for Lambda; CloudWatch logs",
+          "Optional for first junior backend role — do after ECS is solid",
+        ],
+      },
+      {
+        name: "Topic 12.12: Delivery & TLS Extras",
+        subtopics: [
+          "Reverse proxy with nginx on EC2 (ties to M7 / M8)",
+          "TLS certificates with ACM",
+          "HTTPS end-to-end: Route 53 → CloudFront/ALB → service",
+          "Comparing nginx-on-EC2 vs ALB+ECS for your apps",
+        ],
+      },
+      {
+        name: "Topic 12.13: Infrastructure as Code (awareness)",
+        subtopics: [
+          "What IaC is and why click-ops does not scale",
+          "Terraform basics (resources, state — awareness)",
           "CloudFormation (awareness)",
+          "Goal: be able to discuss IaC in interviews; automate later in M13",
         ],
       },
     ],
@@ -737,7 +851,7 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
         name: "Topic 13.1: Concepts",
         subtopics: [
           "CI vs CD (delivery vs deployment)",
-          "Pipeline stages: build → test → lint → package → deploy",
+          "Pipeline stages: build → test → lint → security scan → package → deploy",
         ],
       },
       {
@@ -776,6 +890,16 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
           "Pre-commit hooks",
         ],
       },
+      {
+        name: "Topic 13.6: Security in CI",
+        subtopics: [
+          "`govulncheck` (known vulnerabilities in dependencies and the stdlib)",
+          "`gosec` static analysis (SAST) for common Go security issues",
+          "Dependency scanning and automated updates (Dependabot)",
+          "Secret scanning to block committed credentials",
+          "Fail the build on high-severity findings; triage and suppression workflow",
+        ],
+      },
     ],
   },
   {
@@ -783,7 +907,12 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
     topics: [
       {
         name: "Topic 14.1: Core Concepts",
-        subtopics: ["Pods", "Deployments", "Services", "Ingress"],
+        subtopics: [
+          "Pods",
+          "Deployments",
+          "Services",
+          "Ingress",
+        ],
       },
       {
         name: "Topic 14.2: Talking Points",
@@ -859,7 +988,6 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
   },
   {
     name: "Module 17: AI Integration",
-    ongoing: false,
     topics: [
       {
         name: "Topic 17.1: LLM APIs",
@@ -925,7 +1053,7 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
       {
         name: "Topic 18.3: Output",
         subtopics: [
-          'Weekly note: "what I read, what I learned, one pattern I\'ll reuse"',
+          "Weekly note: \"what I read, what I learned, one pattern I'll reuse\"",
         ],
       },
     ],
@@ -1043,8 +1171,6 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
           "Append-only ledger for stock?",
           "Background worker for emails?",
           "Connection pooling — what if exhausted?",
-          "Kafka vs Redis queue?",
-          "Float vs decimal for money?",
         ],
       },
       {
@@ -1071,7 +1197,7 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
       {
         name: "Topic 23.2: Technical Articles",
         subtopics: [
-          '2 articles (e.g. "Why JWT over sessions", "Preventing double stock deduction")',
+          "2 articles (e.g. \"Why JWT over sessions\", \"Preventing double stock deduction\")",
           "Publish on Dev.to / LinkedIn",
         ],
       },
@@ -1090,7 +1216,7 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
         subtopics: [
           "3-minute project pitch",
           "Defend 3 `DECISIONS.md` entries",
-          'Failure-mode questions ("what breaks at 10k RPS?", "how to debug a 500?")',
+          "Failure-mode questions (\"what breaks at 10k RPS?\", \"how to debug a 500?\")",
           "Concurrency Q&A",
           "SQL + transactions",
           "System design basics",

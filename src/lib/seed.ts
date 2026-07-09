@@ -7,7 +7,7 @@ import { nowISO } from "./utils";
 import { CS_FUNDAMENTALS, LEETCODE_PATTERNS, coreProblemKey, coreCsItemKey } from "./leetcode-patterns";
 import { getReviewStateForBackup, restoreReviewStateFromBackup, useReviewStore } from "@/stores/review-store";
 import { buildRevisionCatalog, getDueReviewCatalogItems } from "./revision-catalog";
-import { GO_BACKEND_PATH_MARKER } from "./go-backend-path";
+import { GO_BACKEND_PATH_MARKER, GO_BACKEND_CURRICULUM_VERSION } from "./go-backend-path";
 import {
   getGoBackendPathWithProjects,
   goProjectsToParsedTopics,
@@ -109,6 +109,7 @@ export async function seedDatabase(): Promise<void> {
     theme: "dark",
     tieredGoal: DEFAULT_TIERED_GOAL,
     leetCodeStats: { easy: 0, medium: 0, hard: 0 },
+    goBackendCurriculumVersion: GO_BACKEND_CURRICULUM_VERSION,
   };
 
   await db.transaction("rw", [db.tracks, db.modules, db.topics, db.subtopics, db.achievements, db.settings], async () => {

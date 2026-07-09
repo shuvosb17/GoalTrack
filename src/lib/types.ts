@@ -329,6 +329,8 @@ export interface AppSettings {
   leetCodeStats?: LeetCodeStats;
   leetCodeLog?: LeetCodeSolveEntry[];
   trackSettings?: Record<string, TrackSettings>;
+  /** Applied Development Go Backend curriculum shape version */
+  goBackendCurriculumVersion?: number;
 }
 
 /** Per-track completion deadline for estimation charts */

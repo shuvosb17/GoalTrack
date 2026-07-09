@@ -12,6 +12,7 @@ import { PrepQuizProvider } from "@/components/providers/prep-quiz-provider";
 import { LeetcodeConfidenceProvider } from "@/components/providers/leetcode-confidence-provider";
 import { InterviewReadinessChecker } from "@/components/providers/interview-readiness-checker";
 import { seedDatabase, ensureLeetcodePrep, ensureInterviewReadyAchievement, ensureGoBackendPath, ensureGoBackendProjects } from "@/lib/seed";
+import { ensureGoBackendCurriculumSync } from "@/lib/go-backend-curriculum-sync";
 import { ensureGitGithubSubtopics } from "@/lib/git-github-curriculum-sync";
 import { repairMisattributedSessions } from "@/lib/session-repair";
 import { useAppStore } from "@/stores/app-store";
@@ -24,6 +25,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     seedDatabase()
       .then(() => ensureLeetcodePrep())
       .then(() => ensureGoBackendPath())
+      .then(() => ensureGoBackendCurriculumSync())
       .then(() => ensureGoBackendProjects())
       .then(() => ensureGitGithubSubtopics())
       .then(() => ensureInterviewReadyAchievement())
