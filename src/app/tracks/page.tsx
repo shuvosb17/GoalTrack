@@ -6,6 +6,7 @@ import { BookOpen } from "lucide-react";
 import { HierarchyTree } from "@/components/tracks/hierarchy-tree";
 import { ReviewDueBanner } from "@/components/tracks/review-due-banner";
 import { TrackEstimationPanel } from "@/components/tracks/track-estimation-panel";
+import { JobReadinessPanel } from "@/components/tracks/job-readiness-panel";
 import { LeetCodeWorkspace } from "@/components/tracks/leetcode-workspace";
 import { useTracks, useAllModules, useAllTopics, useAllSubtopics } from "@/hooks/use-data";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -29,7 +30,9 @@ function TracksContent() {
   const reviewDueCount = reviewSnapshot.dueCount;
 
   const leetcodeTrack = useMemo(() => tracks.find((t) => t.name === "LeetCode"), [tracks]);
+  const devTrack = useMemo(() => tracks.find((t) => t.name === "Development"), [tracks]);
   const isLeetcodeView = leetcodeTrack != null && selectedTrack === leetcodeTrack.id;
+  const isDevelopmentView = devTrack != null && selectedTrack === devTrack.id;
 
   const hierarchyTracks = useMemo(() => {
     if (selectedTrack) return tracks.filter((t) => t.id === selectedTrack);
@@ -73,6 +76,8 @@ function TracksContent() {
       )}
 
       <TrackEstimationPanel filterTrackId={selectedTrack} />
+
+      {isDevelopmentView && devTrack && <JobReadinessPanel trackId={devTrack.id} />}
 
       {isLeetcodeView && leetcodeTrack && (
         <LeetCodeWorkspace leetcodeTrackId={leetcodeTrack.id} />
