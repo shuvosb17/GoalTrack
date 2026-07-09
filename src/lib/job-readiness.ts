@@ -27,6 +27,7 @@ export interface ChecklistItem {
   label: string;
   moduleNumbers: number[];
   met: boolean;
+  percent: number;
   progressLabel: string;
 }
 
@@ -137,15 +138,15 @@ function checklistProgress(
   moduleNumbers: number[],
   byNumber: Map<number, ModuleReadiness>,
   threshold = 70
-): { met: boolean; progressLabel: string } {
+): { met: boolean; percent: number; progressLabel: string } {
   const modules = moduleNumbers.map((n) => byNumber.get(n)).filter(Boolean) as ModuleReadiness[];
   if (modules.length === 0) {
-    return { met: false, progressLabel: "Modules not found in track" };
+    return { met: false, percent: 0, progressLabel: "Modules not found in track" };
   }
   const avg = Math.round(modules.reduce((sum, m) => sum + m.percent, 0) / modules.length);
   const met = modules.every((m) => m.percent >= threshold);
   const detail = modules.map((m) => `M${m.moduleNumber} ${m.percent}%`).join(" · ");
-  return { met, progressLabel: `${avg}% avg (${detail})` };
+  return { met, percent: avg, progressLabel: `${avg}% avg (${detail})` };
 }
 
 function deriveNextSteps(
@@ -225,8 +226,8 @@ export function buildJobReadinessReport(
   if (phases.every((p) => p.id === "D" || p.percent >= 75)) currentPhase = "D";
 
   const checklist: ChecklistItem[] = APPLY_CHECKLIST.map((item) => {
-    const { met, progressLabel } = checklistProgress(item.moduleNumbers, byNumber, item.threshold ?? 70);
-    return { id: item.id, label: item.label, moduleNumbers: item.moduleNumbers, met, progressLabel };
+    const { met, percent, progressLabel } = checklistProgress(item.moduleNumbers, byNumber, item.threshold ?? 70);
+    return { id: item.id, label: item.label, moduleNumbers: item.moduleNumbers, met, percent, progressLabel };
   });
 
   const readyToApply = checklist.every((c) => c.met);
