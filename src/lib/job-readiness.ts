@@ -76,17 +76,30 @@ export const JOB_PHASES: JobPhaseDef[] = [
   },
 ];
 
-const APPLY_CHECKLIST: Array<{ id: string; label: string; moduleNumbers: number[]; threshold?: number }> = [
-  { id: "go", label: "Go fundamentals + concurrency basics", moduleNumbers: [1, 2] },
-  { id: "tests", label: "Tests you actually wrote (unit + integration)", moduleNumbers: [3] },
-  { id: "rest", label: "REST API with validation and middleware", moduleNumbers: [4] },
-  { id: "db", label: "PostgreSQL: schema, joins, transactions, migrations", moduleNumbers: [5] },
-  { id: "auth", label: "Auth: bcrypt + JWT + RBAC", moduleNumbers: [6] },
-  { id: "docker", label: "Docker + docker-compose; image in a registry", moduleNumbers: [9] },
-  { id: "git", label: "Git/GitHub fluency and clean READMEs", moduleNumbers: [0] },
-  { id: "deploy", label: "Basic Linux + one deployed live service (HTTPS)", moduleNumbers: [7, 12], threshold: 50 },
-  { id: "tradeoffs", label: "Can explain trade-offs aloud", moduleNumbers: [22], threshold: 40 },
-  { id: "jobkit", label: "Resume + LinkedIn + pinned repos", moduleNumbers: [23], threshold: 40 },
+/** Checklist order follows the Go backend path: Phase A (M0–M6, M9) then Phase B (M7, M12) then job prep (M22, M23). */
+const APPLY_CHECKLIST: Array<{
+  id: string;
+  label: string;
+  moduleNumbers: number[];
+  order: number;
+  threshold?: number;
+}> = [
+  { id: "git", label: "Git/GitHub fluency and clean READMEs", moduleNumbers: [0], order: 0 },
+  { id: "go", label: "Go fundamentals + concurrency basics", moduleNumbers: [1, 2], order: 1 },
+  { id: "tests", label: "Tests you actually wrote (unit + integration)", moduleNumbers: [3], order: 2 },
+  { id: "rest", label: "REST API with validation and middleware", moduleNumbers: [4], order: 3 },
+  { id: "db", label: "PostgreSQL: schema, joins, transactions, migrations", moduleNumbers: [5], order: 4 },
+  { id: "auth", label: "Auth: bcrypt + JWT + RBAC", moduleNumbers: [6], order: 5 },
+  { id: "docker", label: "Docker + docker-compose; image in a registry", moduleNumbers: [9], order: 6 },
+  {
+    id: "deploy",
+    label: "Basic Linux + one deployed live service (HTTPS)",
+    moduleNumbers: [7, 12],
+    order: 7,
+    threshold: 50,
+  },
+  { id: "tradeoffs", label: "Can explain trade-offs aloud", moduleNumbers: [22], order: 8, threshold: 40 },
+  { id: "jobkit", label: "Resume + LinkedIn + pinned repos", moduleNumbers: [23], order: 9, threshold: 40 },
 ];
 
 function parseModuleNumber(name: string): number | null {
@@ -225,7 +238,9 @@ export function buildJobReadinessReport(
   if (corePhaseA && corePhaseA.percent >= 70 && corePhaseB && corePhaseB.percent >= 60) currentPhase = "C";
   if (phases.every((p) => p.id === "D" || p.percent >= 75)) currentPhase = "D";
 
-  const checklist: ChecklistItem[] = APPLY_CHECKLIST.map((item) => {
+  const checklist: ChecklistItem[] = [...APPLY_CHECKLIST]
+    .sort((a, b) => a.order - b.order)
+    .map((item) => {
     const { met, percent, progressLabel } = checklistProgress(item.moduleNumbers, byNumber, item.threshold ?? 70);
     return { id: item.id, label: item.label, moduleNumbers: item.moduleNumbers, met, percent, progressLabel };
   });
