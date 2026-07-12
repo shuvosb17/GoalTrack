@@ -6,7 +6,7 @@ import { DEFAULT_TIERED_GOAL } from "./types/metrics";
 import { nowISO } from "./utils";
 import { CS_FUNDAMENTALS, LEETCODE_PATTERNS, coreProblemKey, coreCsItemKey } from "./leetcode-patterns";
 import { getReviewStateForBackup, restoreReviewStateFromBackup, useReviewStore } from "@/stores/review-store";
-import { buildRevisionCatalog, getDueReviewCatalogItems } from "./revision-catalog";
+import { buildRevisionCatalog } from "./revision-catalog";
 import { GO_BACKEND_PATH_MARKER, GO_BACKEND_CURRICULUM_VERSION } from "./go-backend-path";
 import {
   getGoBackendPathWithProjects,
@@ -321,12 +321,6 @@ export async function importAllData(data: Awaited<ReturnType<typeof exportAllDat
       data.topics ?? [],
       data.subtopics ?? []
     );
-    const dueItems = getDueReviewCatalogItems(
-      catalog,
-      data.topics ?? [],
-      data.subtopics ?? [],
-      data.modules ?? []
-    );
-    useReviewStore.getState().reconcileReviewQueue(catalog, dueItems);
+    useReviewStore.getState().refreshQueueFromCatalog(catalog);
   }
 }

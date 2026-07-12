@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { Suspense, useMemo, useState, useEffect } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { BookOpen } from "lucide-react";
 import { HierarchyTree } from "@/components/tracks/hierarchy-tree";
 import { ReviewDueBanner } from "@/components/tracks/review-due-banner";
@@ -11,7 +11,6 @@ import { LeetCodeWorkspace } from "@/components/tracks/leetcode-workspace";
 import { useTracks, useAllModules, useAllTopics, useAllSubtopics } from "@/hooks/use-data";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { buildReviewDueSnapshot } from "@/lib/revision-catalog";
-import { useReviewStore } from "@/stores/review-store";
 
 function TracksContent() {
   const searchParams = useSearchParams();
@@ -38,12 +37,6 @@ function TracksContent() {
     if (selectedTrack) return tracks.filter((t) => t.id === selectedTrack);
     return tracks;
   }, [tracks, selectedTrack]);
-
-  useEffect(() => {
-    useReviewStore
-      .getState()
-      .reconcileReviewQueue(reviewSnapshot.catalog, reviewSnapshot.dueItems);
-  }, [reviewSnapshot]);
 
   return (
     <div className="space-y-6">

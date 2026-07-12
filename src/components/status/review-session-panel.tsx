@@ -59,7 +59,7 @@ export function ReviewSessionPanel({
   const addToQueue = useReviewStore((s) => s.addToQueue);
   const removeFromQueue = useReviewStore((s) => s.removeFromQueue);
   const refreshQueueFromCatalog = useReviewStore((s) => s.refreshQueueFromCatalog);
-  const reconcileReviewQueue = useReviewStore((s) => s.reconcileReviewQueue);
+  const syncDueReviewsToQueue = useReviewStore((s) => s.syncDueReviewsToQueue);
   const startSession = useReviewStore((s) => s.startSession);
 
   const [activeTrackId, setActiveTrackId] = useState<string | null>(null);
@@ -79,8 +79,7 @@ export function ReviewSessionPanel({
 
   useEffect(() => {
     refreshQueueFromCatalog(catalog);
-    reconcileReviewQueue(catalog, dueSnapshot.dueItems);
-  }, [catalog, dueSnapshot.dueItems, refreshQueueFromCatalog, reconcileReviewQueue]);
+  }, [catalog, refreshQueueFromCatalog]);
 
   useEffect(() => {
     if (!resumedSession && sessionActive && activeItem) {
@@ -332,21 +331,35 @@ export function ReviewSessionPanel({
             </div>
 
             <div className="min-w-0 rounded-xl border-[0.5px] border-white/[0.08] bg-white/[0.015] p-4">
-              <div className="mb-3 flex items-center justify-between gap-2">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm font-medium">Review queue</p>
-                <span className="text-xs text-muted-foreground">
-                  {queue.length === 0
-                    ? "empty"
-                    : `${queue.length} item${queue.length === 1 ? "" : "s"}${dueCount > queue.length ? ` · ${dueCount - queue.length} due not queued` : ""}`}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    {queue.length === 0
+                      ? "empty"
+                      : `${queue.length} item${queue.length === 1 ? "" : "s"}${dueCount > queue.length ? ` · ${dueCount - queue.length} due not queued` : ""}`}
+                  </span>
+                  {dueCount > 0 && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-[11px]"
+                      onClick={() => syncDueReviewsToQueue(dueSnapshot.dueItems)}
+                      disabled={dueSnapshot.dueItems.every((d) => queue.some((q) => q.id === d.id))}
+                    >
+                      Queue all due
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {queue.length === 0 ? (
                 <div className="py-10 text-center">
                   <ListMusic className="mx-auto mb-4 h-10 w-10 text-muted-foreground/20" />
-                  <p className="mx-auto max-w-[240px] text-sm text-muted-foreground">
+                  <p className="mx-auto max-w-[260px] text-sm text-muted-foreground">
                     {dueCount > 0
-                      ? `${dueCount} item${dueCount === 1 ? " is" : "s are"} due — they will appear here automatically`
+                      ? `${dueCount} item${dueCount === 1 ? " is" : "s are"} due — add with + or Queue all due`
                       : "Add topics from any track to build your review session"}
                   </p>
                 </div>

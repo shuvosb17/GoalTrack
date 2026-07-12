@@ -21,7 +21,7 @@ interface ReviewStore extends ReviewBackupState {
   removeFromQueue: (id: string) => void;
   refreshQueueFromCatalog: (catalog: ReviewCatalogItem[]) => void;
   syncDueReviewsToQueue: (dueItems: ReviewCatalogItem[]) => void;
-  reconcileReviewQueue: (catalog: ReviewCatalogItem[], dueItems: ReviewCatalogItem[]) => void;
+  reconcileReviewQueue: (catalog: ReviewCatalogItem[]) => void;
   restoreFromBackup: (state: ReviewBackupState) => void;
   startSession: (itemId: string) => void;
   setProgress: (progress: RevisionProgress) => void;
@@ -85,28 +85,20 @@ export const useReviewStore = create<ReviewStore>()(
         set({ queue: [...queue, ...toAdd] });
       },
 
-      reconcileReviewQueue: (catalog, dueItems) => {
+      /** Refresh metadata and drop items no longer in the catalog. Never auto-adds due items. */
+      reconcileReviewQueue: (catalog) => {
         const byId = new Map(catalog.map((c) => [c.id, c]));
-        const { queue, dismissedIds } = get();
-        const dueIdSet = new Set(dueItems.map((d) => d.id));
-        const nextDismissed = dismissedIds.filter((id) => dueIdSet.has(id));
-
-        const refreshed = queue
+        const { queue } = get();
+        const next = queue
           .map((q) => byId.get(q.id) ?? q)
           .filter((q) => byId.has(q.id));
-
-        const dismissed = new Set(nextDismissed);
-        const existing = new Set(refreshed.map((q) => q.id));
-        const toAdd = dueItems.filter((item) => !existing.has(item.id) && !dismissed.has(item.id));
-        const next = toAdd.length > 0 ? [...refreshed, ...toAdd] : refreshed;
 
         const queueChanged =
           next.length !== queue.length ||
           next.some((item, i) => item.id !== queue[i]?.id || item.confidence !== queue[i]?.confidence);
-        const dismissedChanged = nextDismissed.length !== dismissedIds.length;
 
-        if (queueChanged || dismissedChanged) {
-          set({ queue: next, dismissedIds: nextDismissed });
+        if (queueChanged) {
+          set({ queue: next });
         }
       },
 
@@ -147,7 +139,7 @@ export const useReviewStore = create<ReviewStore>()(
     }),
     {
       name: "goaltrack-review",
-      version: 3,
+      version: 4,
       migrate: (persisted, version) => {
         const state = persisted as {
           queue?: ReviewCatalogItem[];
@@ -159,6 +151,15 @@ export const useReviewStore = create<ReviewStore>()(
         }
         if (version < 3) {
           return { ...state, dismissedIds: state.dismissedIds ?? [] };
+        }
+        // v3 auto-merged due items into the queue; reset so only explicit + / Queue all due adds remain
+        if (version < 4) {
+          return {
+            ...state,
+            queue: [],
+            progress: null,
+            dismissedIds: [],
+          };
         }
         return state as ReviewStore;
       },
