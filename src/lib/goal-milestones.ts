@@ -6,7 +6,7 @@ import type {
   Module, Topic, Track, Subtopic, ProgressStatus, GoalRiskLevel, GoalProjectedFinish,
 } from "./types";
 import { getModuleProgress, getTopicProgress, getTrackProgress } from "./analytics";
-import { calculateTopicsProgress, isTopicComplete } from "./in-progress";
+import { calculateTopicsProgress, getEffectiveTopicStatus, isTopicComplete } from "./in-progress";
 import { nowISO, todayISO, parseLocalDate } from "./utils";
 
 export type GoalScopeInput = Pick<GoalMilestone, "trackId" | "moduleId" | "moduleIds" | "topicId" | "topicIds">;
@@ -100,7 +100,7 @@ export function buildGoalScopeSummary(
   );
   const topicStatusCounts = emptyStatusCounts();
   for (const topic of scopeTopics) {
-    topicStatusCounts[topic.status] += 1;
+    topicStatusCounts[getEffectiveTopicStatus(topic, subtopics)] += 1;
   }
   return {
     scopeType: getGoalScopeType(goal),

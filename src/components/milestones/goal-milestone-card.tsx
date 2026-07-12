@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, ChevronRight, Clock, Flag, TrendingDown, TrendingUp } from "lucide-react";
+import { Calendar, ChevronRight, Clock, TrendingDown, TrendingUp } from "lucide-react";
 import type { GoalMilestoneStats } from "@/lib/types";
 import { formatGoalDateRange, formatGoalDuration } from "@/lib/goal-milestones";
 import {
@@ -12,6 +12,38 @@ import {
   PACE_PILL_LABELS,
 } from "@/lib/goal-dashboard";
 import { cn } from "@/lib/utils";
+
+const MILESTONE_BARS = [
+  { key: "ongoing" as const, label: "Ongoing", color: "#facc15" },
+  { key: "upcoming" as const, label: "Upcoming", color: "#ef4444" },
+  { key: "completed" as const, label: "Completed", color: "#22c55e" },
+];
+
+function getMilestoneBarCounts(stats: GoalMilestoneStats) {
+  const checkpoints = stats.goal.checkpoints ?? [];
+  if (checkpoints.length > 0) {
+    const completed = checkpoints.filter((c) => c.done).length;
+    return {
+      ongoing: 0,
+      upcoming: checkpoints.length - completed,
+      completed,
+      total: checkpoints.length,
+      unit: "checkpoints" as const,
+    };
+  }
+
+  const counts = stats.topicStatusCounts;
+  const completed = (counts.completed ?? 0) + (counts.mastered ?? 0);
+  const ongoing = counts.in_progress ?? 0;
+  const upcoming = counts.not_started ?? 0;
+  return {
+    ongoing,
+    upcoming,
+    completed,
+    total: Math.max(1, stats.topicsTotal),
+    unit: "topics" as const,
+  };
+}
 
 interface GoalMilestoneCardProps {
   stats: GoalMilestoneStats;
@@ -76,10 +108,9 @@ export function GoalMilestoneCard({ stats, onOpen }: GoalMilestoneCardProps) {
   const accent = getCardAccentColor(stats);
   const paceColor = PACE_PILL_COLORS[paceStatus];
   const riskColor = getRiskPillColor(stats);
-  const checkpoints = goal.checkpoints ?? [];
-  const checkpointsDone = checkpoints.filter((c) => c.done).length;
   const description = goal.notes?.trim() || scopeLabel;
   const PaceIcon = stats.paceDelta >= 0 ? TrendingUp : TrendingDown;
+  const bars = getMilestoneBarCounts(stats);
 
   return (
     <button
@@ -180,28 +211,29 @@ export function GoalMilestoneCard({ stats, onOpen }: GoalMilestoneCardProps) {
               </p>
             </div>
             <div className="rounded-lg border border-white/[0.05] bg-black/20 px-2.5 py-2">
-              <div className="mb-1 flex items-center gap-1 text-[9px] uppercase tracking-wide text-muted-foreground">
-                <Flag className="h-3 w-3" />
+              <div className="mb-1.5 text-[9px] uppercase tracking-wide text-muted-foreground">
                 Milestones
               </div>
-              <p className="font-mono text-sm tabular-nums text-foreground">
-                {checkpoints.length > 0
-                  ? `${checkpointsDone}/${checkpoints.length}`
-                  : `${stats.topicsCompleted}/${stats.topicsTotal}`}
-              </p>
-              <p className="text-[10px] text-muted-foreground">
-                {checkpoints.length > 0 ? "checkpoints" : "topics done"}
-              </p>
-              {checkpoints.length > 0 && (
-                <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/[0.06]">
-                  <div
-                    className="h-full rounded-full bg-violet-500"
-                    style={{
-                      width: `${checkpoints.length ? (checkpointsDone / checkpoints.length) * 100 : 0}%`,
-                    }}
-                  />
-                </div>
-              )}
+              <div className="space-y-1.5">
+                {MILESTONE_BARS.map((bar) => {
+                  const count = bars[bar.key];
+                  const pct = Math.round((count / bars.total) * 100);
+                  return (
+                    <div key={bar.key}>
+                      <div className="mb-0.5 flex items-center justify-between gap-1 text-[9px]">
+                        <span style={{ color: bar.color }}>{bar.label}</span>
+                        <span className="font-mono tabular-nums text-muted-foreground">{count}</span>
+                      </div>
+                      <div className="h-1 overflow-hidden rounded-full bg-white/[0.06]">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{ width: `${pct}%`, backgroundColor: bar.color }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
