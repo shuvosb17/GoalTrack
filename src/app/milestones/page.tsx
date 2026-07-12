@@ -11,10 +11,12 @@ import { buildAllGoalStats, buildPaceQuadrantData, deleteGoalMilestone } from "@
 import {
   buildDashboardSummary,
   buildGoalInsights,
-  filterGoalStats,
+  countByLifecycle,
+  filterByLifecycle,
   needsAttentionGoals,
   sortGoalStats,
-  type GoalFilter,
+  GOAL_LIFECYCLE_TABS,
+  type GoalLifecycleTab,
   type GoalSort,
 } from "@/lib/goal-dashboard";
 import { PaceMapChart } from "@/components/milestones/pace-map-chart";
@@ -39,7 +41,7 @@ export default function MilestonesPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [editing, setEditing] = useState<GoalMilestone | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<GoalFilter>("all");
+  const [filter, setFilter] = useState<GoalLifecycleTab>("ongoing");
   const [sort, setSort] = useState<GoalSort>("most_behind");
 
   const stats = useMemo(
@@ -51,13 +53,16 @@ export default function MilestonesPage() {
   const summary = useMemo(() => buildDashboardSummary(stats), [stats]);
   const insights = useMemo(() => buildGoalInsights(stats), [stats]);
   const attention = useMemo(() => needsAttentionGoals(stats), [stats]);
+  const lifecycleCounts = useMemo(() => countByLifecycle(stats), [stats]);
 
   const displayedGoals = useMemo(
-    () => sortGoalStats(filterGoalStats(stats, filter), sort),
+    () => sortGoalStats(filterByLifecycle(stats, filter), sort),
     [stats, filter, sort]
   );
 
   const selectedStats = stats.find((s) => s.goal.id === selectedId) ?? null;
+  const activeTabLabel =
+    GOAL_LIFECYCLE_TABS.find((t) => t.id === filter)?.label ?? "Goals";
 
   const openCreate = () => {
     setEditing(null);
@@ -123,16 +128,17 @@ export default function MilestonesPage() {
       <GoalNeedsAttention goals={attention} onOpen={openDetail} />
 
       <GoalFilterBar
-        filter={filter}
+        lifecycleTab={filter}
         sort={sort}
-        onFilterChange={setFilter}
+        counts={lifecycleCounts}
+        onLifecycleChange={setFilter}
         onSortChange={setSort}
         shownCount={displayedGoals.length}
       />
 
       <div>
         <div className="mb-3 flex items-baseline justify-between gap-2">
-          <h2 className="text-lg font-medium text-foreground">All Goals</h2>
+          <h2 className="text-lg font-medium text-foreground">{activeTabLabel} Goals</h2>
           <span className="text-xs text-muted-foreground">{displayedGoals.length} shown</span>
         </div>
 

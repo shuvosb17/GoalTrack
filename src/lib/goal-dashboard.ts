@@ -1,7 +1,11 @@
 import type { GoalMilestoneStats, GoalPaceStatus } from "./types";
 import { getGoalRisk, projectGoalFinish } from "./goal-milestones";
+import { todayISO } from "./utils";
 
 export type GoalFilter = "all" | GoalPaceStatus;
+export type GoalLifecycle = "ongoing" | "upcoming" | "completed";
+export type GoalLifecycleTab = "all" | GoalLifecycle;
+
 export type GoalSort =
   | "most_behind"
   | "most_ahead"
@@ -17,6 +21,17 @@ export const GOAL_FILTER_LABELS: Record<GoalFilter, string> = {
   completed: "Completed",
   overdue: "Overdue",
 };
+
+export const GOAL_LIFECYCLE_TABS: Array<{
+  id: GoalLifecycleTab;
+  label: string;
+  color: string;
+}> = [
+  { id: "all", label: "All", color: "#a1a1aa" },
+  { id: "ongoing", label: "Ongoing", color: "#facc15" },
+  { id: "upcoming", label: "Upcoming", color: "#ef4444" },
+  { id: "completed", label: "Completed", color: "#22c55e" },
+];
 
 export const GOAL_SORT_LABELS: Record<GoalSort, string> = {
   most_behind: "Most Behind",
@@ -41,6 +56,33 @@ export const PACE_PILL_COLORS: Record<GoalPaceStatus, string> = {
   completed: "#22c55e",
   overdue: "#ef4444",
 };
+
+export function getGoalLifecycle(stats: GoalMilestoneStats): GoalLifecycle {
+  if (stats.paceStatus === "completed") return "completed";
+  if (todayISO() < stats.goal.startDate) return "upcoming";
+  return "ongoing";
+}
+
+export function filterByLifecycle(
+  stats: GoalMilestoneStats[],
+  tab: GoalLifecycleTab
+): GoalMilestoneStats[] {
+  if (tab === "all") return stats;
+  return stats.filter((s) => getGoalLifecycle(s) === tab);
+}
+
+export function countByLifecycle(stats: GoalMilestoneStats[]): Record<GoalLifecycleTab, number> {
+  const counts: Record<GoalLifecycleTab, number> = {
+    all: stats.length,
+    ongoing: 0,
+    upcoming: 0,
+    completed: 0,
+  };
+  for (const s of stats) {
+    counts[getGoalLifecycle(s)] += 1;
+  }
+  return counts;
+}
 
 export function getRiskPillLabel(stats: GoalMilestoneStats): string {
   if (stats.paceStatus === "completed") return "Completed";
