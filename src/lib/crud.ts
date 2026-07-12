@@ -67,8 +67,9 @@ export async function deleteTopic(id: string) {
 
 export async function createModule(trackId: string, name: string) {
   const modules = await db.modules.where("trackId").equals(trackId).toArray();
+  const order = modules.length > 0 ? Math.max(...modules.map((m) => m.order)) + 1 : 0;
   const newModule: Module = {
-    id: uuid(), trackId, name, order: modules.length, archived: false, createdAt: nowISO(), updatedAt: nowISO(),
+    id: uuid(), trackId, name, order, archived: false, createdAt: nowISO(), updatedAt: nowISO(),
   };
   await db.modules.add(newModule);
   return newModule;
@@ -76,9 +77,10 @@ export async function createModule(trackId: string, name: string) {
 
 export async function createTopic(moduleId: string, trackId: string, name: string, difficulty: Difficulty = "medium") {
   const topics = await db.topics.where("moduleId").equals(moduleId).toArray();
+  const order = topics.length > 0 ? Math.max(...topics.map((t) => t.order)) + 1 : 0;
   const topic: Topic = {
     id: uuid(), moduleId, trackId, name, difficulty, status: "not_started",
-    order: topics.length, archived: false, createdAt: nowISO(), updatedAt: nowISO(),
+    order, archived: false, createdAt: nowISO(), updatedAt: nowISO(),
   };
   await db.topics.add(topic);
   return topic;
@@ -86,9 +88,10 @@ export async function createTopic(moduleId: string, trackId: string, name: strin
 
 export async function createSubtopic(topicId: string, moduleId: string, trackId: string, name: string, difficulty: Difficulty = "medium") {
   const subtopics = await db.subtopics.where("topicId").equals(topicId).toArray();
+  const order = subtopics.length > 0 ? Math.max(...subtopics.map((s) => s.order)) + 1 : 0;
   const subtopic: Subtopic = {
     id: uuid(), topicId, moduleId, trackId, name, status: "not_started", difficulty,
-    order: subtopics.length, archived: false, createdAt: nowISO(), updatedAt: nowISO(),
+    order, archived: false, createdAt: nowISO(), updatedAt: nowISO(),
   };
   await db.subtopics.add(subtopic);
   await syncTopicStatusFromSubtopics(topicId);
@@ -607,6 +610,7 @@ export async function deleteSubtopic(id: string) {
 
 export async function duplicateSubtopic(subtopic: Subtopic) {
   const subtopics = await db.subtopics.where("topicId").equals(subtopic.topicId).toArray();
+  const order = subtopics.length > 0 ? Math.max(...subtopics.map((s) => s.order)) + 1 : 0;
   const copy: Subtopic = {
     ...subtopic,
     id: uuid(),
@@ -614,7 +618,7 @@ export async function duplicateSubtopic(subtopic: Subtopic) {
     status: "not_started",
     startedAt: undefined,
     dueDate: undefined,
-    order: subtopics.length,
+    order,
     createdAt: nowISO(),
     updatedAt: nowISO(),
   };

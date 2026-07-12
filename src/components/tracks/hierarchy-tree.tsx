@@ -164,7 +164,7 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
   return (
     <div className="space-y-0">
       {filteredTracks.map((track) => {
-        const trackModulesAll = modules.filter((m) => m.trackId === track.id).sort((a, b) => a.order - b.order);
+        const trackModulesAll = modules.filter((m) => m.trackId === track.id).sort((a, b) => a.order - b.order || a.createdAt.localeCompare(b.createdAt));
         const activeModules = trackModulesAll.filter((m) => !m.archived);
         const archivedModules = trackModulesAll.filter((m) => m.archived);
         const archivedTopicCount = topics.filter(
@@ -193,7 +193,7 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleDragEnd(e, activeModules, db.modules)}>
                       <SortableContext items={activeModules.map((m) => m.id)} strategy={verticalListSortingStrategy}>
                         {activeModules.map((mod) => {
-                          const modTopicsAll = topics.filter((t) => t.moduleId === mod.id).sort((a, b) => a.order - b.order);
+                          const modTopicsAll = topics.filter((t) => t.moduleId === mod.id).sort((a, b) => a.order - b.order || a.createdAt.localeCompare(b.createdAt));
                           const modTopics = modTopicsAll.filter((t) => !t.archived);
                           const archivedModTopics = modTopicsAll.filter((t) => t.archived);
                           const modProgress = getModuleProgress(mod.id, topics, subtopics);
@@ -233,7 +233,7 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                     <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden">
                                       <div className="p-2 space-y-1">
                                         {modTopics.map((topic) => {
-                                          const topicSubs = subtopics.filter((s) => s.topicId === topic.id && !s.archived).sort((a, b) => a.order - b.order);
+                                          const topicSubs = subtopics.filter((s) => s.topicId === topic.id && !s.archived).sort((a, b) => a.order - b.order || a.createdAt.localeCompare(b.createdAt));
                                           const topicProgress = getTopicProgress(topic, subtopics);
                                           const reviewDue = isTopicDueForReview(topic);
                                           const reviewLabel = getReviewDueLabel(topic);
