@@ -35,17 +35,34 @@ export async function renameSubtopic(id: string, name: string) {
 }
 
 export async function deleteModule(id: string) {
+  const now = nowISO();
   await db.transaction("rw", [db.modules, db.topics, db.subtopics], async () => {
-    await db.subtopics.where("moduleId").equals(id).delete();
-    await db.topics.where("moduleId").equals(id).delete();
-    await db.modules.delete(id);
+    await db.modules.update(id, { deletedAt: now, updatedAt: now });
+    await db.topics.where("moduleId").equals(id).modify((t) => {
+      if (!t.deletedAt) {
+        t.deletedAt = now;
+        t.updatedAt = now;
+      }
+    });
+    await db.subtopics.where("moduleId").equals(id).modify((s) => {
+      if (!s.deletedAt) {
+        s.deletedAt = now;
+        s.updatedAt = now;
+      }
+    });
   });
 }
 
 export async function deleteTopic(id: string) {
+  const now = nowISO();
   await db.transaction("rw", [db.topics, db.subtopics], async () => {
-    await db.subtopics.where("topicId").equals(id).delete();
-    await db.topics.delete(id);
+    await db.topics.update(id, { deletedAt: now, updatedAt: now });
+    await db.subtopics.where("topicId").equals(id).modify((s) => {
+      if (!s.deletedAt) {
+        s.deletedAt = now;
+        s.updatedAt = now;
+      }
+    });
   });
 }
 
@@ -588,8 +605,127 @@ export async function unarchiveSubtopic(id: string) {
 export async function deleteSubtopic(id: string) {
   const sub = await db.subtopics.get(id);
   if (!sub) return;
-  await deleteItem(db.subtopics, id);
+  const now = nowISO();
+  await db.subtopics.update(id, { deletedAt: now, updatedAt: now });
   await syncTopicStatusFromSubtopics(sub.topicId);
+}
+
+export async function restoreModule(id: string) {
+  const now = nowISO();
+  await db.transaction("rw", [db.modules, db.topics, db.subtopics], async () => {
+    const mod = await db.modules.get(id);
+    if (!mod?.deletedAt) return;
+    await db.modules.where("id").equals(id).modify((m) => {
+      delete m.deletedAt;
+      m.updatedAt = now;
+    });
+    await db.topics.where("moduleId").equals(id).modify((t) => {
+      if (t.deletedAt) {
+        delete t.deletedAt;
+        t.updatedAt = now;
+      }
+    });
+    await db.subtopics.where("moduleId").equals(id).modify((s) => {
+      if (s.deletedAt) {
+        delete s.deletedAt;
+        s.updatedAt = now;
+      }
+    });
+  });
+}
+
+export async function restoreTopic(id: string) {
+  const topic = await db.topics.get(id);
+  if (!topic?.deletedAt) return;
+  const now = nowISO();
+  await db.transaction("rw", [db.modules, db.topics, db.subtopics], async () => {
+    const mod = await db.modules.get(topic.moduleId);
+    if (mod?.deletedAt) {
+      await db.modules.where("id").equals(mod.id).modify((m) => {
+        delete m.deletedAt;
+        m.updatedAt = now;
+      });
+    }
+    await db.topics.where("id").equals(id).modify((t) => {
+      delete t.deletedAt;
+      t.updatedAt = now;
+    });
+    await db.subtopics.where("topicId").equals(id).modify((s) => {
+      if (s.deletedAt) {
+        delete s.deletedAt;
+        s.updatedAt = now;
+      }
+    });
+  });
+}
+
+export async function restoreSubtopic(id: string) {
+  const sub = await db.subtopics.get(id);
+  if (!sub?.deletedAt) return;
+  const now = nowISO();
+  await db.transaction("rw", [db.modules, db.topics, db.subtopics], async () => {
+    const topic = await db.topics.get(sub.topicId);
+    if (topic?.deletedAt) {
+      const mod = await db.modules.get(topic.moduleId);
+      if (mod?.deletedAt) {
+        await db.modules.where("id").equals(mod.id).modify((m) => {
+          delete m.deletedAt;
+          m.updatedAt = now;
+        });
+      }
+      await db.topics.where("id").equals(topic.id).modify((t) => {
+        delete t.deletedAt;
+        t.updatedAt = now;
+      });
+    } else {
+      const mod = await db.modules.get(sub.moduleId);
+      if (mod?.deletedAt) {
+        await db.modules.where("id").equals(mod.id).modify((m) => {
+          delete m.deletedAt;
+          m.updatedAt = now;
+        });
+      }
+    }
+    await db.subtopics.where("id").equals(id).modify((s) => {
+      delete s.deletedAt;
+      s.updatedAt = now;
+    });
+  });
+  await syncTopicStatusFromSubtopics(sub.topicId);
+}
+
+/** Permanently remove a soft-deleted module and its soft-deleted children. Sessions are kept. */
+export async function purgeModule(id: string) {
+  const mod = await db.modules.get(id);
+  if (!mod?.deletedAt) return;
+  await db.transaction("rw", [db.modules, db.topics, db.subtopics], async () => {
+    await db.subtopics.where("moduleId").equals(id).delete();
+    await db.topics.where("moduleId").equals(id).delete();
+    await db.modules.delete(id);
+  });
+}
+
+export async function purgeTopic(id: string) {
+  const topic = await db.topics.get(id);
+  if (!topic?.deletedAt) return;
+  await db.transaction("rw", [db.topics, db.subtopics], async () => {
+    await db.subtopics.where("topicId").equals(id).delete();
+    await db.topics.delete(id);
+  });
+}
+
+export async function purgeSubtopic(id: string) {
+  const sub = await db.subtopics.get(id);
+  if (!sub?.deletedAt) return;
+  await db.subtopics.delete(id);
+}
+
+export async function emptyRecycleBin() {
+  await db.transaction("rw", [db.modules, db.topics, db.subtopics], async () => {
+    await db.subtopics.filter((s) => !!s.deletedAt).delete();
+    await db.topics.filter((t) => !!t.deletedAt).delete();
+    await db.modules.filter((m) => !!m.deletedAt).delete();
+  });
 }
 
 export async function duplicateSubtopic(subtopic: Subtopic) {

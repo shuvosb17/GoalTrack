@@ -127,6 +127,11 @@ export class GrowthOSDatabase extends Dexie {
       prepQuizAttempts: "id, subjectType, subjectKey, passed, completedAt",
       mockRoundSessions: "id, mode, pattern, startedAt, completedAt",
     });
+    this.version(15).stores({
+      modules: "id, trackId, order, archived, deletedAt",
+      topics: "id, moduleId, trackId, order, archived, status, dueDate, deletedAt",
+      subtopics: "id, topicId, moduleId, trackId, status, order, archived, dueDate, deletedAt",
+    });
     this.version(7).stores({}).upgrade(async (tx) => {
       const topics = await tx.table("topics").toArray();
       for (const topic of topics) {

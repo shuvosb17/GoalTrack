@@ -60,6 +60,8 @@ export interface Module {
   description?: string;
   order: number;
   archived: boolean;
+  /** Soft-delete timestamp — item is in Recycle Bin until restored or purged */
+  deletedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -74,6 +76,7 @@ export interface Topic {
   status: ProgressStatus;
   order: number;
   archived: boolean;
+  deletedAt?: string;
   startedAt?: string;
   dueDate?: string;
   statusChangedAt?: string;
@@ -93,6 +96,7 @@ export interface Subtopic {
   difficulty: Difficulty;
   order: number;
   archived: boolean;
+  deletedAt?: string;
   startedAt?: string;
   dueDate?: string;
   statusChangedAt?: string;

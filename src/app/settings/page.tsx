@@ -22,6 +22,8 @@ import { nowISO, todayISO, formatDuration } from "@/lib/utils";
 import { getSuggestedDailyFromTarget } from "@/lib/metrics";
 import { MdImportPanel } from "@/components/settings/md-import-panel";
 import { GitHubBackupPanel } from "@/components/settings/github-backup-panel";
+import { ArchivedItemsPanel } from "@/components/settings/archived-items-panel";
+import { RecycleBinPanel } from "@/components/settings/recycle-bin-panel";
 import { format, parseISO } from "date-fns";
 
 export default function SettingsPage() {
@@ -170,6 +172,10 @@ export default function SettingsPage() {
       <GitHubBackupPanel />
 
       <MdImportPanel />
+
+      <ArchivedItemsPanel />
+
+      <RecycleBinPanel />
 
       <Card>
         <CardHeader><CardTitle className="text-xl">Goals</CardTitle></CardHeader>

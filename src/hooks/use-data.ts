@@ -3,6 +3,10 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 
+function notDeleted<T extends { deletedAt?: string }>(item: T): boolean {
+  return !item.deletedAt;
+}
+
 export function useTracks() {
   return useLiveQuery(() => db.tracks.orderBy("order").filter((t) => !t.archived).toArray(), []) ?? [];
 }
@@ -14,8 +18,8 @@ export function useAllTracks() {
 export function useModules(trackId?: string) {
   return useLiveQuery(
     () => trackId
-      ? db.modules.where("trackId").equals(trackId).filter((m) => !m.archived).sortBy("order")
-      : db.modules.filter((m) => !m.archived).sortBy("order"),
+      ? db.modules.where("trackId").equals(trackId).filter((m) => !m.archived && notDeleted(m)).sortBy("order")
+      : db.modules.filter((m) => !m.archived && notDeleted(m)).sortBy("order"),
     [trackId]
   ) ?? [];
 }
@@ -23,8 +27,8 @@ export function useModules(trackId?: string) {
 export function useTopics(moduleId?: string) {
   return useLiveQuery(
     () => moduleId
-      ? db.topics.where("moduleId").equals(moduleId).filter((t) => !t.archived).sortBy("order")
-      : db.topics.filter((t) => !t.archived).sortBy("order"),
+      ? db.topics.where("moduleId").equals(moduleId).filter((t) => !t.archived && notDeleted(t)).sortBy("order")
+      : db.topics.filter((t) => !t.archived && notDeleted(t)).sortBy("order"),
     [moduleId]
   ) ?? [];
 }
@@ -32,22 +36,53 @@ export function useTopics(moduleId?: string) {
 export function useSubtopics(topicId?: string) {
   return useLiveQuery(
     () => topicId
-      ? db.subtopics.where("topicId").equals(topicId).filter((s) => !s.archived).sortBy("order")
-      : db.subtopics.filter((s) => !s.archived).sortBy("order"),
+      ? db.subtopics.where("topicId").equals(topicId).filter((s) => !s.archived && notDeleted(s)).sortBy("order")
+      : db.subtopics.filter((s) => !s.archived && notDeleted(s)).sortBy("order"),
     [topicId]
   ) ?? [];
 }
 
+/** Active + archived, excluding soft-deleted (Tracks tree / settings archive). */
 export function useAllSubtopics() {
-  return useLiveQuery(() => db.subtopics.orderBy("order").toArray(), []) ?? [];
+  return useLiveQuery(
+    () => db.subtopics.orderBy("order").filter(notDeleted).toArray(),
+    []
+  ) ?? [];
 }
 
 export function useAllModules() {
-  return useLiveQuery(() => db.modules.toArray(), []) ?? [];
+  return useLiveQuery(
+    () => db.modules.filter(notDeleted).toArray(),
+    []
+  ) ?? [];
 }
 
 export function useAllTopics() {
-  return useLiveQuery(() => db.topics.toArray(), []) ?? [];
+  return useLiveQuery(
+    () => db.topics.filter(notDeleted).toArray(),
+    []
+  ) ?? [];
+}
+
+export function useDeletedModules() {
+  return useLiveQuery(
+    () => db.modules.filter((m) => !!m.deletedAt).toArray(),
+    []
+  ) ?? [];
+}
+
+export function useDeletedTopics() {
+  return useLiveQuery(
+    () => db.topics.filter((t) => !!t.deletedAt).toArray(),
+    []
+  ) ?? [];
+}
+
+export function useDeletedSubtopics() {
+  return useLiveQuery(
+    () => db.subtopics.filter((s) => !!s.deletedAt).toArray(),
+    []
+  ) ?? [];
 }
 
 export function useSessions() {

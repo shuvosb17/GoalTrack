@@ -161,10 +161,10 @@ export function getActiveTrackTopics(
   modules: Module[] = []
 ): Topic[] {
   const archivedModuleIds = new Set(
-    modules.filter((m) => m.trackId === trackId && m.archived).map((m) => m.id)
+    modules.filter((m) => m.trackId === trackId && m.archived && !m.deletedAt).map((m) => m.id)
   );
   return topics.filter(
-    (t) => t.trackId === trackId && !t.archived && !archivedModuleIds.has(t.moduleId)
+    (t) => t.trackId === trackId && !t.archived && !t.deletedAt && !archivedModuleIds.has(t.moduleId)
   );
 }
 
