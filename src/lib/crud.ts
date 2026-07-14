@@ -35,32 +35,16 @@ export async function renameSubtopic(id: string, name: string) {
 }
 
 export async function deleteModule(id: string) {
-  const subs = await db.subtopics.where("moduleId").equals(id).toArray();
-  const topicIds = (await db.topics.where("moduleId").equals(id).toArray()).map((t) => t.id);
-
-  await db.transaction("rw", [db.modules, db.topics, db.subtopics, db.sessions], async () => {
-    for (const sub of subs) {
-      await db.sessions.where("subtopicId").equals(sub.id).delete();
-    }
-    for (const topicId of topicIds) {
-      await db.sessions.where("topicId").equals(topicId).delete();
-    }
+  await db.transaction("rw", [db.modules, db.topics, db.subtopics], async () => {
     await db.subtopics.where("moduleId").equals(id).delete();
     await db.topics.where("moduleId").equals(id).delete();
-    await db.sessions.where("moduleId").equals(id).delete();
     await db.modules.delete(id);
   });
 }
 
 export async function deleteTopic(id: string) {
-  const subs = await db.subtopics.where("topicId").equals(id).toArray();
-
-  await db.transaction("rw", [db.topics, db.subtopics, db.sessions], async () => {
-    for (const sub of subs) {
-      await db.sessions.where("subtopicId").equals(sub.id).delete();
-    }
+  await db.transaction("rw", [db.topics, db.subtopics], async () => {
     await db.subtopics.where("topicId").equals(id).delete();
-    await db.sessions.where("topicId").equals(id).delete();
     await db.topics.delete(id);
   });
 }

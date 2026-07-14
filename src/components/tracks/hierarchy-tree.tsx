@@ -632,8 +632,8 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
             {deleteDialog?.type === "module"
-              ? `Delete "${deleteDialog.name}" and all its topics, subtopics, and related time logs? This cannot be undone.`
-              : `Delete "${deleteDialog?.name}" and all its subtopics and related time logs? This cannot be undone.`}
+              ? `Delete "${deleteDialog.name}" and all its topics and subtopics? Study time logs are kept so total hours stay unchanged.`
+              : `Delete "${deleteDialog?.name}" and all its subtopics? Study time logs are kept so total hours stay unchanged.`}
           </p>
           <div className="flex gap-2 justify-end">
             <Button variant="outline" onClick={() => setDeleteDialog(null)}>Cancel</Button>
