@@ -181,7 +181,7 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
     requestAnimationFrame(() => {
       window.setTimeout(() => {
         const el = document.querySelector(
-          `[data-subtopic-id="${CSS.escape(result.subtopicId)}"]`
+          `[data-subtopic-id="${globalThis.CSS.escape(result.subtopicId)}"]`
         );
         el?.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 200);
