@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronRight, ChevronDown, Plus, GripVertical,
@@ -48,7 +48,13 @@ import { InlineCodeText } from "@/components/shared/inline-code-text";
 import { toPlainLearningLabel } from "@/lib/format-learning-text";
 import { GO_BACKEND_PROJECT_TOPIC_PREFIX } from "@/lib/go-backend-projects";
 import { TrackRow } from "@/components/tracks/track-row";
+import {
+  ProblemSearch,
+  type ProblemSearchResult,
+} from "@/components/tracks/problem-search";
 import { getTrackLast7DayHours } from "@/lib/track-sparkline";
+
+const PROBLEM_SEARCH_LIMIT = 25;
 
 interface HierarchyTreeProps {
   tracks: Track[];
@@ -88,10 +94,18 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
   const [deleteDialog, setDeleteDialog] = useState<{ type: "module" | "topic"; id: string; name: string } | null>(null);
   const [confidenceDialog, setConfidenceDialog] = useState<{ id: string; name: string; mode: TopicConfidenceMode } | null>(null);
   const [archivedOpen, setArchivedOpen] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [highlightedSubtopicId, setHighlightedSubtopicId] = useState<string | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+
+  useEffect(() => {
+    if (!highlightedSubtopicId) return;
+    const timer = window.setTimeout(() => setHighlightedSubtopicId(null), 2000);
+    return () => window.clearTimeout(timer);
+  }, [highlightedSubtopicId]);
 
   const toggleArchived = (trackId: string) => {
     setArchivedOpen((prev) => {
@@ -110,6 +124,67 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
+    });
+  };
+
+  const getProblemSearchResults = (trackId: string): ProblemSearchResult[] => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return [];
+
+    const archivedModuleIds = new Set(
+      modules.filter((m) => m.trackId === trackId && m.archived).map((m) => m.id)
+    );
+    const archivedTopicIds = new Set(
+      topics.filter((t) => t.trackId === trackId && t.archived).map((t) => t.id)
+    );
+    const moduleById = new Map(
+      modules.filter((m) => m.trackId === trackId && !m.archived).map((m) => [m.id, m])
+    );
+    const topicById = new Map(
+      topics.filter((t) => t.trackId === trackId && !t.archived).map((t) => [t.id, t])
+    );
+
+    const matches: ProblemSearchResult[] = [];
+    for (const sub of subtopics) {
+      if (sub.trackId !== trackId || sub.archived) continue;
+      if (archivedModuleIds.has(sub.moduleId) || archivedTopicIds.has(sub.topicId)) continue;
+      if (!sub.name.toLowerCase().includes(query)) continue;
+
+      const mod = moduleById.get(sub.moduleId);
+      const topic = topicById.get(sub.topicId);
+      if (!mod || !topic) continue;
+
+      matches.push({
+        subtopicId: sub.id,
+        name: sub.name,
+        moduleId: mod.id,
+        moduleName: mod.name,
+        topicId: topic.id,
+        topicName: topic.name,
+      });
+      if (matches.length >= PROBLEM_SEARCH_LIMIT) break;
+    }
+    return matches;
+  };
+
+  const handleProblemSelect = (trackId: string, result: ProblemSearchResult) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      next.add(trackId);
+      next.add(result.moduleId);
+      next.add(result.topicId);
+      return next;
+    });
+    setHighlightedSubtopicId(result.subtopicId);
+    setSearchQuery("");
+
+    requestAnimationFrame(() => {
+      window.setTimeout(() => {
+        const el = document.querySelector(
+          `[data-subtopic-id="${CSS.escape(result.subtopicId)}"]`
+        );
+        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 200);
     });
   };
 
@@ -190,6 +265,12 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
               {expanded.has(track.id) && (
                 <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden">
                   <div className="space-y-2 border-t border-border/40 px-[18px] pb-4 pt-3">
+                    <ProblemSearch
+                      value={searchQuery}
+                      onChange={setSearchQuery}
+                      results={getProblemSearchResults(track.id)}
+                      onSelect={(result) => handleProblemSelect(track.id, result)}
+                    />
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleDragEnd(e, activeModules, db.modules)}>
                       <SortableContext items={activeModules.map((m) => m.id)} strategy={verticalListSortingStrategy}>
                         {activeModules.map((mod) => {
@@ -371,7 +452,12 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                       {topicSubs.map((sub) => (
                                                         <div
                                                           key={sub.id}
-                                                          className="group grid grid-cols-1 gap-2 rounded-md border border-transparent px-2 py-1.5 hover:border-white/[0.06] hover:bg-secondary/20 sm:grid-cols-[7.5rem_minmax(0,1fr)_auto] sm:items-start sm:gap-2"
+                                                          data-subtopic-id={sub.id}
+                                                          className={cn(
+                                                            "group grid grid-cols-1 gap-2 rounded-md border border-transparent px-2 py-1.5 hover:border-white/[0.06] hover:bg-secondary/20 sm:grid-cols-[7.5rem_minmax(0,1fr)_auto] sm:items-start sm:gap-2",
+                                                            highlightedSubtopicId === sub.id &&
+                                                              "border-primary/40 bg-primary/10 ring-1 ring-primary/30"
+                                                          )}
                                                         >
                                                           <Select value={sub.status} onValueChange={(v) => {
                                                             const status = v as ProgressStatus;
