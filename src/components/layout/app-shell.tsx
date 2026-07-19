@@ -15,6 +15,7 @@ import { seedDatabase, ensureLeetcodePrep, ensureInterviewReadyAchievement, ensu
 import { ensureGoBackendCurriculumSync } from "@/lib/go-backend-curriculum-sync";
 import { ensureGitGithubSubtopics } from "@/lib/git-github-curriculum-sync";
 import { repairMisattributedSessions } from "@/lib/session-repair";
+import { applySessionCorrections } from "@/lib/session-corrections";
 import { useAppStore } from "@/stores/app-store";
 import { Logo } from "./logo";
 
@@ -30,6 +31,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       .then(() => ensureGitGithubSubtopics())
       .then(() => ensureInterviewReadyAchievement())
       .then(() => repairMisattributedSessions())
+      .then(() => applySessionCorrections())
       .then(() => setInitialized(true));
   }, [setInitialized]);
 
