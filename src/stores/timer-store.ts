@@ -25,8 +25,28 @@ const initialState: TimerState & { tick: number; pendingQualitySessionId: string
   pendingQualitySessionId: null,
 };
 
+/**
+ * Full reset of every timer field. Must list optional fields explicitly:
+ * zustand's `set` shallow-merges, so omitting them (as a spread of `initialState`
+ * did) leaves stale `startedAt` / hierarchy ids behind — which resurrected a
+ * "running" timer after refresh and double-counted time on the next stop.
+ */
+const clearedTimerFields: TimerState & { tick: number } = {
+  isRunning: false,
+  isPaused: false,
+  startedAt: undefined,
+  pausedAt: undefined,
+  accumulatedMs: 0,
+  trackId: undefined,
+  moduleId: undefined,
+  topicId: undefined,
+  subtopicId: undefined,
+  activityLabel: undefined,
+  tick: 0,
+};
+
 export const useTimerStore = create<TimerStore>()(
-  persist(
+  persist<TimerStore, [], [], TimerState>(
     (set, get) => ({
       ...initialState,
 
@@ -63,7 +83,7 @@ export const useTimerStore = create<TimerStore>()(
         const state = get();
         const duration = get().getElapsedMs();
         if (duration < 1000 || !state.trackId) {
-          set({ ...initialState });
+          set({ ...clearedTimerFields, pendingQualitySessionId: null });
           return null;
         }
 
@@ -83,13 +103,13 @@ export const useTimerStore = create<TimerStore>()(
         if (state.subtopicId) session.subtopicId = state.subtopicId;
 
         await db.sessions.add(session);
-        set({ ...initialState, pendingQualitySessionId: session.id });
+        set({ ...clearedTimerFields, pendingQualitySessionId: session.id });
         return session.id;
       },
 
       clearQualityPrompt: () => set({ pendingQualitySessionId: null }),
 
-      reset: () => set({ ...initialState }),
+      reset: () => set({ ...clearedTimerFields, pendingQualitySessionId: null }),
 
       getElapsedMs: () => {
         const { isRunning, isPaused, startedAt, accumulatedMs, tick } = get();
@@ -100,6 +120,26 @@ export const useTimerStore = create<TimerStore>()(
         return accumulatedMs + (Date.now() - startedAt);
       },
     }),
-    { name: "growth-os-timer" }
+    {
+      name: "growth-os-timer",
+      version: 1,
+      // Persist only real timer fields. `tick` is transient render noise and
+      // `pendingQualitySessionId` should not survive a hard refresh.
+      partialize: (state) => ({
+        isRunning: state.isRunning,
+        isPaused: state.isPaused,
+        startedAt: state.startedAt,
+        pausedAt: state.pausedAt,
+        accumulatedMs: state.accumulatedMs,
+        trackId: state.trackId,
+        moduleId: state.moduleId,
+        topicId: state.topicId,
+        subtopicId: state.subtopicId,
+        activityLabel: state.activityLabel,
+      }),
+      // One-time heal for users whose localStorage already holds a stale
+      // "running" timer from the pre-fix shallow-merge bug.
+      migrate: () => ({ ...clearedTimerFields }),
+    }
   )
 );
