@@ -27,7 +27,21 @@ const DEDUCTIONS: TimeDeduction[] = [
     moduleName: "Go",
     deductMs: 1.5 * 3600 * 1000,
   },
+  {
+    flag: "goaltrack-correction-stock-buy-sell-1.6h-v1",
+    subtopicName: "Stock Buy & Sell",
+    moduleName: "DSA Sheet | Apna College",
+    deductMs: 1.6 * 3600 * 1000,
+  },
 ];
+
+function normalizeName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\s*&\s*/g, " and ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 async function applyDeduction(d: TimeDeduction): Promise<void> {
   if (typeof window === "undefined") return;
@@ -38,21 +52,22 @@ async function applyDeduction(d: TimeDeduction): Promise<void> {
     db.modules.toArray(),
   ]);
 
+  const targetModule = normalizeName(d.moduleName);
   const moduleIds = new Set(
     modules
-      .filter((m) => m.name.toLowerCase() === d.moduleName.toLowerCase())
+      .filter((m) => normalizeName(m.name) === targetModule)
       .map((m) => m.id)
   );
 
+  const targetSub = normalizeName(d.subtopicName);
   const targets = subtopics.filter(
     (s) =>
-      s.name.toLowerCase() === d.subtopicName.toLowerCase() &&
+      normalizeName(s.name) === targetSub &&
       (moduleIds.size === 0 || moduleIds.has(s.moduleId))
   );
 
   if (targets.length === 0) {
-    // Nothing to correct on this device; still set the flag so we don't rescan.
-    window.localStorage.setItem(d.flag, new Date().toISOString());
+    // Don't set the flag — name/module may not have synced yet; retry next load.
     return;
   }
 
@@ -80,7 +95,10 @@ async function applyDeduction(d: TimeDeduction): Promise<void> {
     }
   }
 
-  window.localStorage.setItem(d.flag, new Date().toISOString());
+  // Only lock the flag after we actually trimmed time.
+  if (remaining < d.deductMs) {
+    window.localStorage.setItem(d.flag, new Date().toISOString());
+  }
 }
 
 export async function applySessionCorrections(): Promise<void> {
