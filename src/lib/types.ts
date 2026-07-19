@@ -51,6 +51,8 @@ export interface Track {
   createdAt: string;
   updatedAt: string;
   pinnedNextItem?: PinnedNextItem;
+  /** Weekly study-hour goal for this track; undefined/0 = not set */
+  weeklyCommitmentHours?: number;
 }
 
 export interface Module {

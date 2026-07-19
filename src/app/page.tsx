@@ -16,6 +16,7 @@ import { StatCard } from "@/components/shared/stat-card";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { ActivityHeatmap } from "@/components/shared/activity-heatmap";
 import { TrackCard } from "@/components/dashboard/track-card";
+import { WeeklyTimeDistribution } from "@/components/dashboard/weekly-time-distribution";
 import { InsightsPanel } from "@/components/dashboard/insights-panel";
 import { MomentumBreakdownPanel } from "@/components/dashboard/momentum-breakdown";
 import { NextActionCard } from "@/components/dashboard/next-action-card";
@@ -260,6 +261,9 @@ export default function DashboardPage() {
           ))}
         </div>
       </div>
+
+      {/* Row 3b — Weekly Time Distribution */}
+      <WeeklyTimeDistribution tracks={tracks} sessions={sessions} />
 
       {/* Row 4 — Smart Insights */}
       <InsightsPanel insights={insights} />

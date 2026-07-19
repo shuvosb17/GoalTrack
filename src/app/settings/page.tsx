@@ -178,6 +178,70 @@ export default function SettingsPage() {
       <RecycleBinPanel />
 
       <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Track weekly commitments</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Set an optional weekly hour goal per track. Used for the Weekly Time Distribution chart on the dashboard.
+          </p>
+          <div className="space-y-3">
+            {tracks.map((track) => (
+              <div
+                key={track.id}
+                className="flex flex-col gap-2 rounded-lg border border-border/60 bg-secondary/20 p-3 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="text-lg leading-none">{track.icon}</span>
+                  <span className="truncate text-sm font-medium">{track.name}</span>
+                </div>
+                <div className="sm:w-56">
+                  <label className="text-sm text-muted-foreground">Weekly commitment (hours)</label>
+                  <div className="mt-1 flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min={0}
+                      max={80}
+                      step={0.5}
+                      className="h-11"
+                      value={track.weeklyCommitmentHours ?? ""}
+                      placeholder="—"
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        if (raw === "") {
+                          void db.tracks.put({
+                            ...track,
+                            weeklyCommitmentHours: undefined,
+                            updatedAt: nowISO(),
+                          });
+                          return;
+                        }
+                        const n = Number(raw);
+                        if (Number.isNaN(n)) return;
+                        const clamped = Math.min(80, Math.max(0, n));
+                        void db.tracks.put({
+                          ...track,
+                          weeklyCommitmentHours: clamped === 0 ? undefined : clamped,
+                          updatedAt: nowISO(),
+                        });
+                      }}
+                    />
+                    <span className="shrink-0 text-sm text-muted-foreground">h</span>
+                  </div>
+                  <p className="mt-1 text-[10px] text-muted-foreground/70">
+                    Used for your weekly time distribution goal.
+                  </p>
+                </div>
+              </div>
+            ))}
+            {tracks.length === 0 && (
+              <p className="text-sm text-muted-foreground">No tracks yet.</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader><CardTitle className="text-xl">Goals</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-3">
