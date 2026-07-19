@@ -1,29 +1,30 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { IconStack2 } from "@tabler/icons-react";
+import { IconChevronLeft, IconChevronRight, IconStack2 } from "@tabler/icons-react";
 import type { LearningSession, Track } from "@/lib/types";
 import { SectionHeading } from "@/components/shared/section-heading";
 import {
   WEEK_DAY_LABELS,
   chartYMax,
   formatHoursCompact,
+  formatWeekNavLabel,
   formatWeekRangeLabel,
   getCommitmentTotal,
   getDaysLeftInWeek,
   getHoursPerTrackPerDay,
   getLoggedThisWeek,
+  getMaxWeekOffset,
   getTotalLoggedThisWeek,
-  getWeekRange,
+  getWeekRangeByOffset,
   isSameLocalDay,
   trackAccentColor,
   tracksWithCommitment,
   weekDayDates,
   yAxisTicks,
 } from "@/lib/weekly-time-distribution";
-import { parseLocalDate, todayISO } from "@/lib/utils";
-import { cn } from "@/lib/utils";
+import { parseLocalDate, todayISO, cn } from "@/lib/utils";
 
 const CHART_H = 180;
 const CHART_PAD_BOTTOM = 34;
@@ -39,9 +40,24 @@ interface WeeklyTimeDistributionProps {
 }
 
 export function WeeklyTimeDistribution({ tracks, sessions }: WeeklyTimeDistributionProps) {
+  const [weeksAgo, setWeeksAgo] = useState(0);
   const today = useMemo(() => parseLocalDate(todayISO()), []);
-  const weekRange = useMemo(() => getWeekRange(today), [today]);
-  const daysLeft = useMemo(() => getDaysLeftInWeek(today), [today]);
+  const isCurrentWeek = weeksAgo === 0;
+
+  const maxWeekOffset = useMemo(
+    () => getMaxWeekOffset(sessions, today),
+    [sessions, today]
+  );
+
+  const weekRange = useMemo(
+    () => getWeekRangeByOffset(weeksAgo, today),
+    [weeksAgo, today]
+  );
+
+  const daysLeft = useMemo(
+    () => (isCurrentWeek ? getDaysLeftInWeek(today) : 0),
+    [isCurrentWeek, today]
+  );
 
   const hoursByTrack = useMemo(
     () => getHoursPerTrackPerDay(sessions, weekRange, tracks.map((t) => t.id)),
@@ -75,6 +91,9 @@ export function WeeklyTimeDistribution({ tracks, sessions }: WeeklyTimeDistribut
   const goalLineBottom =
     paceLine != null ? CHART_PAD_BOTTOM + (paceLine / yMax) * CHART_H : null;
 
+  const title =
+    weeksAgo === 0 ? "This Week" : weeksAgo === 1 ? "Last Week" : formatWeekRangeLabel(weekRange);
+
   return (
     <div>
       <SectionHeading icon={IconStack2}>Weekly Time Distribution</SectionHeading>
@@ -101,11 +120,48 @@ export function WeeklyTimeDistribution({ tracks, sessions }: WeeklyTimeDistribut
           }}
         />
 
+        {/* Week navigator */}
+        <div
+          className="relative z-[1] mb-5 rounded-xl border p-3"
+          style={{ background: "#1b1b1f", borderColor: "#242429" }}
+        >
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-[#6c6c74]">
+              Week
+            </p>
+            <p className="truncate text-xs text-[#a8a8ae]">
+              {formatWeekNavLabel(weekRange, weeksAgo)}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={weeksAgo >= maxWeekOffset}
+              onClick={() => setWeeksAgo((w) => Math.min(maxWeekOffset, w + 1))}
+              className="inline-flex items-center gap-1 rounded-lg border px-3 py-2 text-xs text-[#f2f2f3] transition-colors hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:text-[#6c6c74] disabled:opacity-50"
+              style={{ borderColor: "#242429" }}
+            >
+              <IconChevronLeft className="h-3.5 w-3.5" stroke={1.5} />
+              Previous week
+            </button>
+            <button
+              type="button"
+              disabled={weeksAgo === 0}
+              onClick={() => setWeeksAgo((w) => Math.max(0, w - 1))}
+              className="ml-auto inline-flex items-center gap-1 rounded-lg border px-3 py-2 text-xs text-[#f2f2f3] transition-colors hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:text-[#6c6c74] disabled:opacity-50"
+              style={{ borderColor: "#242429" }}
+            >
+              Next week
+              <IconChevronRight className="h-3.5 w-3.5" stroke={1.5} />
+            </button>
+          </div>
+        </div>
+
         {/* Header */}
         <div className="relative z-[1] mb-1.5 flex items-start justify-between gap-4">
           <div>
             <h3 className="text-[22px] font-semibold text-[#f2f2f3]" style={space}>
-              This Week
+              {title}
             </h3>
             <p className="mt-[5px] text-[12.5px] text-[#6c6c74]">
               {formatWeekRangeLabel(weekRange)} · hours logged per track
@@ -141,11 +197,7 @@ export function WeeklyTimeDistribution({ tracks, sessions }: WeeklyTimeDistribut
             style={{ height: CHART_H + CHART_PAD_BOTTOM, paddingBottom: CHART_PAD_BOTTOM }}
           >
             {ticks.map((t) => (
-              <span
-                key={t}
-                className="text-[10.5px] text-[#6c6c74]"
-                style={mono}
-              >
+              <span key={t} className="text-[10.5px] text-[#6c6c74]" style={mono}>
                 {t}h
               </span>
             ))}
@@ -193,13 +245,13 @@ export function WeeklyTimeDistribution({ tracks, sessions }: WeeklyTimeDistribut
             )}
 
             {dayDates.map((date, i) => {
-              const isToday = isSameLocalDay(date, today);
+              const isToday = isCurrentWeek && isSameLocalDay(date, today);
               const total = dayTotals[i] ?? 0;
               const barH = total > 0 ? Math.max(2, (total / yMax) * CHART_H) : isToday ? 2 : 0;
 
               return (
                 <div
-                  key={WEEK_DAY_LABELS[i]}
+                  key={`${weekRange.startKey}-${WEEK_DAY_LABELS[i]}`}
                   className="relative flex h-full flex-1 flex-col items-center justify-end"
                 >
                   <div
@@ -291,7 +343,7 @@ export function WeeklyTimeDistribution({ tracks, sessions }: WeeklyTimeDistribut
           })}
         </div>
 
-        {/* Goal cards — one per track with a commitment set */}
+        {/* Goal cards */}
         <div className="relative z-[1] mt-[22px]">
           {commitmentTracks.length === 0 ? (
             <div
@@ -324,9 +376,21 @@ export function WeeklyTimeDistribution({ tracks, sessions }: WeeklyTimeDistribut
                 const met = logged >= commitment;
                 const color = trackAccentColor(track);
                 const onPace =
+                  isCurrentWeek &&
                   !met &&
                   daysLeft > 0 &&
                   remaining / daysLeft <= commitment / 7;
+
+                let note: string;
+                if (met) {
+                  note = "Goal met 🎯";
+                } else if (!isCurrentWeek) {
+                  note = `${formatHoursCompact(remaining)}h short of goal`;
+                } else if (onPace) {
+                  note = `${formatHoursCompact(remaining)}h remaining · on pace`;
+                } else {
+                  note = `${formatHoursCompact(remaining)}h remaining · ${daysLeft} day${daysLeft === 1 ? "" : "s"} left`;
+                }
 
                 return (
                   <div
@@ -338,7 +402,10 @@ export function WeeklyTimeDistribution({ tracks, sessions }: WeeklyTimeDistribut
                       <span className="text-[12.5px] font-medium text-[#a8a8ae]">
                         Weekly commitment · {track.name}
                       </span>
-                      <span className="shrink-0 text-[13px] font-semibold text-[#f2f2f3]" style={mono}>
+                      <span
+                        className="shrink-0 text-[13px] font-semibold text-[#f2f2f3]"
+                        style={mono}
+                      >
                         {formatHoursCompact(logged)}{" "}
                         <span className="font-medium text-[#6c6c74]">
                           / {formatHoursCompact(commitment)}h
@@ -354,13 +421,7 @@ export function WeeklyTimeDistribution({ tracks, sessions }: WeeklyTimeDistribut
                         style={{ width: `${pct}%`, background: color }}
                       />
                     </div>
-                    <p className="mt-[7px] text-[10.5px] text-[#6c6c74]">
-                      {met
-                        ? "Goal met 🎯"
-                        : onPace
-                          ? `${formatHoursCompact(remaining)}h remaining · on pace`
-                          : `${formatHoursCompact(remaining)}h remaining · ${daysLeft} day${daysLeft === 1 ? "" : "s"} left`}
-                    </p>
+                    <p className="mt-[7px] text-[10.5px] text-[#6c6c74]">{note}</p>
                   </div>
                 );
               })}

@@ -1,4 +1,4 @@
-import { addDays, differenceInCalendarDays, format } from "date-fns";
+import { addDays, differenceInCalendarDays, format, subDays } from "date-fns";
 import type { LearningSession, Track } from "@/lib/types";
 import { TRACK_BAR_COLORS } from "@/lib/types/metrics";
 import {
@@ -29,12 +29,52 @@ export function getWeekRange(referenceDate: Date = parseLocalDate(todayISO())): 
   };
 }
 
+/** `weeksAgo = 0` is the current Sat–Fri week; older weeks are full 7-day ranges. */
+export function getWeekRangeByOffset(
+  weeksAgo: number,
+  referenceDate: Date = parseLocalDate(todayISO())
+): WeekRange {
+  const start = subDays(weekStart(referenceDate), weeksAgo * 7);
+  const end = addDays(start, 6);
+  return {
+    start,
+    end,
+    startKey: format(start, "yyyy-MM-dd"),
+    endKey: format(end, "yyyy-MM-dd"),
+  };
+}
+
+/** How many weeks back the user can navigate, based on earliest session. */
+export function getMaxWeekOffset(
+  sessions: LearningSession[],
+  referenceDate: Date = parseLocalDate(todayISO())
+): number {
+  if (sessions.length === 0) return 0;
+  const earliest = sessions.reduce(
+    (min, s) => (s.date < min ? s.date : min),
+    sessions[0].date
+  );
+  const currentStart = weekStart(referenceDate);
+  const earliestStart = weekStart(parseLocalDate(earliest));
+  const diffWeeks = Math.floor(
+    (currentStart.getTime() - earliestStart.getTime()) / (7 * 24 * 60 * 60 * 1000)
+  );
+  return Math.max(0, diffWeeks);
+}
+
 export function formatWeekRangeLabel(range: WeekRange): string {
   const sameMonth = format(range.start, "MMM") === format(range.end, "MMM");
   if (sameMonth) {
-    return `${format(range.start, "MMM d")} – ${format(range.end, "d")}`;
+    return `${format(range.start, "MMM d")} — ${format(range.end, "d")}`;
   }
-  return `${format(range.start, "MMM d")} – ${format(range.end, "MMM d")}`;
+  return `${format(range.start, "MMM d")} — ${format(range.end, "MMM d")}`;
+}
+
+export function formatWeekNavLabel(range: WeekRange, weeksAgo: number): string {
+  const span = `${format(range.start, "MMM d")} — ${format(range.end, "MMM d")}`;
+  if (weeksAgo === 0) return `This week · ${span}`;
+  if (weeksAgo === 1) return `Last week · ${span}`;
+  return span;
 }
 
 export function trackAccentColor(track: Track): string {
