@@ -1,0 +1,388 @@
+# Welcome To Software Engineering Course
+- •
+- Welcome To Software Engineering Course
+- Welcome to SWE Course
+- কিভাবে আপনি এই কোর্স করলে সব চাইলে বেশি বেনিফিট পাবেন ?
+- এই কোর্স কিভাবে নেয়া হবে ? কিছু প্ল্যান
+- Setup Environment: Mind map and Tools
+- Understanding the environment
+- Connecting the dots
+- Installing Node JS in windows
+- Installing vs Code: IDE - (Intigrated Development Environment)
+- Installing Git and Introduction to GitHub :
+- Webserver Introduction: Tools - Mind Maps and Environment
+- How to open HTML files?
+# Introduction to webservers
+- •
+- Webserver , Localhosts and Cloud systems for Backend
+- How to open one HTML file?
+- How to open html using vs code plugin web server ?
+- Defination of a web server
+- How Domain names and IP address works Together?
+- What is LOCALHOST?
+- Introduction to web server : What is it and How Does it works ?
+- Making a simple node js web server
+- How does PORT + Web server + IP address works together?
+- How to serve html page with node js server?
+- Introduction to web servers
+- Introduction to cloud systems and webservers in cloud system
+- ক্লাউড ল্যাব এ NODE JS ডেপলয় করা
+- ক্লাউড ল্যাব এ NODE JS ডেপলয় করা : ডকুমেন্ট
+- এই মডিউল শেষ করার পরে এই টপিক গুলোর উত্তর দিতে পারতে হবে!
+# Introduction To Backend Systems
+- •
+- Node js as Backend system
+- আমরা এই কোর্স এ ব্যাকএন্ড এর কি কই টুলস আর ফ্রেমওয়ার্ক শিখবো ? কিভাবে সেগুলো প্র্যাকটিস করবো
+- Why do we need tools like Node js for backend
+- Purpose of core modules in backend system
+- Type of servers and port mapping for them
+- Conclusion
+# Javascript with Node JS and ExpressJS
+- •
+- Javascript Inside NODE JS
+- Introduction to the Module
+- Javascript Basics for NodeJS
+- What is callback ? how callback works ?
+- Use of let var and Const in JS
+- Express JS Setup with Clients like postman and Thunder
+- Get api and Query param vs Path/Route Paramerets
+- Backend service as Client [Calling backend from other Backend]
+- FAST API vs Express JS : How they are almost same?
+- Code Links
+# Async JS inside NodeJS
+- •
+- Async VS Sync code in Node JS
+- Introduction to async code in node js - Nature of Javascript
+- Async code in Node JS Part 2
+- Event Looop and CallBack how they are related ?
+- Event Loop Promise and Asyinc await - How They are related?
+- Use of async await inside a node js project
+- How git add , commit and push pull works together ?
+- Working with multiple Files in Node JS || Require vs Import
+- Free Related Learning Material : YouTube
+# API - Development Part One
+- •
+- Fundamentals of API Development
+- Status code in API : How to use status code in API?
+- Routing system in ExpressJS application
+- Anatomy of a POST Request End Point
+- Data modeling and Data flow in a Backend Application
+- Data validation in a Backend Application
+- Assignment: One API Development
+# API Development Part Two
+- •
+- Api development In Details
+- Module Recap and New Module Introduction
+- Why Do We need router? Implementing Routers
+- Introduction to Controller - Why and How to Implement This
+- Introduction to middleware.
+- Middleware Project one
+- Module Recap with rate Limiting middleware
+- Audit Logger Project
+- Type of Rate limiting Algorithm you can explore using youtube
+- Module Codebase Link
+- Assignments
+# Data Modeling Part One
+- •
+- Introduction to Data Modeling Part One
+- Introduction to Object Oriented Programming
+- Object Oriented Coding In Real Life
+- JSON Data Modeling
+- Introduction to JSON why how and when ?
+- Data flow: JSON DATA from frontend to Backend-Understanding The flow
+- How to Approach for API design? Keeping Data Modeling in mind ?
+- Real life e-commerce Product api design and JSON data modeling
+- Accessing and Manipulating JSON data
+- Array JSON and Higher Order Functions in Javascript
+# JS Essentials For API development
+- •
+- JS Essentials For Backend Development
+- Module Introduction
+- JS Data Types and Objects
+- Javascript Objects In Real Life
+- Array and Array Of Objects
+- De-Structuring in Array and In Objects
+- Array In Real Life
+- Some External Learning sources 1
+- Javascript Array and Object Text Lesson Part One
+- Common Backend Pattern with Array Filters and JSON
+# Process
+- •
+- Process in NODE JS application
+- What is Process? How Do find a node JS Process in windows PC ?
+# Cookies and Session
+- •
+- Session Cookies with HTTP
+- Stateless HTTP nature and introduction to Cookie
+- Understanding Cookies: How to make and Save them
+- Simple login and protected route using Cookie
+- Implementing Session with Cookies : Custom Session Storage
+- Using third party library for Session storage and Cookie
+- Session and Cookie Recap
+- Session VS Cookie
+- Problem with cookie based auth system
+- Cookie Use Cases
+# JWT
+- •
+- JWT - For Authentication
+- Introduction to JWT
+- Idea of hashing
+- Hashing username and Password
+- JWT - The better approach for authenticate client
+- JWT - Hands on
+- 🧪 Assignment: Build a Personal To-Do Manager with Authentication (No Database)
+# Typescript with OOP
+- •
+- Typescript - Why do we need this
+- Why do we need Typescript?
+- Running typescript enabled node js || https://github.com/HabibulHH/type-basic
+- Typescript in express js applications|| GITHUB [https://github.com/HabibulHH/typescript]
+- OOP In Typescript : Hands On
+- Introduction to Object Orientation: Why do we need Types?
+- Introduction to OOP
+- Encapsulation : First Pillar Of OOP
+- Encapsulation Recap
+- Abstraction - OOP
+- What is a Class? Basics of Class
+- Inheritance in OPP
+# Interface And Polymorphism
+- •
+- Polymorphism
+- Introduction to Polymorphism
+- Example with class
+- Real life use case of Interface and Polymorphism
+# Introduction to Database
+- •
+- Database and Backend Applicatio Connection
+- Introduction to database systems
+- Install a Database Engine in windows
+- How to connect database ina. Fullstack application ?
+- Fullstack Application Part 2
+- 🧠 What is SQL?
+- GitHub
+# Database Schema and SQL Inroduction
+- •
+- How to Approach for Database Design
+- Thinking approach for Database design. start from zero
+- Schema Design Basics
+- How to alter a live table
+- How to loop in SQL and Generate Fake data using loop
+# Database Read Query Fundamentals
+- •
+- SQL Read Query || Basci to Advance
+- Introduction to select Query
+- Filter data using where query
+- Large complex query using select where groupby and order by
+- SQL and Programming language similarities
+# Database Fundamentals: Entity Relationship
+- •
+- Relationship among Tables (Entities)
+- Module Intro: What is relationship
+- Working with DB : OOP Point of view
+- Why we need multiple table?
+- Problem with current two table design
+- Implementing one to many/ many to many relationship
+- More on One to Many, One to One Relationship
+- Subqueries and Joins || Why do we need them
+- Relationship Type One to Many : With real life example
+- Many to many : Relationship with Real Life Example
+- Database Normalization: Inroduction
+- First Normal Form in Action
+- Candidate key and Primary key & composite key
+- Questions related to 2nf
+- Second Normal form in detail Part 1
+- Second Normal Form in Details PART 2
+- Third form of normalization
+# ERD - Basics
+- •
+- Database Design Thinking
+- Database Design Concepts
+- E - commerce ERD
+- Homework: ERD for Blogpost
+# Software Design Patterns - Theory with Implementations
+- •
+- Software Design Patterns
+- What is Design Pattern and what is singleton
+- Implementing Singleton
+- Use-Cases Of Singleton
+- Software Design Patterns - DI (Dependency Injection)
+- Introduction to DI
+- Implementing Basic Dependency Injection
+- Improving DI further
+- Testing and DI - How it helps to test software
+- Factory Design Pattern
+- Introduction to factory Design Pattern
+- Implementing Factory Design Pattern
+- Strategy Design Pattern
+- Strategy Design Pattern Paart One: Factory vs Strategy
+- Strategy Design Pattern - Part 2
+- Strategy Pattern Use Cases
+- Interview Questions
+- Interview Questions: Strategy, Factory, Singleton, DI
+- Decorator Pattern
+- Decorator Pattern Introduction
+- What is esdecorator ? Who gives us decorator functions?
+- Using Decorator with logger
+- Conclusion
+- Learning Sources : Generics
+- Interview Questions
+- Decorator In TS
+# NestJS - Building Enterprise Applications
+- •
+- NestJS Intro
+- Introduction to NestJS ecosystem
+- Running a NestJS Project
+- Files and Folder Structures
+- Controllers in NestJS
+- Providers in NestJS
+- Modules In NestJS Applications
+- Module Summery
+# NEST JS Project One
+- •
+- Project Hands On
+- Project Requirements
+- Requirement analysis Part 2
+- Technical Grooming and Project Bootstrap
+- Finding P0 task and hands on details.mp4
+- Connecting database
+- Connecting entity with type orm and runing migration
+- API for super admins. Project Reqwuirement
+- Subscription Module
+- Bootstraping subscription module with PRD
+- Subscription module ui planning and API Handson
+- Subscription module Implementation : Nest JS module
+- Users Subscription Implementation
+- Module Introduction
+- Preparing DTO and Repository Layer
+- Service and Controller
+- Testing End Points
+- Testing api and Assignment
+- Implementing Store Setup
+- Store setup module introduction
+- Developing Store Module
+- Developing controller and module
+- Testing The System
+- Product Implementation with PRD Analysis
+- Product Development PRD analysis and Development scope discussion
+- Development hands on
+- Automated Testing API with bash file
+# File Uploader Project: POST api & Upload Handling
+- •
+- Module introduction
+- File uploader system introduction
+- Github Link
+- Implementations
+- File uploader system part one
+- File uploaded system extensions
+- Uploading files to Third party
+- Digital ocean object storage
+- Post api fiel uploader SLA and rate limiting
+- Assignment
+- File uploader Topic Details
+- What is MIME TYPE
+- What is multer
+- Multer alternatives in all Frameworks
+- How HTTP Handles File Upload (Client → Server)
+- Interview Questions
+- Interview Questions
+# Beyond CRUD: Understanding HTTP PUT and DELETE Methods
+- •
+- Understanding PUT PATCH & DELETE
+- PUT operations
+- Patch Operations
+- .PUT VS PATCH- Understanding the difference
+- Soft delete vs hard delete
+- How to manage bulk update ?
+- ETAG
+- What is ETAG?
+- Interview Questions
+- HTTP PUT, PATCH & DELETE — Interview Questions & Answers
+- HTTP PUT, PATCH & DELETE — Interview Questions & Answers (Continued)
+- HTTP PUT, PATCH & DELETE — Interview Questions & Answers (Continued)
+# response Formatting & Pagination : Offset and Cursor
+- •
+- Response formatting
+- What is . Response Formatting and why it is important?
+- Common response formatting
+- Pagination: Introduction to paginations and internals
+- Pagination Introduction
+- What is offset
+- Problems of offset based pagination
+- Documentations added
+- Cursor Pagination
+- Intro to cursor based pagination
+- Cursor details how it works
+- Transition
+- Implementation in code: Hands On
+- Benchmarking
+- Offset vs Cursor: Benchmarking and Testing
+# API Security
+- •
+- SQL Injection
+- Introduction
+- How SQL injection happens
+- Root cause analysis for this
+- Hands on simulation for SQL injection
+- Conslusion
+- Github Links
+- Github Links
+- SQL Injection In Details
+- SQL Injection: From Zero to Production-Grade Security
+- Password Field e Ki Match Korte Hobe ?
+- Attack Mechanics and How Hackers Break Authentication
+- Vulnerable Code Patterns in Production
+- Parameterized Queries and Defense in Depth
+- Real-World Application and Wider Perspective
+- SQL Injection Interview Question Bank for Backend Engineers
+- XSS - Cross-Site Scripting (XSS)
+- Cross-Site Scripting (XSS) Protection — In Easy Words
+- CSP Headers and HttpOnly Cookies — What Are They?
+- CSRF Token Implementation & Helmet.js
+# Api Security: CORS
+- •
+- CORS In Details
+- Introduction to CORS
+- System Defination of CORS
+- Cors Hands on
+- CORS Simulation
+# Authentication & Authorization with JWT Indetails
+- •
+- Before Jumping into JWT : Some Basic fundamentals
+- Basics
+- Idea of data Encoding
+- What is base64
+- URL আর Base64URL — পার্থক্য কি?
+- Idea Of Data Encryption
+- Process of making signature
+- Password Hashing and Salting
+- What is password hashing and salting
+- Password Hashing আর Salting
+- Interview Experience
+- JWT Hands on
+- JWT hands on
+- JWT in small project
+- Production grade JWT setup
+- Testing scope
+- Role base Access controll in JWT
+- Private key public key in JWT
+- github link.
+- JWT implementaton in a Fullstack Application
+# Load Testing
+- •
+- API Load Testing with K6
+- System Latency Fundamentals of load testing
+- System Latency :Ideal Approach in real life secnerio
+- How to find P95 P99 of a System
+- Using K6 for Load testing
+- Using k6 for small project load testing
+- Performance testing using postman
+# Loggers
+- •
+- Designing Implementing and Comparing logger systems
+- Introduction to logger system
+- System architecrture of a logger system
+- Problem of logging with console log
+- Introduction to wiston logger
+- Pino as a logger system
+- Running pino JS
+- Winstone vs Pino a comparative study

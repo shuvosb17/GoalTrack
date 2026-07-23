@@ -2,15 +2,15 @@
 
 > **Track:** Development · **Path:** Remote Go Backend Path
 > 
-> Complete curriculum exported from GoalTrack. Modules 0–23 cover environment setup through job hunt, with learn-by-doing projects at each stage. **Module 12** merges a hands-on AWS course (VPC, EC2, RDS, IAM, CloudWatch, Route 53, S3, CloudFront, ECS, Lambda) with Go deploy projects for `notes-api` and the Inventory Platform. The final **[Realistic Job Roadmap](#realistic-job-roadmap-sequencing--job-strategy)** section sequences these modules into phases and tells you when to start applying.
+> Complete curriculum exported from GoalTrack. Modules 0–23 cover environment setup through job hunt, with learn-by-doing projects at each stage. **Module 12** merges a hands-on AWS course (VPC, EC2, RDS, IAM, CloudWatch, Route 53, S3, CloudFront, ECS, Lambda) with Go deploy projects for `notes-api` and the Inventory Platform. The **Software Engineering course (PS)** is merged in as `[PS]`-tagged concept topics — see the **[PS Course Integration Map](#ps-course-integration-map)** for the watch order. The final **[Realistic Job Roadmap](#realistic-job-roadmap-sequencing--job-strategy)** section sequences these modules into phases and tells you when to start applying.
 
 ## At a glance
 
 | Metric | Count |
 |---|---|
 | Modules | 24 (Modules 0–23) |
-| Topics | 111 |
-| Subtopics | 478 |
+| Topics | 115 (4 new `[PS]` topics: 4.9, 10.5, 16.5, 22.4) |
+| Subtopics | 549 (71 merged from the PS course) |
 | Projects | 45 |
 | Ongoing modules | 4 (Modules 18, 19, 21, 22) |
 
@@ -40,13 +40,14 @@
 - [Module 21: Open Source Contribution [Ongoing]](#module-21-open-source-contribution-ongoing) *(ongoing)*
 - [Module 22: Engineering Mindset & Trade-offs [Ongoing]](#module-22-engineering-mindset-trade-offs-ongoing) *(ongoing)*
 - [Module 23: Job Hunt & Interview Preparation](#module-23-job-hunt-interview-preparation)
+- [PS Course Integration Map](#ps-course-integration-map)
 - [Realistic Job Roadmap (sequencing & job strategy)](#realistic-job-roadmap-sequencing--job-strategy)
 
 ---
 
 ## Module 0: Developer Environment & Foundations
 
-**Topics:** 4 · **Subtopics:** 25 · **Projects:** 2
+**Topics:** 4 · **Subtopics:** 28 · **Projects:** 2
 
 ### Topic 0.1: Computer & OS Basics
 
@@ -84,6 +85,9 @@
 - IP, ports, DNS (intro)
 - Request/response cycle
 - What an API is
+- [PS] Web server + PORT + IP address — how they work together
+- [PS] Domain names and IP addresses (what localhost really is)
+- [PS] Cloud systems intro: deploying a tiny server to a cloud lab (concept only)
 
 ### Projects
 
@@ -109,7 +113,7 @@
 
 ## Module 1: Go Language Fundamentals
 
-**Topics:** 9 · **Subtopics:** 48 · **Projects:** 3
+**Topics:** 9 · **Subtopics:** 50 · **Projects:** 3
 
 ### Topic 1.1: Getting Started
 
@@ -160,6 +164,8 @@
 - Type assertions, type switches
 - Common interfaces: `Stringer`, `error`, `io.Reader`, `io.Writer`
 - Interface composition, polymorphism
+- [PS] OOP pillars (encapsulation, abstraction, inheritance, polymorphism) — and how Go gets them via structs, interfaces, and composition
+- [PS] Real-life interface & polymorphism use cases (swapping implementations behind one interface)
 
 ### Topic 1.7: Error Handling
 
@@ -218,7 +224,7 @@
 
 ## Module 2: Concurrency in Go
 
-**Topics:** 5 · **Subtopics:** 24 · **Projects:** 3
+**Topics:** 5 · **Subtopics:** 25 · **Projects:** 3
 
 ### Topic 2.1: Goroutines
 
@@ -226,6 +232,7 @@
 - Launching with `go`
 - The scheduler (conceptual)
 - Goroutine leaks
+- [PS] Node's event loop vs Go's scheduler — single-threaded async vs goroutines (interview talking point)
 
 ### Topic 2.2: Channels
 
@@ -335,7 +342,7 @@
 
 ## Module 4: HTTP & REST API Development
 
-**Topics:** 8 · **Subtopics:** 40 · **Projects:** 3
+**Topics:** 9 · **Subtopics:** 58 · **Projects:** 3
 
 ### Topic 4.1: HTTP Fundamentals
 
@@ -363,6 +370,14 @@
 - Consistent error responses
 - Pagination, filtering, sorting
 - Status-code selection
+- [PS] Query params vs path/route params — when to use which
+- [PS] Anatomy of a POST endpoint (request body → validation → data flow → response)
+- [PS] Response formatting: consistent envelopes and why they matter
+- [PS] Offset pagination internals and its problems at scale
+- [PS] Cursor-based pagination: how cursors work, implementation, offset vs cursor benchmarking
+- [PS] PUT vs PATCH — semantics and when each is correct
+- [PS] Soft delete vs hard delete; managing bulk updates
+- [PS] ETag: what it is and how it enables caching/conditional requests
 
 ### Topic 4.4: Middleware
 
@@ -370,6 +385,10 @@
 - Logging, recovery, CORS
 - Request/correlation ID
 - Chaining
+- [PS] Why routers and controllers exist — separating routing, handling, and business logic
+- [PS] Rate-limiting middleware: algorithm families (fixed window, sliding window, token bucket)
+- [PS] Audit logger middleware: recording who did what, when (build it in Go as a middleware exercise)
+- [PS] CORS in detail: what the browser actually enforces, preflight requests, simulating CORS failures
 
 ### Topic 4.5: Routers/Frameworks
 
@@ -401,6 +420,15 @@
 - Idempotency and deduplication via event IDs
 - Respond fast (2xx) then process async (hand off to a worker/queue)
 - Retries and out-of-order delivery from providers
+
+### Topic 4.9: File Uploads [PS]
+
+- [PS] How HTTP handles file upload (multipart/form-data, client → server flow)
+- [PS] MIME types: what they are and why servers must validate them
+- [PS] Building a file-upload endpoint (in Go: `r.ParseMultipartForm`, `FormFile`)
+- [PS] Streaming uploads to third-party object storage (S3/DigitalOcean Spaces — ties to Module 12.8)
+- [PS] Upload SLAs and rate limiting on upload endpoints
+- [PS] Upload security: size limits, extension/MIME validation, never trusting client filenames
 
 ### Projects
 
@@ -435,7 +463,7 @@
 
 ## Module 5: Databases & Persistence
 
-**Topics:** 6 · **Subtopics:** 34 · **Projects:** 2
+**Topics:** 6 · **Subtopics:** 42 · **Projects:** 2
 
 ### Topic 5.1: Relational Fundamentals
 
@@ -443,6 +471,11 @@
 - Keys, relationships (1-1, 1-many, many-many)
 - Normalization (1NF–3NF), when to denormalize
 - ER modeling
+- [PS] Database design thinking: how to approach schema design from zero (requirements → entities → relations)
+- [PS] Why multiple tables — the problems a naive one/two-table design creates
+- [PS] Candidate key vs primary key vs composite key
+- [PS] 2NF questions and edge cases (common interview traps)
+- [PS] ERD practice: e-commerce ERD walkthrough + blog-post ERD as homework
 
 ### Topic 5.2: SQL
 
@@ -452,6 +485,9 @@
 - Subqueries, CTEs
 - Indexes (types, cost)
 - `EXPLAIN` / query plans
+- [PS] Subqueries and joins — why you need them, from an application point of view
+- [PS] Altering a live table safely; generating fake data with SQL loops
+- [PS] JSON data modeling: JSON flow from client → API → database (jsonb ties to Topic 5.3)
 
 ### Topic 5.3: PostgreSQL
 
@@ -513,7 +549,7 @@
 
 ## Module 6: Authentication, Authorization & Security
 
-**Topics:** 3 · **Subtopics:** 17 · **Projects:** 2
+**Topics:** 3 · **Subtopics:** 30 · **Projects:** 2
 
 ### Topic 6.1: Authentication
 
@@ -523,6 +559,13 @@
 - Access vs refresh tokens
 - Expiry & revocation (Redis blocklist)
 - JWT vs sessions (trade-offs)
+- [PS] Stateless HTTP and why cookies exist; making, saving, and reading cookies
+- [PS] Custom session storage with cookies (build once to understand what libraries do)
+- [PS] Problems with cookie-based auth; cookie use cases that still make sense
+- [PS] Encoding vs encryption vs hashing — base64/Base64URL, signatures, and where each fits
+- [PS] Password hashing + salting from first principles (why plain hashes fail)
+- [PS] Production-grade JWT setup: RS256 private/public key signing, testing scope
+- [PS] Role-based access control implemented inside JWT claims
 
 ### Topic 6.2: Authorization
 
@@ -540,6 +583,12 @@
 - Rate limiting / brute-force protection
 - Secrets management
 - HTTPS/TLS, secure headers, CORS done right
+- [PS] SQL injection deep-dive: how it happens, root-cause analysis, hands-on simulation
+- [PS] Parameterized queries and defense in depth (maps to Go prepared statements, Topic 5.4)
+- [PS] Vulnerable code patterns that reach production — and how attackers break authentication
+- [PS] XSS protection in practice; CSP headers and HttpOnly cookies
+- [PS] CSRF tokens: implementation and when SameSite is not enough
+- [PS] SQL injection interview question bank (rehearse aloud)
 
 ### Projects
 
@@ -637,7 +686,7 @@
 
 ## Module 8: Networking
 
-**Topics:** 5 · **Subtopics:** 13 · **Projects:** 2
+**Topics:** 5 · **Subtopics:** 14 · **Projects:** 2
 
 ### Topic 8.1: The Stack
 
@@ -649,6 +698,7 @@
 
 - DNS (records, resolution, caching)
 - TLS handshake (certificates, SNI, what actually happens)
+- [PS] Domain → IP resolution end-to-end recap; server types and port mapping conventions (80/443/custom)
 
 ### Topic 8.3: HTTP in Depth
 
@@ -737,7 +787,7 @@
 
 ## Module 10: Observability & Reliability
 
-**Topics:** 4 · **Subtopics:** 19 · **Projects:** 2
+**Topics:** 5 · **Subtopics:** 29 · **Projects:** 2
 
 ### Topic 10.1: Logging
 
@@ -746,6 +796,9 @@
 - What not to log (secrets/PII)
 - Log storage & routing: console, files, syslog; rotation for long-running services
 - Log security: PII filtering/obfuscation, safe error-response logging, encryption at rest
+- [PS] Why `fmt.Println`/console logging fails in production (no levels, no structure, no routing)
+- [PS] System architecture of a logger: transports, formatting, buffering, log levels as a design problem
+- [PS] Winston vs Pino comparative study (awareness) — map the same trade-offs onto Go's `slog`/`zap`/`zerolog`
 
 ### Topic 10.2: Metrics & Monitoring
 
@@ -769,6 +822,16 @@
 - In-process workers
 - Redis-backed queues (`asynq`)
 - Retries, idempotency, dead-letter
+
+### Topic 10.5: Load Testing [PS]
+
+- [PS] System latency fundamentals: what load testing measures and why
+- [PS] Percentiles: finding and interpreting P95 / P99 of a system
+- [PS] K6 for API load testing: scripting, virtual users, thresholds
+- [PS] Load-testing a small project end-to-end (run K6 against your notes-api)
+- [PS] Performance testing with Postman (quick checks vs proper load tests)
+- [PS] Realistic latency targets: how to reason about "fast enough" in real scenarios
+- Feed results back: use pprof (Module 11) on hotspots K6 exposes
 
 ### Projects
 
@@ -840,7 +903,7 @@
 
 ## Module 12: Cloud & Deployment (AWS) — Hands-on
 
-**Topics:** 13 · **Subtopics:** 63 · **Projects:** 4
+**Topics:** 13 · **Subtopics:** 64 · **Projects:** 4
 
 > **How this module works:** Learn AWS from the ground up by building real infrastructure yourself, then apply every chapter to **your** Go apps (`notes-api`, Inventory Platform). Order matters: Cloud → VPC → IAM → compute/data → delivery → containers → serverless (optional) → IaC awareness. Complete M7–M9 (Linux, networking, Docker) before this module.
 
@@ -913,6 +976,7 @@
 - Block Public Access and least-privilege access
 - Production patterns: app uploads, static assets, backups
 - Capstone use case: file uploads / report exports
+- [PS] Object storage from the app side: streaming uploads from your API to S3-compatible storage (S3 / DigitalOcean Spaces — pairs with Topic 4.9)
 
 ### Topic 12.9: CDN — CloudFront
 
@@ -1143,7 +1207,7 @@
 
 ## Module 16: System Design & Architecture
 
-**Topics:** 4 · **Subtopics:** 16 · **Projects:** 2
+**Topics:** 5 · **Subtopics:** 24 · **Projects:** 2
 
 ### Topic 16.1: Architecture Patterns
 
@@ -1151,6 +1215,7 @@
 - Clean architecture / dependency direction
 - Monolith vs microservices (junior-scale trade-offs)
 - Dependency injection (manual, idiomatic)
+- [PS] DI in depth: why it exists, basic → improved implementations, and how DI makes testing easy (maps to Go interface-based DI, Topic 3.2)
 
 ### Topic 16.2: Scalability
 
@@ -1172,6 +1237,16 @@
 - URL shortener
 - Rate limiter
 - Concurrency-safe inventory/stock system
+
+### Topic 16.5: Software Design Patterns [PS]
+
+- [PS] What design patterns are and when to reach for one
+- [PS] Singleton: implementation and real use cases (in Go: `sync.Once`, package-level state trade-offs)
+- [PS] Factory pattern: intro and implementation (in Go: constructor functions returning interfaces)
+- [PS] Strategy pattern: factory vs strategy, use cases (in Go: injecting behavior via interfaces)
+- [PS] Decorator pattern: wrapping behavior, logger decorator example (in Go: middleware is exactly this)
+- [PS] Interview question bank: Singleton, DI, Factory, Strategy — practice answers aloud
+- Implement each pattern once in Go inside notes-api or the capstone (small refactors, not new projects)
 
 ### Projects
 
@@ -1388,7 +1463,7 @@
 
 *Ongoing module — revisit throughout the program.*
 
-**Topics:** 3 · **Subtopics:** 14 · **Projects:** 1
+**Topics:** 4 · **Subtopics:** 20 · **Projects:** 1
 
 ### Topic 22.1: The Trade-off Habit
 
@@ -1412,6 +1487,15 @@
 
 - `DECISIONS.md` everywhere
 - Explain every decision aloud (recorded)
+
+### Topic 22.4: Requirement Analysis & Delivery Workflow [PS]
+
+- [PS] Reading a PRD: extracting requirements before writing code
+- [PS] Requirement analysis passes: features → constraints → open questions
+- [PS] Technical grooming: turning requirements into technical tasks
+- [PS] Finding the P0: prioritizing what to build first and why
+- [PS] Testing endpoints as you deliver; automated API smoke tests (bash/scripts)
+- Apply this workflow to every capstone milestone: write a mini-PRD before each module's project
 
 ### Projects
 
@@ -1497,6 +1581,44 @@ Several modules include **capstone milestones** that build toward the final **In
 
 ---
 
+## PS Course Integration Map
+
+The Software Engineering course (**PS**) is merged into this path — it is **not a separate track**.
+Concepts were slotted into the module where they belong; `[PS]` tags mark them throughout.
+Watch the course module when you reach the matching path module, then **implement the concept in Go**.
+
+### Watch order (aligned to the phases below)
+
+| When (phase) | Path module | PS course modules to watch | What you extract |
+|---|---|---|---|
+| Phase A (M0) | M0.4 How the Web Works | Welcome / Setup Environment · Introduction to Webservers · Introduction to Backend Systems | Server, port, IP, localhost, DNS, cloud-deploy mental model |
+| Phase A (M1) | M1.6 Methods & Interfaces | Typescript with OOP (theory parts) · Interface and Polymorphism | OOP pillars; how Go replaces class-based OOP with composition |
+| Phase A (M2) | M2.1 Goroutines | Async JS inside NodeJS (event loop lessons) | Event loop vs goroutines — a favorite interview comparison |
+| Phase A (M4) | M4.3 REST API Design | API Development Part One · API Development Part Two · Beyond CRUD (PUT/PATCH/DELETE) · Response Formatting & Pagination | Status codes, routing/controllers, PUT vs PATCH, soft delete, ETag, offset vs cursor pagination |
+| Phase A (M4) | M4.4 Middleware | API Development Part Two (middleware, rate limiter, audit logger) · API Security: CORS | Middleware design, rate-limit algorithms, audit logging, CORS |
+| Phase A (M4) | M4.9 File Uploads [PS] | File Uploader Project | Multipart/MIME mechanics, object storage, upload SLA + rate limits |
+| Phase A (M5) | M5.1–5.2 SQL & Modeling | Data Modeling Part One · Introduction to Database · Database Schema and SQL Introduction · Read Query Fundamentals · Entity Relationship · ERD Basics | Schema design thinking, normalization, keys, joins, ERD practice |
+| Phase A (M6) | M6.1 Authentication | Cookies and Session · JWT · Authentication & Authorization with JWT In Details | Cookies/sessions from scratch, encoding vs encryption vs hashing, salting, RS256, RBAC in claims |
+| Phase A (M6) | M6.3 Web Security | API Security (SQL injection, XSS, CSP, CSRF) | Injection root cause, parameterized queries, XSS/CSRF defenses, interview bank |
+| Phase C (M10) | M10.1 Logging | Loggers | Logger system architecture; Winston-vs-Pino trade-offs mapped to slog/zap/zerolog |
+| Phase C (M10) | M10.5 Load Testing [PS] | Load Testing | Latency fundamentals, P95/P99, K6 scripting, load-test your own API |
+| Phase C (M16) | M16.1 + M16.5 Patterns | Software Design Patterns | Singleton, DI, Factory, Strategy, Decorator — reimplemented in Go |
+| Phase C (M22) | M22.4 Delivery Workflow [PS] | NestJS Project One (PRD/grooming/P0 lessons only) | Requirement analysis, technical grooming, P0 prioritization |
+
+### PS modules intentionally skipped (implementation-specific)
+
+| Skipped PS module | Reason |
+|---|---|
+| Javascript with Node JS / JS Essentials / Async JS (syntax lessons) | JS syntax — Go covers the equivalents in M1–M2 |
+| Typescript with OOP (TS setup/config lessons) | TS tooling; only the OOP theory carries over |
+| NestJS — Building Enterprise Applications · NestJS Project One (code-along parts) | Framework-specific; the layered/module/DTO ideas already live in M16.1 |
+| Process (Node process management) | Superseded by M7 Linux processes (`ps`, signals, systemd) |
+| Multer / Winston / Pino hands-on coding | Library-specific; concepts captured in M4.9 and M10.1 |
+
+> If you later target a local BD role that wants Node.js keywords, un-skip the NestJS project modules and build the small Node/Express API listed in Phase A of the roadmap below — the course then doubles as your keyword-match track.
+
+---
+
 ## Realistic Job Roadmap (sequencing & job strategy)
 
 The modules above are the **curriculum** ("what to learn"). This section is the **schedule
@@ -1505,7 +1627,7 @@ of studying forever.
 
 ### The honest reality
 
-- The full curriculum is large: **24 modules, 111 topics, 478 subtopics, 45 projects.**
+- The full curriculum is large: **24 modules, 115 topics, 549 subtopics, 45 projects** (incl. the merged PS course).
   "Finish everything, then apply" is the wrong strategy.
 - A true beginner starting at Module 0, studying ~6 hrs/day, realistically needs
   **8-12 months** to complete the whole path. A narrower backend-only track alone is ~6 months.
@@ -1630,4 +1752,4 @@ needs them.
 
 ---
 
-*Module 12 expanded manually to merge the hands-on AWS course with existing Go deploy projects. The Realistic Job Roadmap section was merged in from a former standalone doc. Re-sync GoalTrack sources (`go-backend-path.ts` / `go-backend-projects.ts`) if you regenerate this doc.*
+*Module 12 expanded manually to merge the hands-on AWS course with existing Go deploy projects. The Realistic Job Roadmap section was merged in from a former standalone doc. The Software Engineering course (PS) was merged in as `[PS]`-tagged concept topics (new Topics 4.9, 10.5, 16.5, 22.4 + subtopics across M0–M22) — see the PS Course Integration Map. Re-sync GoalTrack sources (`go-backend-path.ts` / `go-backend-projects.ts`) if you regenerate this doc.*

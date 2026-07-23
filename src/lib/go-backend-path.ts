@@ -21,8 +21,8 @@ export interface GoPathModule {
 export const GO_BACKEND_PATH_MARKER =
   "Module 0: Developer Environment & Foundations";
 
-/** Bump when Development Go path curriculum shape changes. */
-export const GO_BACKEND_CURRICULUM_VERSION = 2;
+/** Bump when Development Go path curriculum shape changes (v3: PS course merge). */
+export const GO_BACKEND_CURRICULUM_VERSION = 3;
 
 /** Bengali Git & GitHub curriculum (Topic 0.3 subtopics). */
 export const GIT_GITHUB_SUBTOPICS = [
@@ -104,6 +104,9 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
           "IP, ports, DNS (intro)",
           "Request/response cycle",
           "What an API is",
+          "[PS] Web server + PORT + IP address — how they work together",
+          "[PS] Domain names and IP addresses (what localhost really is)",
+          "[PS] Cloud systems intro: deploying a tiny server to a cloud lab (concept only)",
         ],
       },
     ],
@@ -171,6 +174,8 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
           "Type assertions, type switches",
           "Common interfaces: `Stringer`, `error`, `io.Reader`, `io.Writer`",
           "Interface composition, polymorphism",
+          "[PS] OOP pillars (encapsulation, abstraction, inheritance, polymorphism) — and how Go gets them via structs, interfaces, and composition",
+          "[PS] Real-life interface & polymorphism use cases (swapping implementations behind one interface)",
         ],
       },
       {
@@ -216,6 +221,7 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
           "Launching with `go`",
           "The scheduler (conceptual)",
           "Goroutine leaks",
+          "[PS] Node's event loop vs Go's scheduler — single-threaded async vs goroutines (interview talking point)",
         ],
       },
       {
@@ -326,6 +332,14 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
           "Consistent error responses",
           "Pagination, filtering, sorting",
           "Status-code selection",
+          "[PS] Query params vs path/route params — when to use which",
+          "[PS] Anatomy of a POST endpoint (request body → validation → data flow → response)",
+          "[PS] Response formatting: consistent envelopes and why they matter",
+          "[PS] Offset pagination internals and its problems at scale",
+          "[PS] Cursor-based pagination: how cursors work, implementation, offset vs cursor benchmarking",
+          "[PS] PUT vs PATCH — semantics and when each is correct",
+          "[PS] Soft delete vs hard delete; managing bulk updates",
+          "[PS] ETag: what it is and how it enables caching/conditional requests",
         ],
       },
       {
@@ -335,6 +349,10 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
           "Logging, recovery, CORS",
           "Request/correlation ID",
           "Chaining",
+          "[PS] Why routers and controllers exist — separating routing, handling, and business logic",
+          "[PS] Rate-limiting middleware: algorithm families (fixed window, sliding window, token bucket)",
+          "[PS] Audit logger middleware: recording who did what, when (build it in Go as a middleware exercise)",
+          "[PS] CORS in detail: what the browser actually enforces, preflight requests, simulating CORS failures",
         ],
       },
       {
@@ -376,6 +394,17 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
           "Retries and out-of-order delivery from providers",
         ],
       },
+      {
+        name: "Topic 4.9: File Uploads [PS]",
+        subtopics: [
+          "[PS] How HTTP handles file upload (multipart/form-data, client → server flow)",
+          "[PS] MIME types: what they are and why servers must validate them",
+          "[PS] Building a file-upload endpoint (in Go: `r.ParseMultipartForm`, `FormFile`)",
+          "[PS] Streaming uploads to third-party object storage (S3/DigitalOcean Spaces — ties to Module 12.8)",
+          "[PS] Upload SLAs and rate limiting on upload endpoints",
+          "[PS] Upload security: size limits, extension/MIME validation, never trusting client filenames",
+        ],
+      },
     ],
   },
   {
@@ -388,6 +417,11 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
           "Keys, relationships (1-1, 1-many, many-many)",
           "Normalization (1NF–3NF), when to denormalize",
           "ER modeling",
+          "[PS] Database design thinking: how to approach schema design from zero (requirements → entities → relations)",
+          "[PS] Why multiple tables — the problems a naive one/two-table design creates",
+          "[PS] Candidate key vs primary key vs composite key",
+          "[PS] 2NF questions and edge cases (common interview traps)",
+          "[PS] ERD practice: e-commerce ERD walkthrough + blog-post ERD as homework",
         ],
       },
       {
@@ -399,6 +433,9 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
           "Subqueries, CTEs",
           "Indexes (types, cost)",
           "`EXPLAIN` / query plans",
+          "[PS] Subqueries and joins — why you need them, from an application point of view",
+          "[PS] Altering a live table safely; generating fake data with SQL loops",
+          "[PS] JSON data modeling: JSON flow from client → API → database (jsonb ties to Topic 5.3)",
         ],
       },
       {
@@ -459,6 +496,13 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
           "Access vs refresh tokens",
           "Expiry & revocation (Redis blocklist)",
           "JWT vs sessions (trade-offs)",
+          "[PS] Stateless HTTP and why cookies exist; making, saving, and reading cookies",
+          "[PS] Custom session storage with cookies (build once to understand what libraries do)",
+          "[PS] Problems with cookie-based auth; cookie use cases that still make sense",
+          "[PS] Encoding vs encryption vs hashing — base64/Base64URL, signatures, and where each fits",
+          "[PS] Password hashing + salting from first principles (why plain hashes fail)",
+          "[PS] Production-grade JWT setup: RS256 private/public key signing, testing scope",
+          "[PS] Role-based access control implemented inside JWT claims",
         ],
       },
       {
@@ -480,6 +524,12 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
           "Rate limiting / brute-force protection",
           "Secrets management",
           "HTTPS/TLS, secure headers, CORS done right",
+          "[PS] SQL injection deep-dive: how it happens, root-cause analysis, hands-on simulation",
+          "[PS] Parameterized queries and defense in depth (maps to Go prepared statements, Topic 5.4)",
+          "[PS] Vulnerable code patterns that reach production — and how attackers break authentication",
+          "[PS] XSS protection in practice; CSP headers and HttpOnly cookies",
+          "[PS] CSRF tokens: implementation and when SameSite is not enough",
+          "[PS] SQL injection interview question bank (rehearse aloud)",
         ],
       },
     ],
@@ -569,6 +619,7 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
         subtopics: [
           "DNS (records, resolution, caching)",
           "TLS handshake (certificates, SNI, what actually happens)",
+          "[PS] Domain → IP resolution end-to-end recap; server types and port mapping conventions (80/443/custom)",
         ],
       },
       {
@@ -636,6 +687,9 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
           "What not to log (secrets/PII)",
           "Log storage & routing: console, files, syslog; rotation for long-running services",
           "Log security: PII filtering/obfuscation, safe error-response logging, encryption at rest",
+          "[PS] Why `fmt.Println`/console logging fails in production (no levels, no structure, no routing)",
+          "[PS] System architecture of a logger: transports, formatting, buffering, log levels as a design problem",
+          "[PS] Winston vs Pino comparative study (awareness) — map the same trade-offs onto Go's `slog`/`zap`/`zerolog`",
         ],
       },
       {
@@ -665,6 +719,18 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
           "In-process workers",
           "Redis-backed queues (`asynq`)",
           "Retries, idempotency, dead-letter",
+        ],
+      },
+      {
+        name: "Topic 10.5: Load Testing [PS]",
+        subtopics: [
+          "[PS] System latency fundamentals: what load testing measures and why",
+          "[PS] Percentiles: finding and interpreting P95 / P99 of a system",
+          "[PS] K6 for API load testing: scripting, virtual users, thresholds",
+          "[PS] Load-testing a small project end-to-end (run K6 against your notes-api)",
+          "[PS] Performance testing with Postman (quick checks vs proper load tests)",
+          "[PS] Realistic latency targets: how to reason about \"fast enough\" in real scenarios",
+          "Feed results back: use pprof (Module 11) on hotspots K6 exposes",
         ],
       },
     ],
@@ -789,6 +855,7 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
           "Block Public Access and least-privilege access",
           "Production patterns: app uploads, static assets, backups",
           "Capstone use case: file uploads / report exports",
+          "[PS] Object storage from the app side: streaming uploads from your API to S3-compatible storage (S3 / DigitalOcean Spaces — pairs with Topic 4.9)",
         ],
       },
       {
@@ -955,6 +1022,7 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
           "Clean architecture / dependency direction",
           "Monolith vs microservices (junior-scale trade-offs)",
           "Dependency injection (manual, idiomatic)",
+          "[PS] DI in depth: why it exists, basic → improved implementations, and how DI makes testing easy (maps to Go interface-based DI, Topic 3.2)",
         ],
       },
       {
@@ -982,6 +1050,18 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
           "URL shortener",
           "Rate limiter",
           "Concurrency-safe inventory/stock system",
+        ],
+      },
+      {
+        name: "Topic 16.5: Software Design Patterns [PS]",
+        subtopics: [
+          "[PS] What design patterns are and when to reach for one",
+          "[PS] Singleton: implementation and real use cases (in Go: `sync.Once`, package-level state trade-offs)",
+          "[PS] Factory pattern: intro and implementation (in Go: constructor functions returning interfaces)",
+          "[PS] Strategy pattern: factory vs strategy, use cases (in Go: injecting behavior via interfaces)",
+          "[PS] Decorator pattern: wrapping behavior, logger decorator example (in Go: middleware is exactly this)",
+          "[PS] Interview question bank: Singleton, DI, Factory, Strategy — practice answers aloud",
+          "Implement each pattern once in Go inside notes-api or the capstone (small refactors, not new projects)",
         ],
       },
     ],
@@ -1178,6 +1258,17 @@ export const GO_BACKEND_PATH: GoPathModule[] = [
         subtopics: [
           "`DECISIONS.md` everywhere",
           "Explain every decision aloud (recorded)",
+        ],
+      },
+      {
+        name: "Topic 22.4: Requirement Analysis & Delivery Workflow [PS]",
+        subtopics: [
+          "[PS] Reading a PRD: extracting requirements before writing code",
+          "[PS] Requirement analysis passes: features → constraints → open questions",
+          "[PS] Technical grooming: turning requirements into technical tasks",
+          "[PS] Finding the P0: prioritizing what to build first and why",
+          "[PS] Testing endpoints as you deliver; automated API smoke tests (bash/scripts)",
+          "Apply this workflow to every capstone milestone: write a mini-PRD before each module's project",
         ],
       },
     ],

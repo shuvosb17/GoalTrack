@@ -112,6 +112,34 @@ export function JobReadinessPanel({ trackId }: JobReadinessPanelProps) {
           )}
         </div>
 
+        {report.psWatchHints.length > 0 && (
+          <details className="rounded-xl border border-violet-500/20 bg-violet-500/[0.04] p-4 text-sm" open>
+            <summary className="cursor-pointer text-xs font-medium uppercase tracking-wide text-violet-300/90 hover:text-violet-200">
+              PS course — watch now (Phase {report.currentPhase})
+              <span className="ml-2 font-normal normal-case text-muted-foreground">
+                · {report.psSubtopicsDone}/{report.psSubtopicsTotal} [PS] subtopics done
+              </span>
+            </summary>
+            <p className="mt-3 text-[12px] text-muted-foreground">
+              Watch these Software Engineering course modules alongside your current path topics, then implement the
+              concept in Go. Subtopics tagged <span className="text-violet-300">[PS]</span> in the track tree match
+              this course.
+            </p>
+            <ul className="mt-3 space-y-2.5">
+              {report.psWatchHints.map((hint) => (
+                <li
+                  key={hint.pathModule}
+                  className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2.5"
+                >
+                  <p className="text-[12px] font-medium text-foreground">{hint.pathModule}</p>
+                  <p className="mt-0.5 text-[11px] text-violet-300/80">Course: {hint.courseModules}</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">{hint.extract}</p>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+
         <details className="text-sm">
           <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
             Module breakdown ({report.goBackendModuleCount} Go path modules)
@@ -137,6 +165,12 @@ export function JobReadinessPanel({ trackId }: JobReadinessPanelProps) {
                   </div>
                   <p className="mt-1 text-[10px] tabular-nums text-muted-foreground">
                     {mod.doneCount}/{mod.totalCount} subtopics
+                    {mod.psTotalCount > 0 && (
+                      <span className="text-violet-400/80">
+                        {" "}
+                        · PS {mod.psDoneCount}/{mod.psTotalCount}
+                      </span>
+                    )}
                   </p>
                 </div>
               ))

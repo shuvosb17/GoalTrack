@@ -1,5 +1,6 @@
 import type { Module, Subtopic, Topic } from "./types";
 import { isSubtopicDone } from "./utils";
+import { getPsWatchHintsForPhase, isPsSubtopic } from "./ps-course-integration";
 
 export type JobPhaseId = "A" | "B" | "C" | "D";
 
@@ -17,6 +18,8 @@ export interface ModuleReadiness {
   moduleId: string;
   doneCount: number;
   totalCount: number;
+  psDoneCount: number;
+  psTotalCount: number;
   percent: number;
   inProgress: boolean;
   complete: boolean;
@@ -39,6 +42,9 @@ export interface JobReadinessReport {
   employabilityPercent: number;
   checklist: ChecklistItem[];
   nextSteps: string[];
+  psWatchHints: ReturnType<typeof getPsWatchHintsForPhase>;
+  psSubtopicsDone: number;
+  psSubtopicsTotal: number;
   headline: string;
   summary: string;
 }
@@ -110,14 +116,26 @@ function parseModuleNumber(name: string): number | null {
 function moduleStats(moduleId: string, subtopics: Subtopic[]) {
   const subs = subtopics.filter((s) => s.moduleId === moduleId && !s.archived);
   if (subs.length === 0) {
-    return { doneCount: 0, totalCount: 0, percent: 0, inProgress: false, complete: false };
+    return {
+      doneCount: 0,
+      totalCount: 0,
+      psDoneCount: 0,
+      psTotalCount: 0,
+      percent: 0,
+      inProgress: false,
+      complete: false,
+    };
   }
+  const psSubs = subs.filter((s) => isPsSubtopic(s.name));
   const doneCount = subs.filter((s) => isSubtopicDone(s.status)).length;
+  const psDoneCount = psSubs.filter((s) => isSubtopicDone(s.status)).length;
   const inProgress = subs.some((s) => s.status === "in_progress") || doneCount > 0;
   const percent = Math.round((doneCount / subs.length) * 100);
   return {
     doneCount,
     totalCount: subs.length,
+    psDoneCount,
+    psTotalCount: psSubs.length,
     percent,
     inProgress,
     complete: percent >= 90,
@@ -165,15 +183,24 @@ function checklistProgress(
 function deriveNextSteps(
   byNumber: Map<number, ModuleReadiness>,
   phases: JobReadinessReport["phases"],
-  readyToApply: boolean
+  readyToApply: boolean,
+  currentPhase: JobPhaseId
 ): string[] {
   const steps: string[] = [];
+  const psHints = getPsWatchHintsForPhase(currentPhase);
 
   if (readyToApply) {
     steps.push("Start applying: 5–10 tailored applications per week with your live project URL.");
     steps.push("Finish Inventory Platform MVP while interviewing (auth, RBAC, one core flow).");
     steps.push("Add one Node.js or Python REST API for Bangladesh local keyword match.");
     return steps.slice(0, 3);
+  }
+
+  if (psHints.length > 0) {
+    const hint = psHints[0];
+    steps.push(
+      `Watch PS course (${hint.courseModules}) while studying ${hint.pathModule}, then implement in Go.`
+    );
   }
 
   const phaseA = phases.find((p) => p.id === "A");
@@ -250,6 +277,12 @@ export function buildJobReadinessReport(
     (checklist.filter((c) => c.met).length / checklist.length) * 100
   );
 
+  const goModuleIds = new Set(goModules.map((m) => m.id));
+  const goSubs = subtopics.filter((s) => goModuleIds.has(s.moduleId) && !s.archived);
+  const psSubs = goSubs.filter((s) => isPsSubtopic(s.name));
+  const psSubtopicsTotal = psSubs.length;
+  const psSubtopicsDone = psSubs.filter((s) => isSubtopicDone(s.status)).length;
+
   const headline = readyToApply
     ? "Ready to start applying"
     : currentPhase === "A"
@@ -262,7 +295,7 @@ export function buildJobReadinessReport(
 
   const summary = readyToApply
     ? `You've met the minimum employable checklist (${employabilityPercent}%). Start applications now while finishing Phase C differentiators.`
-    : `You're in Phase ${currentPhase} (${phases.find((p) => p.id === currentPhase)?.name}). Phase A is ${corePhaseA?.percent ?? 0}% · Phase B is ${corePhaseB?.percent ?? 0}% · Apply checklist ${employabilityPercent}% complete.`;
+    : `You're in Phase ${currentPhase} (${phases.find((p) => p.id === currentPhase)?.name}). Phase A is ${corePhaseA?.percent ?? 0}% · Phase B is ${corePhaseB?.percent ?? 0}% · Apply checklist ${employabilityPercent}% complete · PS course ${psSubtopicsDone}/${psSubtopicsTotal} [PS] subtopics done.`;
 
   return {
     goBackendModuleCount: goModules.length,
@@ -271,7 +304,10 @@ export function buildJobReadinessReport(
     readyToApply,
     employabilityPercent,
     checklist,
-    nextSteps: deriveNextSteps(byNumber, phases, readyToApply),
+    nextSteps: deriveNextSteps(byNumber, phases, readyToApply, currentPhase),
+    psWatchHints: getPsWatchHintsForPhase(currentPhase),
+    psSubtopicsDone,
+    psSubtopicsTotal,
     headline,
     summary,
   };
