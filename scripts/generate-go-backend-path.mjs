@@ -2,15 +2,62 @@
  * Regenerates src/lib/go-backend-path.ts and src/lib/go-backend-projects.ts
  * from docs/Go_backend_updated_path version2.md.
  *
- * Topic 0.3 keeps the Bengali GIT_GITHUB_SUBTOPICS curriculum (not the English
- * bullets in the markdown). Instructor-course blocks become [PS] topics.
+ * Topic 0.3 keeps the Bengali GIT_GITHUB_SUBTOPICS curriculum.
+ * [PS] topics come from docs/Software_Engineering_Course_Modules_Only.md — one
+ * topic per instructor module, each lesson as a [PS] subtopic.
  */
 import fs from "fs";
 
 const DOC = "docs/Go_backend_updated_path version2.md";
+const PS_DOC = "docs/Software_Engineering_Course_Modules_Only.md";
 const PATH_OUT = "src/lib/go-backend-path.ts";
 const PROJECTS_OUT = "src/lib/go-backend-projects.ts";
-const CURRICULUM_VERSION = 4;
+const CURRICULUM_VERSION = 5;
+
+/** Which PS course modules land in which Go path module (order preserved). */
+const PS_MODULE_PLACEMENT = [
+  // Module 0 — full watch
+  { psName: "Welcome To Software Engineering Course", goModule: 0 },
+  { psName: "Introduction to webservers", goModule: 0 },
+  { psName: "Introduction To Backend Systems", goModule: 0 },
+  // Module 1 — skim for interview contrasts
+  { psName: "Javascript with Node JS and ExpressJS", goModule: 1, skim: true },
+  { psName: "Async JS inside NodeJS", goModule: 1, skim: true },
+  { psName: "JS Essentials For API development", goModule: 1, skim: true },
+  { psName: "Process", goModule: 1, skim: true },
+  { psName: "Typescript with OOP", goModule: 1, skim: true },
+  { psName: "Interface And Polymorphism", goModule: 1, skim: true },
+  // Module 4 — core API concepts
+  { psName: "API - Development Part One", goModule: 4 },
+  { psName: "API Development Part Two", goModule: 4 },
+  { psName: "Data Modeling Part One", goModule: 4 },
+  { psName: "Beyond CRUD: Understanding HTTP PUT and DELETE Methods", goModule: 4 },
+  { psName: "response Formatting & Pagination : Offset and Cursor", goModule: 4 },
+  { psName: "Api Security: CORS", goModule: 4 },
+  // Module 5 — database / ERD
+  { psName: "Introduction to Database", goModule: 5 },
+  { psName: "Database Schema and SQL Inroduction", goModule: 5 },
+  { psName: "Database Read Query Fundamentals", goModule: 5 },
+  { psName: "Database Fundamentals: Entity Relationship", goModule: 5 },
+  { psName: "ERD - Basics", goModule: 5 },
+  // Module 6 — auth & security
+  { psName: "Cookies and Session", goModule: 6 },
+  { psName: "JWT", goModule: 6 },
+  {
+    psName: "Authentication & Authorization with JWT Indetails",
+    goModule: 6,
+  },
+  { psName: "API Security", goModule: 6 },
+  // Module 9 — file uploads → vaultdrop
+  { psName: "File Uploader Project: POST api & Upload Handling", goModule: 9 },
+  // Module 10 — logging
+  { psName: "Loggers", goModule: 10 },
+  // Module 11 — load testing
+  { psName: "Load Testing", goModule: 11 },
+  // Module 16 — patterns + delivery process
+  { psName: "Software Design Patterns - Theory with Implementations", goModule: 16 },
+  { psName: "NEST JS Project One", goModule: 16, processOnly: true },
+];
 
 const GIT_GITHUB_BLOCK = `/** Bengali Git & GitHub curriculum (Topic 0.3 subtopics). */
 export const GIT_GITHUB_SUBTOPICS = [
@@ -58,6 +105,19 @@ export const GIT_GITHUB_SUBTOPICS = [
 ] as const;
 `;
 
+/** NestJS Project One — process lessons only (skip Nest/TypeORM hands-on). */
+const NESTJS_PROCESS_LESSONS = new Set([
+  "Project Requirements",
+  "Requirement analysis Part 2",
+  "Technical Grooming and Project Bootstrap",
+  "Finding P0 task and hands on details.mp4",
+  "Preparing DTO and Repository Layer",
+  "Service and Controller",
+  "Testing End Points",
+  "Automated Testing API with bash file",
+  "Product Development PRD analysis and Development scope discussion",
+]);
+
 function esc(s) {
   return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
@@ -80,11 +140,73 @@ function psSubtopic(text) {
   return trimmed.startsWith("[PS]") ? trimmed : `[PS] ${trimmed}`;
 }
 
+function parsePsCourse(md) {
+  const modules = [];
+  let current = null;
+  for (const line of md.split(/\r?\n/)) {
+    if (line.startsWith("# ")) {
+      if (current) modules.push(current);
+      current = { name: line.slice(2).trim(), lessons: [] };
+    } else if (line.startsWith("- ") && !line.startsWith("- •")) {
+      const lesson = line.slice(2).trim();
+      if (lesson) current?.lessons.push(lesson);
+    }
+  }
+  if (current) modules.push(current);
+  return modules;
+}
+
+function attachPsTopics(goModules, psModules) {
+  const psByName = new Map(psModules.map((m) => [m.name, m]));
+  const counters = new Map();
+
+  for (const placement of PS_MODULE_PLACEMENT) {
+    const psMod = psByName.get(placement.psName);
+    if (!psMod) {
+      throw new Error(`PS course module not found: ${placement.psName}`);
+    }
+
+    const goMod = goModules.find((m) => m.index === placement.goModule);
+    if (!goMod) {
+      throw new Error(`Go module ${placement.goModule} not found for PS: ${placement.psName}`);
+    }
+
+    const seq = (counters.get(placement.goModule) ?? 0) + 1;
+    counters.set(placement.goModule, seq);
+
+    let lessons = psMod.lessons;
+    if (placement.processOnly) {
+      lessons = [
+        "Process focus — skip NestJS/TypeORM hands-on; mirror handler → service → store in Go",
+        ...psMod.lessons.filter((l) => NESTJS_PROCESS_LESSONS.has(l)),
+      ];
+    }
+
+    const skimSuffix = placement.skim ? " (skim)" : "";
+    const topic = {
+      name: `Topic ${placement.goModule}.PS${seq}: [PS] ${psMod.name}${skimSuffix}`,
+      subtopics: lessons.map((l) => psSubtopic(l)),
+      isPsTopic: true,
+    };
+
+    if (placement.psName === "JWT") {
+      topic.subtopics.push(
+        psSubtopic(
+          "Assignment: Build Personal To-Do Manager with JWT in Go (no database — warm-up before Secure jobtrackr)"
+        )
+      );
+    }
+
+    goMod.topics.push(topic);
+  }
+}
+
 function parseDoc(md) {
   const modules = [];
   let cur = null;
   let topic = null;
   let project = null;
+  let inInstructorBlock = false;
 
   for (const line of md.split(/\r?\n/)) {
     const mod = line.match(/^## Module (\d+): (.+)$/);
@@ -99,28 +221,27 @@ function parseDoc(md) {
       modules.push(cur);
       topic = null;
       project = null;
+      inInstructorBlock = false;
       continue;
     }
     if (!cur) continue;
     if (/^## /.test(line) && !/^## Module /.test(line)) {
       cur = null;
+      inInstructorBlock = false;
+      continue;
+    }
+    if (/^### 📺 Instructor course —/.test(line)) {
+      inInstructorBlock = true;
       topic = null;
       project = null;
       continue;
+    }
+    if (inInstructorBlock) {
+      if (/^### /.test(line)) inInstructorBlock = false;
+      else continue;
     }
     if (/^### Projects\s*$/.test(line)) {
       topic = null;
-      project = null;
-      continue;
-    }
-    const instructor = line.match(/^### 📺 Instructor course — (.+)$/);
-    if (instructor) {
-      topic = {
-        name: `Topic ${cur.index}.PS: [PS] ${instructor[1].trim()}`,
-        subtopics: [],
-        isPsTopic: true,
-      };
-      cur.topics.push(topic);
       project = null;
       continue;
     }
@@ -149,7 +270,7 @@ function parseDoc(md) {
       const text = bullet[1].trim();
       if (!text || text === "•") continue;
       if (project) project.deliverables.push(text);
-      else if (topic) topic.subtopics.push(topic.isPsTopic ? psSubtopic(text) : text);
+      else if (topic) topic.subtopics.push(text);
     }
   }
   return modules;
@@ -180,7 +301,9 @@ function genPathTs(modules) {
   lines.push(`export const GO_BACKEND_PATH_MARKER =`);
   lines.push(`  "Module 0: Developer Environment & Foundations";`);
   lines.push(``);
-  lines.push(`/** Bump when Development Go path curriculum shape changes (v${CURRICULUM_VERSION}: cloud/DevOps-focused path v2). */`);
+  lines.push(
+    `/** Bump when Development Go path curriculum shape changes (v${CURRICULUM_VERSION}: [PS] topics aligned to instructor course modules). */`
+  );
   lines.push(`export const GO_BACKEND_CURRICULUM_VERSION = ${CURRICULUM_VERSION};`);
   lines.push(``);
   lines.push(GIT_GITHUB_BLOCK.trimEnd());
@@ -283,6 +406,9 @@ if (modules.length !== 24) {
   console.error(`Expected 24 modules, got ${modules.length}`);
   process.exit(1);
 }
+
+const psModules = parsePsCourse(fs.readFileSync(PS_DOC, "utf8"));
+attachPsTopics(modules, psModules);
 
 fs.writeFileSync(PATH_OUT, genPathTs(modules));
 fs.writeFileSync(PROJECTS_OUT, genProjectsTs(modules));
