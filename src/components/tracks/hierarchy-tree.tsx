@@ -22,7 +22,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { TimerControls } from "@/components/timer/timer-controls";
-import { STATUS_LABELS, STATUS_COLORS, DIFFICULTY_LABELS, DIFFICULTY_COLORS, cn } from "@/lib/utils";
+import { STATUS_LABELS, STATUS_COLORS, DIFFICULTY_LABELS, DIFFICULTY_COLORS, cn, isSubtopicDone } from "@/lib/utils";
+import { isPsSubtopic, isPsTopic } from "@/lib/ps-course-integration";
 import { formatDeadline, getDaysUntilDue, getSubtopicDueDate } from "@/lib/in-progress";
 import { todayISO } from "@/lib/utils";
 import { db } from "@/lib/db";
@@ -55,6 +56,19 @@ import {
 import { getTrackLast7DayHours } from "@/lib/track-sparkline";
 
 const PROBLEM_SEARCH_LIMIT = 25;
+
+function PsProgressBadge({ done, total }: { done: number; total: number }) {
+  if (total <= 0) return null;
+  return (
+    <Badge
+      variant="outline"
+      className="shrink-0 border-violet-500/35 bg-violet-500/10 text-[10px] text-violet-300"
+      title="Software Engineering course subtopics merged into this path"
+    >
+      PS {done}/{total}
+    </Badge>
+  );
+}
 
 interface HierarchyTreeProps {
   tracks: Track[];
@@ -278,6 +292,10 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                           const modTopics = modTopicsAll.filter((t) => !t.archived);
                           const archivedModTopics = modTopicsAll.filter((t) => t.archived);
                           const modProgress = getModuleProgress(mod.id, topics, subtopics);
+                          const modPsSubs = modTopics.flatMap((topic) =>
+                            subtopics.filter((s) => s.topicId === topic.id && !s.archived && isPsSubtopic(s.name))
+                          );
+                          const modPsDone = modPsSubs.filter((s) => isSubtopicDone(s.status)).length;
 
                           return (
                             <SortableItem key={mod.id} id={mod.id}>
@@ -285,6 +303,7 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                 <div className="flex items-center gap-2 overflow-x-auto p-3 bg-secondary/20 cursor-pointer group" onClick={() => toggle(mod.id)}>
                                   {expanded.has(mod.id) ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                                   <span className="text-sm font-medium flex-1 min-w-[8rem] truncate">{mod.name}</span>
+                                  <PsProgressBadge done={modPsDone} total={modPsSubs.length} />
                                   <span className="text-xs text-muted-foreground w-8 text-right">{modProgress.percentage}%</span>
                                   <Progress value={modProgress.percentage} className="h-1 w-16 hidden sm:block" />
                                   <TimerControls
@@ -316,9 +335,12 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                         {modTopics.map((topic) => {
                                           const topicSubs = subtopics.filter((s) => s.topicId === topic.id && !s.archived).sort((a, b) => a.order - b.order || a.createdAt.localeCompare(b.createdAt));
                                           const topicProgress = getTopicProgress(topic, subtopics);
+                                          const psSubs = topicSubs.filter((s) => isPsSubtopic(s.name));
+                                          const psDone = psSubs.filter((s) => isSubtopicDone(s.status)).length;
                                           const reviewDue = isTopicDueForReview(topic);
                                           const reviewLabel = getReviewDueLabel(topic);
                                           const isProjectTopic = topic.name.startsWith(GO_BACKEND_PROJECT_TOPIC_PREFIX);
+                                          const isPsTopicRow = isPsTopic(topic.name);
 
                                           return (
                                             <div
@@ -326,12 +348,15 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                               className={cn(
                                                 "rounded-md border border-border/30",
                                                 reviewDue && "ring-1 ring-violet-500/40 bg-violet-500/[0.03]",
-                                                isProjectTopic && "border-emerald-500/30 bg-emerald-500/[0.04]"
+                                                isProjectTopic && "border-emerald-500/30 bg-emerald-500/[0.04]",
+                                                (isPsTopicRow || psSubs.length > 0) &&
+                                                  "border-violet-500/25 bg-violet-500/[0.03]"
                                               )}
                                             >
                                               <div className="flex items-center gap-2 overflow-x-auto p-2 pl-2 cursor-pointer hover:bg-secondary/20 group sm:pl-4" onClick={() => toggle(topic.id)}>
                                                 {expanded.has(topic.id) ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                                                 <span className="text-sm flex-1 min-w-[6rem] truncate">{topic.name}</span>
+                                                <PsProgressBadge done={psDone} total={psSubs.length} />
                                                 <Select
                                                   value={topic.difficulty}
                                                   onValueChange={(v) => updateTopicDifficulty(topic.id, v as Difficulty)}
@@ -485,7 +510,15 @@ export function HierarchyTree({ tracks, modules, topics, subtopics, selectedTrac
                                                               ))}
                                                             </SelectContent>
                                                           </Select>
-                                                          <div className="min-w-0 text-left text-sm">
+                                                          <div className="flex min-w-0 items-start gap-1.5 text-left text-sm">
+                                                            {isPsSubtopic(sub.name) && (
+                                                              <Badge
+                                                                variant="outline"
+                                                                className="mt-0.5 shrink-0 border-violet-500/35 bg-violet-500/10 px-1 py-0 text-[9px] text-violet-300"
+                                                              >
+                                                                PS
+                                                              </Badge>
+                                                            )}
                                                             <InlineCodeText text={sub.name} className="break-words" />
                                                           </div>
                                                           <div className="flex flex-wrap items-center gap-1.5 sm:justify-end">

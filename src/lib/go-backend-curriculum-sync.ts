@@ -185,15 +185,61 @@ async function syncModuleCurriculum(
   }
 }
 
+function resolveDbModule(dbModules: Module[], pathMod: PathModule): Module | undefined {
+  const legacyForThis = Object.entries(LEGACY_MODULE_NAMES)
+    .filter(([, current]) => current === pathMod.name)
+    .map(([legacy]) => legacy);
+  return dbModules.find((m) => m.name === pathMod.name || legacyForThis.includes(m.name));
+}
+
+async function isGoBackendCurriculumStale(
+  dbModules: Module[],
+  pathModules: PathModule[]
+): Promise<boolean> {
+  for (const pathMod of pathModules) {
+    const dbMod = resolveDbModule(dbModules, pathMod);
+    if (!dbMod) continue;
+
+    const topics = await db.topics.where("moduleId").equals(dbMod.id).toArray();
+    const topicByName = new Map(topics.map((t) => [t.name, t]));
+
+    for (const parsed of pathMod.topics) {
+      const topic = topicByName.get(parsed.name);
+      if (!topic || topic.archived) return true;
+
+      const existing = await db.subtopics
+        .where("topicId")
+        .equals(topic.id)
+        .filter((s) => !s.archived)
+        .toArray();
+      const names = new Set(existing.map((s) => s.name));
+      if (parsed.subtopics.some((name) => !names.has(name))) return true;
+    }
+
+    for (const project of pathMod.projects ?? []) {
+      const topicName = formatGoProjectTopicName(project);
+      const topic = topicByName.get(topicName);
+      if (!topic || topic.archived) return true;
+
+      const existing = await db.subtopics
+        .where("topicId")
+        .equals(topic.id)
+        .filter((s) => !s.archived)
+        .toArray();
+      const names = new Set(existing.map((s) => s.name));
+      if (project.deliverables.some((name) => !names.has(name))) return true;
+    }
+  }
+
+  return false;
+}
+
 /**
  * Align Development-track Go Backend modules (0–23) with GO_BACKEND_PATH.
  * Does not touch Boot.dev or any other track.
  */
 export async function ensureGoBackendCurriculumSync(): Promise<void> {
   const settings = await db.settings.toCollection().first();
-  if (settings?.goBackendCurriculumVersion === GO_BACKEND_CURRICULUM_VERSION) {
-    return;
-  }
 
   const devTrack = await db.tracks.filter((t) => t.name === "Development").first();
   if (!devTrack) return;
@@ -213,14 +259,12 @@ export async function ensureGoBackendCurriculumSync(): Promise<void> {
   );
   if (!hasGoPath) return;
 
-  for (const pathMod of pathModules) {
-    const legacyForThis = Object.entries(LEGACY_MODULE_NAMES)
-      .filter(([, current]) => current === pathMod.name)
-      .map(([legacy]) => legacy);
+  const versionCurrent = settings?.goBackendCurriculumVersion === GO_BACKEND_CURRICULUM_VERSION;
+  const stale = await isGoBackendCurriculumStale(dbModules, pathModules);
+  if (versionCurrent && !stale) return;
 
-    const dbMod = dbModules.find(
-      (m) => m.name === pathMod.name || legacyForThis.includes(m.name)
-    );
+  for (const pathMod of pathModules) {
+    const dbMod = resolveDbModule(dbModules, pathMod);
     if (!dbMod) continue;
 
     await syncModuleCurriculum(devTrack.id, dbMod, pathMod);

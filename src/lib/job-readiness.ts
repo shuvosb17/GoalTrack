@@ -191,7 +191,7 @@ function deriveNextSteps(
 
   if (readyToApply) {
     steps.push("Start applying: 5–10 tailored applications per week with your live project URL.");
-    steps.push("Finish Inventory Platform MVP while interviewing (auth, RBAC, one core flow).");
+    steps.push("Finish taka-flow capstone MVP while interviewing (auth, RBAC, one core wallet flow).");
     steps.push("Add one Node.js or Python REST API for Bangladesh local keyword match.");
     return steps.slice(0, 3);
   }
@@ -213,7 +213,7 @@ function deriveNextSteps(
   const m4 = byNumber.get(4);
   const m9 = byNumber.get(9);
   if (m4 && m4.percent >= 50 && (!m9 || m9.percent < 30)) {
-    steps.push("Build notes-api locally: CRUD, JWT, Postgres, Redis, tests, Docker Compose (Modules 4–6, 9).");
+    steps.push("Build jobtrackr locally: CRUD, JWT, Postgres, Redis, tests, Docker Compose (Modules 4–6, 9).");
   }
 
   const m12 = byNumber.get(12);
@@ -223,7 +223,7 @@ function deriveNextSteps(
 
   if (steps.length === 0) {
     steps.push("Continue marking subtopics complete as you finish each learning block.");
-    steps.push("Ship notes-api with HTTPS — that unlocks the apply-ready checklist.");
+    steps.push("Ship jobtrackr with HTTPS — that unlocks the apply-ready checklist.");
     steps.push("Prepare resume and pinned GitHub repos (Module 23).");
   }
 

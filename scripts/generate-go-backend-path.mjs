@@ -1,15 +1,16 @@
 /**
  * Regenerates src/lib/go-backend-path.ts and src/lib/go-backend-projects.ts
- * from docs/Go_backend_updated_path.md.
+ * from docs/Go_backend_updated_path version2.md.
  *
  * Topic 0.3 keeps the Bengali GIT_GITHUB_SUBTOPICS curriculum (not the English
- * bullets in the markdown).
+ * bullets in the markdown). Instructor-course blocks become [PS] topics.
  */
 import fs from "fs";
 
-const DOC = "docs/Go_backend_updated_path.md";
+const DOC = "docs/Go_backend_updated_path version2.md";
 const PATH_OUT = "src/lib/go-backend-path.ts";
 const PROJECTS_OUT = "src/lib/go-backend-projects.ts";
+const CURRICULUM_VERSION = 4;
 
 const GIT_GITHUB_BLOCK = `/** Bengali Git & GitHub curriculum (Topic 0.3 subtopics). */
 export const GIT_GITHUB_SUBTOPICS = [
@@ -61,6 +62,24 @@ function esc(s) {
   return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
+function normalizeTier(raw) {
+  const lower = raw.trim().toLowerCase();
+  if (lower.includes("→")) {
+    const parts = lower.split("→").map((p) => p.trim());
+    return parts[parts.length - 1];
+  }
+  if (lower === "capstone") return "capstone";
+  if (lower === "advanced") return "advanced";
+  if (lower === "medium") return "medium";
+  if (lower === "beginner") return "beginner";
+  return "medium";
+}
+
+function psSubtopic(text) {
+  const trimmed = text.trim();
+  return trimmed.startsWith("[PS]") ? trimmed : `[PS] ${trimmed}`;
+}
+
 function parseDoc(md) {
   const modules = [];
   let cur = null;
@@ -85,6 +104,8 @@ function parseDoc(md) {
     if (!cur) continue;
     if (/^## /.test(line) && !/^## Module /.test(line)) {
       cur = null;
+      topic = null;
+      project = null;
       continue;
     }
     if (/^### Projects\s*$/.test(line)) {
@@ -92,9 +113,20 @@ function parseDoc(md) {
       project = null;
       continue;
     }
+    const instructor = line.match(/^### 📺 Instructor course — (.+)$/);
+    if (instructor) {
+      topic = {
+        name: `Topic ${cur.index}.PS: [PS] ${instructor[1].trim()}`,
+        subtopics: [],
+        isPsTopic: true,
+      };
+      cur.topics.push(topic);
+      project = null;
+      continue;
+    }
     const t = line.match(/^### Topic (.+)$/);
     if (t) {
-      topic = { name: `Topic ${t[1].trim()}`, subtopics: [] };
+      topic = { name: `Topic ${t[1].trim()}`, subtopics: [], isPsTopic: false };
       cur.topics.push(topic);
       project = null;
       continue;
@@ -103,17 +135,21 @@ function parseDoc(md) {
     if (p) {
       project = {
         name: p[2].trim(),
-        tier: p[1].trim().toLowerCase(),
+        tier: normalizeTier(p[1]),
         deliverables: [],
       };
       cur.projects.push(project);
+      topic = null;
       continue;
     }
     if (/^\*Tier:/.test(line)) continue;
+    if (/^>/.test(line)) continue;
     const bullet = line.match(/^- (.+)$/);
     if (bullet) {
-      if (project) project.deliverables.push(bullet[1]);
-      else if (topic) topic.subtopics.push(bullet[1]);
+      const text = bullet[1].trim();
+      if (!text || text === "•") continue;
+      if (project) project.deliverables.push(text);
+      else if (topic) topic.subtopics.push(topic.isPsTopic ? psSubtopic(text) : text);
     }
   }
   return modules;
@@ -144,8 +180,8 @@ function genPathTs(modules) {
   lines.push(`export const GO_BACKEND_PATH_MARKER =`);
   lines.push(`  "Module 0: Developer Environment & Foundations";`);
   lines.push(``);
-  lines.push(`/** Bump when Development Go path curriculum shape changes. */`);
-  lines.push(`export const GO_BACKEND_CURRICULUM_VERSION = 2;`);
+  lines.push(`/** Bump when Development Go path curriculum shape changes (v${CURRICULUM_VERSION}: cloud/DevOps-focused path v2). */`);
+  lines.push(`export const GO_BACKEND_CURRICULUM_VERSION = ${CURRICULUM_VERSION};`);
   lines.push(``);
   lines.push(GIT_GITHUB_BLOCK.trimEnd());
   lines.push(``);
@@ -252,10 +288,17 @@ fs.writeFileSync(PATH_OUT, genPathTs(modules));
 fs.writeFileSync(PROJECTS_OUT, genProjectsTs(modules));
 
 const topics = modules.reduce((s, m) => s + m.topics.length, 0);
+const psTopics = modules.reduce((s, m) => s + m.topics.filter((t) => t.isPsTopic).length, 0);
 const subs = modules.reduce(
   (s, m) => s + m.topics.reduce((a, t) => a + (t.name === "Topic 0.3: Git & GitHub" ? 36 : t.subtopics.length), 0),
   0
 );
+const psSubs = modules.reduce(
+  (s, m) => s + m.topics.reduce((a, t) => a + (t.isPsTopic ? t.subtopics.length : 0), 0),
+  0
+);
 const projects = modules.reduce((s, m) => s + m.projects.length, 0);
 console.log(`Wrote ${PATH_OUT} and ${PROJECTS_OUT}`);
-console.log(`Modules=${modules.length} Topics=${topics} Subtopics≈${subs} Projects=${projects}`);
+console.log(
+  `Modules=${modules.length} Topics=${topics} ([PS] topics=${psTopics}) Subtopics≈${subs} ([PS] subs=${psSubs}) Projects=${projects}`
+);

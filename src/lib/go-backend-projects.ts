@@ -112,10 +112,10 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
   // Module 4: HTTP & REST API Development
   [
     {
-      name: "notes-api-inmemory",
+      name: "jobtrackr-inmemory — 🚩 Flagship 1 begins",
       tier: "beginner",
       deliverables: [
-        "CRUD REST API for notes (in-memory store)",
+        "CRUD REST API for companies, applications, and interview stages (in-memory store)",
         "JSON request/response; consistent error envelope",
         "Logging + recovery middleware; httptest for handlers",
         "Chi or stdlib ServeMux with Go 1.22 routing",
@@ -125,8 +125,9 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
       name: "REST API Hardening Pass",
       tier: "medium",
       deliverables: [
-        "Pagination, filtering, validation on notes-api-inmemory",
+        "Pagination (offset **and** cursor, benchmarked like the instructor's lesson), filtering, validation on jobtrackr-inmemory",
         "Request ID middleware; CORS configured correctly",
+        "Rate-limiting + audit-logger middleware (instructor's Module: API Development Part Two, in Go)",
         "OpenAPI-style endpoint table in README",
       ],
     },
@@ -145,7 +146,7 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
   // Module 5: Databases & Persistence
   [
     {
-      name: "notes-api (Postgres + Redis)",
+      name: "jobtrackr (Postgres + Redis)",
       tier: "medium",
       deliverables: [
         "Postgres schema with migrations (golang-migrate)",
@@ -168,12 +169,12 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
   // Module 6: Authentication, Authorization & Security
   [
     {
-      name: "Secure notes-api (JWT + RBAC)",
+      name: "Secure jobtrackr (JWT + RBAC)",
       tier: "medium",
       deliverables: [
         "bcrypt password hashing; register/login endpoints",
         "JWT access + refresh tokens; rotation strategy documented",
-        "RBAC: admin / editor / viewer roles on note resources",
+        "RBAC: admin / editor / viewer roles on application resources",
         "Login rate limiting; Redis blocklist for revoked tokens",
       ],
     },
@@ -183,17 +184,17 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
       deliverables: [
         "Input validation on all write endpoints",
         "Security headers middleware; HTTPS-only cookies if session used",
-        "OWASP Top 10 self-audit checklist filled for notes-api",
+        "OWASP Top 10 self-audit checklist filled for jobtrackr",
       ],
     },
   ],
   // Module 7: Linux (Deep)
   [
     {
-      name: "notes-api on Linux VM",
+      name: "jobtrackr on Linux VM",
       tier: "advanced",
       deliverables: [
-        "Deploy notes-api on WSL or free-tier Linux VM",
+        "Deploy jobtrackr on WSL or free-tier Linux VM",
         "systemd unit file; service survives reboot",
         "nginx reverse proxy with TLS (self-signed or Let's Encrypt)",
         "Bash deploy script: build, migrate, restart, health check",
@@ -246,10 +247,22 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
       ],
     },
     {
+      name: "🚩 Flagship 2 — `vaultdrop` (File Sharing & Media Processing Service)",
+      tier: "advanced",
+      deliverables: [
+        "Multipart upload handling → MIME validation → object storage (MinIO via compose now; S3 + presigned URLs in M12)",
+        "Goroutine **worker pool** for async processing: thumbnails/resize, checksums (applies Module 2 for real)",
+        "Expiring share links, download counters, per-user quotas, upload rate limiting + SLA (instructor's SLA lesson)",
+        "Redis for hot metadata cache + rate limiter backing",
+        "Full compose stack (app + Postgres + Redis + MinIO); multi-stage Dockerfile",
+        "k6 load test (P95/P99 in README) — first use of instructor's Load Testing module",
+      ],
+    },
+    {
       name: "Capstone Milestone — Containerize Platform",
       tier: "capstone",
       deliverables: [
-        "Inventory/capstone app containerized with compose",
+        "taka-flow capstone app containerized with compose (when the capstone MVP starts in Phase B, apply this milestone)",
         "All services networked; secrets via env files (not committed)",
         "Smoke test script run in CI",
       ],
@@ -258,7 +271,7 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
   // Module 10: Observability & Reliability
   [
     {
-      name: "Observability Upgrade (notes-api or capstone)",
+      name: "Observability Upgrade (jobtrackr or capstone)",
       tier: "medium",
       deliverables: [
         "Structured logging with `slog` + correlation IDs; PII obfuscation on sensitive fields",
@@ -266,6 +279,17 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
         "Distributed tracing with OpenTelemetry exported to Jaeger (one request traced end-to-end)",
         "Background email/job worker with retries + dead-letter note",
         "`/healthz` and `/readyz` endpoints",
+      ],
+    },
+    {
+      name: "🚩 Flagship 3 — `hookrelay` (Webhook Delivery Platform)",
+      tier: "advanced",
+      deliverables: [
+        "Accept events via API → durably queue → deliver to subscriber URLs with **retries + exponential backoff + jitter, dead-letter queue, HMAC signatures, idempotency keys**",
+        "Postgres as durable queue first (`FOR UPDATE SKIP LOCKED`), then swap in Redis Streams/asynq — document the trade-off in DECISIONS.md",
+        "Delivery dashboard endpoints: attempt logs, success rates, latency percentiles",
+        "Full observability: `slog` + Prometheus (deliveries/sec, retry count, DLQ depth) + Grafana dashboard screenshot in README",
+        "Deploys to AWS with CI/CD in M12–M13",
       ],
     },
     {
@@ -312,14 +336,14 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
       ],
     },
     {
-      name: "Deploy notes-api to AWS",
+      name: "Deploy the flagships to AWS (jobtrackr → vaultdrop → hookrelay)",
       tier: "advanced",
       deliverables: [
         "Preferred path: **ECS Fargate + ECR + ALB + RDS Postgres** (or EC2 + compose if cost-constrained)",
-        "Live public URL with HTTPS (ACM)",
-        "IAM least-privilege roles documented",
-        "S3 bucket for uploads or static assets (if applicable)",
-        "CloudWatch logs + at least one alarm",
+        "`jobtrackr` live on a public HTTPS URL (ACM) — Flagship 1 goes to AWS",
+        "`vaultdrop` upgraded from MinIO to **S3 with presigned URLs** + least-privilege task role — Flagship 2 live",
+        "`hookrelay` deployed with CloudWatch logs + alarms on DLQ depth/5xx — Flagship 3 live (CI/CD completes in M13)",
+        "IAM least-privilege roles documented per service",
         "Optional: Route 53 custom domain; CloudFront in front of static assets",
       ],
     },
@@ -336,7 +360,7 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
       name: "Capstone Milestone — AWS Production",
       tier: "capstone",
       deliverables: [
-        "Inventory Platform deployed with HTTPS on custom or AWS domain",
+        "taka-flow platform deployed with HTTPS on custom or AWS domain",
         "VPC-aware layout: ALB public, app + RDS private where practical",
         "RDS Postgres + optional ElastiCache/Redis",
         "S3 for file uploads / reports; CloudWatch monitoring",
@@ -358,6 +382,18 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
       ],
     },
     {
+      name: "🚩 Flagship 4 — `pulsewatch` (Uptime Monitoring & Status Page Platform)",
+      tier: "advanced",
+      deliverables: [
+        "Scheduler running **thousands of concurrent HTTP/TCP checks** via goroutine pools; per-check intervals and timeouts (Module 2 at full power)",
+        "Incident detection (N consecutive failures) + alerting via email/Telegram",
+        "Public status pages with uptime history and latency graphs (Go templates + htmx — enough UI to demo, no frontend rabbit hole)",
+        "Time-series storage strategy in Postgres (partitioning/aggregation) — write up the design in DECISIONS.md",
+        "Soak test: how many checks/minute can one node sustain? Publish the number (Module 11 skills)",
+        "Ships with the full toolkit: Docker, GitHub Actions CI/CD with security scans, AWS deploy, Prometheus/Grafana, tracing",
+      ],
+    },
+    {
       name: "Capstone Milestone — CI/CD Complete",
       tier: "capstone",
       deliverables: [
@@ -373,7 +409,7 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
       name: "K8s Local Stretch (kind/minikube)",
       tier: "beginner",
       deliverables: [
-        "Deployment + Service + Ingress for capstone or notes-api",
+        "Deployment + Service + Ingress for capstone or jobtrackr",
         "Local image load or registry push documented",
         "Talking points doc: Pods vs Deployments vs Services",
       ],
@@ -386,7 +422,7 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
       tier: "advanced",
       deliverables: [
         "`.proto` definition + generated Go stubs",
-        "Unary RPC integrated into capstone (e.g. inventory lookup)",
+        "Unary RPC integrated into capstone (e.g. internal balance/ledger lookup service)",
         "Interceptor for logging/auth; gRPC vs REST trade-off in DECISIONS.md",
       ],
     },
@@ -399,7 +435,7 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
       deliverables: [
         "URL shortener: API + storage + scale notes (extend M8 project)",
         "Rate limiter design doc: token bucket at edge vs app",
-        "Concurrency-safe inventory/stock: idempotency + locking strategy",
+        "Concurrency-safe wallet/ledger: idempotency + locking strategy (direct capstone prep)",
         "One-page diagrams per problem (Excalidraw or Mermaid in repo)",
       ],
     },
@@ -407,22 +443,44 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
       name: "Capstone Architecture RFC",
       tier: "capstone",
       deliverables: [
-        "RFC: layered handler → service → store for Inventory Platform",
+        "RFC: layered handler → service → store for taka-flow platform",
         "Monolith vs microservices decision with junior-scale rationale",
         "Failure modes: DB down, queue backlog, 10k RPS sketch",
       ],
     },
   ],
-  // Module 17: AI Integration
+  // Module 17: AI Integration — Backend-First (what companies actually want)
   [
     {
-      name: "Capstone AI Feature",
+      name: "jobtrackr AI Upgrade (Flagship 1 gets AI)",
+      tier: "medium",
+      deliverables: [
+        "Paste a raw job posting → LLM extracts structured fields (company, role, stack, salary, deadline) via **strict JSON schema** → validated into your existing Postgres models; repair-loop on malformed output",
+        "Match scoring: job requirements vs your skills profile, with the reasoning returned as citations",
+        "Semantic search over saved applications (embeddings + **pgvector** in your existing DB)",
+        "Cost controls: cache extractions by posting hash; cheap-model-first tiering; token/cost/latency exported to Prometheus",
+        "Golden-set eval: 10 real job postings with expected extractions, run in CI",
+      ],
+    },
+    {
+      name: "`askvault` — RAG Document Q&A (Flagship 2 gets AI)",
       tier: "advanced",
       deliverables: [
-        "One AI endpoint (semantic search via embeddings + pgvector, or summarization)",
-        "Prompt templates + structured JSON output validation",
-        "Cost/rate-limit handling; cache repeated queries",
-        "Fallback when model unavailable",
+        "Ingestion pipeline on upload (background workers — M10): extract text → chunk → embed → pgvector",
+        "`/ask` endpoint: retrieve top-k chunks (per-user access control — users can only query their own files) → generate answer **with citations** → **stream via SSE**",
+        "Retrieval evaluation: golden-question set, recall + groundedness measured and reported in the README",
+        "Prompt-injection defense for retrieved content; PII-aware logging",
+        "Full ops treatment like every flagship: metrics dashboard incl. token cost, k6 load test on the retrieval path, CI/CD, live URL",
+        "DECISIONS.md: chunking strategy chosen and why; pgvector vs dedicated vector DB trade-off",
+      ],
+    },
+    {
+      name: "taka-flow AI Feature (capstone stretch)",
+      tier: "advanced",
+      deliverables: [
+        "Natural-language finance assistant via **tool calling**: \"how much did I send to X last month?\" → model calls your typed `query_ledger` tool (read-only, allow-listed, user-scoped) → grounded answer from real ledger data",
+        "Guardrails: the model never writes to the ledger; destructive/ambiguous requests are refused or escalated",
+        "Demonstrates the agent-safety story interviewers probe: hallucinated tool inputs handled, every tool call logged and traced",
       ],
     },
   ],
@@ -484,7 +542,7 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
       name: "DECISIONS.md Everywhere",
       tier: "beginner",
       deliverables: [
-        "DECISIONS.md in cli-todo, notes-api, and capstone",
+        "DECISIONS.md in cli-todo, jobtrackr, and capstone",
         "Answer trade-off bank: JWT vs sessions, Redis vs Postgres cache, etc.",
         "Record one 5-minute decision explanation (audio or written)",
       ],
@@ -493,14 +551,18 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
   // Module 23: Job Hunt & Interview Preparation
   [
     {
-      name: "Inventory Management Platform (Capstone)",
+      name: "🚩 Flagship 5 — `taka-flow` (Digital Wallet & Ledger Platform)",
       tier: "capstone",
       deliverables: [
-        "Auth JWT+refresh, RBAC admin/manager/viewer, audit logs",
-        "Background workers, email notifications, S3 file uploads",
-        "Reports export, Prometheus metrics, structured logging",
-        "Docker compose, CI/CD, AWS live URL, OpenAPI + tests >70%",
-        "Stretch: gRPC service + AI feature",
+        "Auth JWT+refresh, RBAC (user/agent/admin), KYC-stub flow, audit logs",
+        "**Double-entry ledger** with Postgres transactions + row locking (`FOR UPDATE`); append-only entries, derived balances",
+        "P2P transfers with **idempotency keys** (safe retries — no double spend), cash-in/cash-out flows",
+        "**Correctness proof:** a concurrent k6/load test hammering transfers, then a reconciliation query proving **no money was created or destroyed** — this single artifact carries entire interviews",
+        "Background workers (transaction receipts, notification emails), S3 statement exports",
+        "Prometheus metrics + Grafana, structured logging, OpenTelemetry tracing across one full transfer",
+        "Docker compose, CI/CD with security scans, AWS live URL, OpenAPI docs + tests >70%",
+        "AI feature (M17, Phase C if time allows, else final polish): tool-calling finance assistant — read-only, allow-listed `query_ledger` tool, agent-safety guardrails",
+        "Stretch (Phase D / post-offer): split ledger into an internal gRPC service (M15); K8s deploy via kind/k3s (M14)",
       ],
     },
     {
@@ -508,10 +570,12 @@ export const GO_BACKEND_MODULE_PROJECTS: GoPathProject[][] = [
       tier: "advanced",
       deliverables: [
         "1-page backend resume with trade-off-driven bullets",
-        "GitHub pinned: capstone + url-shortener + best CLI project",
-        "Portfolio page or README index linking live demos",
-        "Application tracker; 5–10 quality apps/week plan",
-        "2 technical articles published (Dev.to/LinkedIn)",
+        "LinkedIn headline: *\"Go Backend Engineer | Cloud-Native APIs on AWS | Open to Remote (UTC+6)\"* — recruiters filter on exactly these words; timezone shows you understand remote logistics",
+        "GitHub pinned: all 5 flagships (`jobtrackr`, `vaultdrop`, `hookrelay`, `pulsewatch`, `taka-flow`)",
+        "Portfolio page or README index linking live demos — including the **pulsewatch status page monitoring the other flagships live**",
+        "Application tracker (run it on your own `jobtrackr` — a great story); 5–10 quality apps/week plan",
+        "**Cold/warm outreach: 10 personalized messages/week** to engineering managers/founders at Go-using companies (2 lines: \"I built [live link] which solves [problem your team has]; 60s demo here\")",
+        "2+ technical articles published (Dev.to/LinkedIn); the ledger-correctness write-up is your flagship post",
         "Mock interview recording reviewed with notes",
       ],
     },
