@@ -121,9 +121,9 @@ export function JobReadinessPanel({ trackId }: JobReadinessPanelProps) {
               </span>
             </summary>
             <p className="mt-3 text-[12px] text-muted-foreground">
-              Watch these Software Engineering course modules alongside your current path topics, then implement the
-              concept in Go. Subtopics tagged <span className="text-violet-300">[PS]</span> in the track tree match
-              this course.
+              Watch instructor course modules at each <span className="text-violet-300">Topic N.PS*</span> row
+              in the track tree, then implement in Go. Phase progress and the apply checklist use core Go
+              subtopics only — [PS] lessons are tracked separately here.
             </p>
             <ul className="mt-3 space-y-2.5">
               {report.psWatchHints.map((hint) => (

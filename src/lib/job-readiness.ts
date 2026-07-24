@@ -16,6 +16,7 @@ export interface ModuleReadiness {
   moduleNumber: number;
   name: string;
   moduleId: string;
+  /** Core Go-path subtopics (excludes [PS] instructor lessons). */
   doneCount: number;
   totalCount: number;
   psDoneCount: number;
@@ -51,38 +52,42 @@ export interface JobReadinessReport {
 
 const GO_MODULE_RE = /^Module (\d+):/;
 
+/** Aligned to Go_backend_updated_path version2.md — phase modules & goals. */
 export const JOB_PHASES: JobPhaseDef[] = [
   {
     id: "A",
     name: "Employable Core",
-    timeline: "Months 1–4",
-    goal: "Build, test, containerize, and secure a real REST API backed by Postgres.",
+    timeline: "Months 1–4 · 30 hrs/week",
+    goal:
+      "Build Flagships 1–2 locally: jobtrackr (CRUD, JWT, Postgres, Redis, tests) and vaultdrop (Docker Compose + MinIO).",
     moduleNumbers: [0, 1, 2, 3, 4, 5, 6, 9, 18, 22],
   },
   {
     id: "B",
     name: "Prove It + Start Applying",
-    timeline: "Months 4–6",
-    goal: "Ship a live HTTPS deploy and start 5–10 applications per week.",
+    timeline: "Months 4–6 · apply from month 5",
+    goal:
+      "Deploy jobtrackr + vaultdrop with HTTPS on AWS; start 5–10 applications/week and taka-flow MVP.",
     moduleNumbers: [7, 8, 12, 19, 21, 23],
   },
   {
     id: "C",
     name: "Differentiators While Interviewing",
-    timeline: "Months 6–9",
-    goal: "Capstone polish: observability, CI/CD, system design, API docs.",
-    moduleNumbers: [10, 11, 13, 16, 20],
+    timeline: "Months 6–8",
+    goal:
+      "Ship hookrelay, pulsewatch, and taka-flow capstone with observability, CI/CD, AI features (M17), and system design polish.",
+    moduleNumbers: [10, 11, 13, 16, 17, 20],
   },
   {
     id: "D",
     name: "Deferred / Post-First-Job",
     timeline: "Later",
-    goal: "gRPC, deep K8s, AI — learn on the job or when a role requires them.",
-    moduleNumbers: [14, 15, 17],
+    goal: "Deep K8s, gRPC, Lambda — learn on the job or when a role requires them.",
+    moduleNumbers: [14, 15],
   },
 ];
 
-/** Checklist order follows the Go backend path: Phase A (M0–M6, M9) then Phase B (M7, M12) then job prep (M22, M23). */
+/** Minimum employable core (v2 checklist) — progress uses core subtopics only, not [PS] watch list. */
 const APPLY_CHECKLIST: Array<{
   id: string;
   label: string;
@@ -93,19 +98,30 @@ const APPLY_CHECKLIST: Array<{
   { id: "git", label: "Git/GitHub fluency and clean READMEs", moduleNumbers: [0], order: 0 },
   { id: "go", label: "Go fundamentals + concurrency basics", moduleNumbers: [1, 2], order: 1 },
   { id: "tests", label: "Tests you actually wrote (unit + integration)", moduleNumbers: [3], order: 2 },
-  { id: "rest", label: "REST API with validation and middleware", moduleNumbers: [4], order: 3 },
+  {
+    id: "rest",
+    label: "REST API with validation and middleware (jobtrackr)",
+    moduleNumbers: [4],
+    order: 3,
+  },
   { id: "db", label: "PostgreSQL: schema, joins, transactions, migrations", moduleNumbers: [5], order: 4 },
-  { id: "auth", label: "Auth: bcrypt + JWT + RBAC", moduleNumbers: [6], order: 5 },
-  { id: "docker", label: "Docker + docker-compose; image in a registry", moduleNumbers: [9], order: 6 },
+  { id: "auth", label: "Auth: bcrypt + JWT + RBAC (Secure jobtrackr)", moduleNumbers: [6], order: 5 },
+  { id: "docker", label: "Docker + docker-compose; image in a registry (vaultdrop stack)", moduleNumbers: [9], order: 6 },
   {
     id: "deploy",
-    label: "Basic Linux + one deployed live service (HTTPS)",
+    label: "Basic Linux + two live flagships with HTTPS (jobtrackr, vaultdrop)",
     moduleNumbers: [7, 12],
     order: 7,
     threshold: 50,
   },
   { id: "tradeoffs", label: "Can explain trade-offs aloud", moduleNumbers: [22], order: 8, threshold: 40 },
-  { id: "jobkit", label: "Resume + LinkedIn + pinned repos", moduleNumbers: [23], order: 9, threshold: 40 },
+  {
+    id: "jobkit",
+    label: "Resume + LinkedIn (UTC+6) + pinned repos",
+    moduleNumbers: [23],
+    order: 9,
+    threshold: 40,
+  },
 ];
 
 function parseModuleNumber(name: string): number | null {
@@ -113,8 +129,10 @@ function parseModuleNumber(name: string): number | null {
   return match ? Number(match[1]) : null;
 }
 
-function moduleStats(moduleId: string, subtopics: Subtopic[]) {
-  const subs = subtopics.filter((s) => s.moduleId === moduleId && !s.archived);
+function moduleStats(moduleId: string, subtopics: Subtopic[], activeTopicIds: Set<string>) {
+  const subs = subtopics.filter(
+    (s) => s.moduleId === moduleId && !s.archived && activeTopicIds.has(s.topicId)
+  );
   if (subs.length === 0) {
     return {
       doneCount: 0,
@@ -126,14 +144,20 @@ function moduleStats(moduleId: string, subtopics: Subtopic[]) {
       complete: false,
     };
   }
+
   const psSubs = subs.filter((s) => isPsSubtopic(s.name));
-  const doneCount = subs.filter((s) => isSubtopicDone(s.status)).length;
+  const coreSubs = subs.filter((s) => !isPsSubtopic(s.name));
+
+  const doneCount = coreSubs.filter((s) => isSubtopicDone(s.status)).length;
   const psDoneCount = psSubs.filter((s) => isSubtopicDone(s.status)).length;
-  const inProgress = subs.some((s) => s.status === "in_progress") || doneCount > 0;
-  const percent = Math.round((doneCount / subs.length) * 100);
+  const inProgress =
+    subs.some((s) => s.status === "in_progress") || doneCount > 0 || psDoneCount > 0;
+  const percent =
+    coreSubs.length === 0 ? 0 : Math.round((doneCount / coreSubs.length) * 100);
+
   return {
     doneCount,
-    totalCount: subs.length,
+    totalCount: coreSubs.length,
     psDoneCount,
     psTotalCount: psSubs.length,
     percent,
@@ -142,13 +166,17 @@ function moduleStats(moduleId: string, subtopics: Subtopic[]) {
   };
 }
 
-function buildModuleReadiness(modules: Module[], subtopics: Subtopic[]): Map<number, ModuleReadiness> {
+function buildModuleReadiness(
+  modules: Module[],
+  subtopics: Subtopic[],
+  activeTopicIds: Set<string>
+): Map<number, ModuleReadiness> {
   const byNumber = new Map<number, ModuleReadiness>();
 
   for (const mod of modules) {
     const num = parseModuleNumber(mod.name);
     if (num == null || mod.archived) continue;
-    const stats = moduleStats(mod.id, subtopics);
+    const stats = moduleStats(mod.id, subtopics, activeTopicIds);
     byNumber.set(num, {
       moduleNumber: num,
       name: mod.name,
@@ -180,6 +208,27 @@ function checklistProgress(
   return { met, percent: avg, progressLabel: `${avg}% avg (${detail})` };
 }
 
+function parseHintModuleNumber(pathModule: string): number | null {
+  const match = pathModule.match(/M(\d+)/);
+  return match ? Number(match[1]) : null;
+}
+
+function firstIncompletePsHint(
+  currentPhase: JobPhaseId,
+  byNumber: Map<number, ModuleReadiness>
+) {
+  const hints = getPsWatchHintsForPhase(currentPhase);
+  for (const hint of hints) {
+    const modNum = parseHintModuleNumber(hint.pathModule);
+    if (modNum == null) continue;
+    const mod = byNumber.get(modNum);
+    if (mod && mod.psTotalCount > 0 && mod.psDoneCount < mod.psTotalCount) {
+      return hint;
+    }
+  }
+  return hints[0] ?? null;
+}
+
 function deriveNextSteps(
   byNumber: Map<number, ModuleReadiness>,
   phases: JobReadinessReport["phases"],
@@ -187,43 +236,52 @@ function deriveNextSteps(
   currentPhase: JobPhaseId
 ): string[] {
   const steps: string[] = [];
-  const psHints = getPsWatchHintsForPhase(currentPhase);
 
   if (readyToApply) {
-    steps.push("Start applying: 5–10 tailored applications per week with your live project URL.");
-    steps.push("Finish taka-flow capstone MVP while interviewing (auth, RBAC, one core wallet flow).");
-    steps.push("Add one Node.js or Python REST API for Bangladesh local keyword match.");
+    steps.push("Start applying: 5–10 tailored applications/week — track them in jobtrackr.");
+    steps.push("Finish taka-flow capstone MVP while interviewing (auth, RBAC, first ledger flow).");
+    steps.push("Optional: port jobtrackr to Express in one weekend for BD local keyword match.");
     return steps.slice(0, 3);
   }
 
-  if (psHints.length > 0) {
-    const hint = psHints[0];
+  const psHint = firstIncompletePsHint(currentPhase, byNumber);
+  if (psHint) {
     steps.push(
-      `Watch PS course (${hint.courseModules}) while studying ${hint.pathModule}, then implement in Go.`
+      `Watch PS course (${psHint.courseModules}) at ${psHint.pathModule}, then implement in Go.`
     );
   }
 
   const phaseA = phases.find((p) => p.id === "A");
-  const incompleteA = phaseA?.modules.filter((m) => !m.complete && [0, 1, 2, 3, 4, 5, 6, 9].includes(m.moduleNumber)) ?? [];
+  const incompleteA =
+    phaseA?.modules.filter(
+      (m) => !m.complete && [0, 1, 2, 3, 4, 5, 6, 9].includes(m.moduleNumber)
+    ) ?? [];
   if (incompleteA.length > 0) {
     const next = incompleteA.sort((a, b) => a.moduleNumber - b.moduleNumber)[0];
-    steps.push(`Focus Phase A: complete ${next.name} (${next.doneCount}/${next.totalCount} subtopics done).`);
+    steps.push(
+      `Focus Phase A core: ${next.name} (${next.doneCount}/${next.totalCount} Go subtopics · PS ${next.psDoneCount}/${next.psTotalCount}).`
+    );
   }
 
   const m4 = byNumber.get(4);
+  const m6 = byNumber.get(6);
   const m9 = byNumber.get(9);
-  if (m4 && m4.percent >= 50 && (!m9 || m9.percent < 30)) {
-    steps.push("Build jobtrackr locally: CRUD, JWT, Postgres, Redis, tests, Docker Compose (Modules 4–6, 9).");
+  if (m4 && m4.percent >= 50 && m6 && m6.percent < 40) {
+    steps.push("Secure jobtrackr: bcrypt, JWT + refresh, RBAC — after Topic 6.PS auth lessons.");
+  } else if (m4 && m4.percent >= 50 && (!m9 || m9.percent < 30)) {
+    steps.push("Build vaultdrop Docker Compose stack (Modules 5–6 Postgres/Redis, then M9).");
   }
 
   const m12 = byNumber.get(12);
-  if ((phaseA?.percent ?? 0) >= 60 && (!m12 || m12.percent < 30)) {
-    steps.push("Begin Module 12 deploy: VPC → IAM → EC2/ECS + RDS so you have a public HTTPS URL.");
+  if (currentPhase === "B" || (phaseA && phaseA.percent >= 60)) {
+    if (!m12 || m12.percent < 30) {
+      steps.push("Begin M12 AWS deploy: VPC → IAM → ECS + RDS — ship jobtrackr with HTTPS.");
+    }
   }
 
   if (steps.length === 0) {
-    steps.push("Continue marking subtopics complete as you finish each learning block.");
-    steps.push("Ship jobtrackr with HTTPS — that unlocks the apply-ready checklist.");
+    steps.push("Continue core Go subtopics; watch matching Topic N.PS* lessons in parallel.");
+    steps.push("Ship jobtrackr + vaultdrop live — that unlocks the apply-ready checklist.");
     steps.push("Prepare resume and pinned GitHub repos (Module 23).");
   }
 
@@ -236,13 +294,14 @@ export function isGoBackendModule(name: string): boolean {
 
 export function buildJobReadinessReport(
   modules: Module[],
-  _topics: Topic[],
+  topics: Topic[],
   subtopics: Subtopic[]
 ): JobReadinessReport | null {
   const goModules = modules.filter((m) => isGoBackendModule(m.name) && !m.archived);
   if (goModules.length === 0) return null;
 
-  const byNumber = buildModuleReadiness(modules, subtopics);
+  const activeTopicIds = new Set(topics.filter((t) => !t.archived).map((t) => t.id));
+  const byNumber = buildModuleReadiness(modules, subtopics, activeTopicIds);
 
   const phases = JOB_PHASES.map((phase) => {
     const phaseModules = phase.moduleNumbers
@@ -262,15 +321,21 @@ export function buildJobReadinessReport(
 
   let currentPhase: JobPhaseId = "A";
   if (corePhaseA && corePhaseA.percent >= 70) currentPhase = "B";
-  if (corePhaseA && corePhaseA.percent >= 70 && corePhaseB && corePhaseB.percent >= 60) currentPhase = "C";
+  if (corePhaseA && corePhaseA.percent >= 70 && corePhaseB && corePhaseB.percent >= 60) {
+    currentPhase = "C";
+  }
   if (phases.every((p) => p.id === "D" || p.percent >= 75)) currentPhase = "D";
 
   const checklist: ChecklistItem[] = [...APPLY_CHECKLIST]
     .sort((a, b) => a.order - b.order)
     .map((item) => {
-    const { met, percent, progressLabel } = checklistProgress(item.moduleNumbers, byNumber, item.threshold ?? 70);
-    return { id: item.id, label: item.label, moduleNumbers: item.moduleNumbers, met, percent, progressLabel };
-  });
+      const { met, percent, progressLabel } = checklistProgress(
+        item.moduleNumbers,
+        byNumber,
+        item.threshold ?? 70
+      );
+      return { id: item.id, label: item.label, moduleNumbers: item.moduleNumbers, met, percent, progressLabel };
+    });
 
   const readyToApply = checklist.every((c) => c.met);
   const employabilityPercent = Math.round(
@@ -278,7 +343,9 @@ export function buildJobReadinessReport(
   );
 
   const goModuleIds = new Set(goModules.map((m) => m.id));
-  const goSubs = subtopics.filter((s) => goModuleIds.has(s.moduleId) && !s.archived);
+  const goSubs = subtopics.filter(
+    (s) => goModuleIds.has(s.moduleId) && !s.archived && activeTopicIds.has(s.topicId)
+  );
   const psSubs = goSubs.filter((s) => isPsSubtopic(s.name));
   const psSubtopicsTotal = psSubs.length;
   const psSubtopicsDone = psSubs.filter((s) => isSubtopicDone(s.status)).length;
@@ -288,7 +355,7 @@ export function buildJobReadinessReport(
     : currentPhase === "A"
       ? "Building employable core"
       : currentPhase === "B"
-        ? "Close to apply-ready — ship a live deploy"
+        ? "Close to apply-ready — ship live flagships"
         : currentPhase === "C"
           ? "Interviewing phase — add differentiators"
           : "Advanced / post-first-job topics";

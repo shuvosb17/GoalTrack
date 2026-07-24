@@ -309,7 +309,7 @@ export function JobReadinessCharts({ report }: JobReadinessChartsProps) {
       <div className="rounded-xl border border-white/[0.06] bg-gradient-to-r from-emerald-500/[0.04] via-yellow-500/[0.03] to-blue-500/[0.04] p-4">
         <h4 className="mb-1 text-xs font-medium text-muted-foreground">Career path journey</h4>
         <p className="mb-2 text-[10px] text-muted-foreground">
-          Phase {report.currentPhase} active · updates as you complete subtopics
+          Phase {report.currentPhase} active · core Go progress (excludes [PS] watch list)
         </p>
         <PhaseJourneyTimeline phases={report.phases} currentPhase={report.currentPhase} />
       </div>
