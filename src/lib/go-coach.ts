@@ -1,5 +1,5 @@
 import { differenceInCalendarDays, addDays, format } from "date-fns";
-import type { LearningSession, Module, Subtopic, Topic } from "./types";
+import type { Difficulty, LearningSession, Module, Subtopic, Topic } from "./types";
 import {
   APPLY_CHECKLIST,
   DEFAULT_CHECKLIST_THRESHOLD,
@@ -11,18 +11,50 @@ import {
   type ModuleReadiness,
 } from "./job-readiness";
 import { isPsSubtopic } from "./ps-course-integration";
+import { GO_BACKEND_PROJECT_TOPIC_PREFIX } from "./go-backend-projects";
 import { getModuleLoggedMs } from "./time-log";
 import { isSubtopicDone, parseLocalDate, todayISO } from "./utils";
 
 const MS_PER_HOUR = 3_600_000;
 const DAYS_PER_WEEK = 7;
 
-/** Used until there is enough history to derive a personal rate. */
-export const FALLBACK_HOURS_PER_SUBTOPIC = 0.75;
-/** Minimum completed subtopics before the global rate is trusted. */
-const GLOBAL_SAMPLE_MIN = 5;
-/** Minimum completed subtopics in a module before its own rate is trusted. */
-const MODULE_SAMPLE_MIN = 3;
+/**
+ * Difficulty-weighted cost units. A "unit" is one medium concept subtopic.
+ * Hard/expert material and project deliverables cost more; ignoring that was
+ * the main source of optimistic bias (rates get calibrated on the easy items
+ * you complete first, then applied to concurrency/AWS/capstone work).
+ */
+const DIFFICULTY_WEIGHT: Record<Difficulty, number> = {
+  easy: 0.7,
+  medium: 1,
+  hard: 1.5,
+  expert: 2,
+};
+
+/** Project deliverables are build work, not reading — they cost extra on top of difficulty. */
+const PROJECT_WEIGHT_MULTIPLIER = 1.5;
+
+/**
+ * Prior: one weighted unit ≈ 1 hour for a beginner (watch/read + hands-on +
+ * notes). The old 0.75h flat fallback assumed uniform difficulty and no
+ * practice overhead.
+ */
+export const PRIOR_HOURS_PER_UNIT = 1.0;
+/**
+ * Shrinkage weight (in units) for the personal rate. The observed rate only
+ * dominates once you've completed meaningfully more than this many weighted
+ * units — a handful of easy completions can no longer set the global rate.
+ */
+const GLOBAL_PRIOR_WEIGHT_UNITS = 20;
+/** Shrinkage weight for per-module rates (they see far fewer samples). */
+const MODULE_PRIOR_WEIGHT_UNITS = 5;
+
+/**
+ * Review / re-learning overhead applied to the conservative plan. Spaced
+ * review, returning to stalled modules, and forgetting are real costs the
+ * raw burndown never carried.
+ */
+export const CONSERVATIVE_BUFFER = 1.25;
 
 export type PaceVerdict = "ahead" | "on_track" | "behind" | "critical";
 
@@ -33,6 +65,7 @@ export interface CoachVelocity {
   hoursPerWeek: number;
   subtopicsCompleted: number;
   hoursLogged: number;
+  /** Effective window — clamped to your actual history span. */
   weeks: number;
 }
 
@@ -52,6 +85,7 @@ export interface ModuleBudget {
   thresholdPercent: number | null;
   /** Checklist item ids this module blocks. */
   blockingChecklistIds: string[];
+  /** Expected cost of one remaining subtopic in this module (difficulty-aware). */
   hoursPerSubtopic: number;
   hoursRemaining: number;
   hoursToThreshold: number;
@@ -79,7 +113,7 @@ export interface CoachTargetPlan {
   targetDate: string;
   daysUntilTarget: number;
   weeksUntilTarget: number;
-  /** Hours per week needed from today to be apply-ready by the target date. */
+  /** Hours per week needed from today to be apply-ready by the target date (incl. review buffer). */
   requiredHoursPerWeek: number;
   /** Core subtopics per week needed from today. */
   requiredSubtopicsPerWeek: number;
@@ -99,6 +133,7 @@ export interface GoCoachReport {
   blockingModules: ModuleBudget[];
   /** Sorted by hoursToThreshold — the fastest checklist items to close. */
   cheapestWins: ModuleBudget[];
+  /** Expected cost of an average remaining subtopic across the path. */
   hoursPerSubtopic: number;
   hoursPerSubtopicIsEstimate: boolean;
   toApplyReady: RemainingWork;
@@ -106,9 +141,9 @@ export interface GoCoachReport {
   byPhase: Array<{ id: JobPhaseId; name: string; remaining: RemainingWork; percent: number }>;
   recentVelocity: CoachVelocity;
   baselineVelocity: CoachVelocity;
-  /** Projection using the faster of the two velocity windows. */
-  optimistic: CoachProjection;
-  /** Projection using the slower of the two velocity windows. */
+  /** Projection at your recent pace with no buffer. */
+  expected: CoachProjection;
+  /** Projection at your slower window pace with the review buffer applied. */
   conservative: CoachProjection;
   targetPlan: CoachTargetPlan | null;
   totalGoHoursLogged: number;
@@ -202,6 +237,12 @@ function coreGoSubtopics(
   );
 }
 
+/** Difficulty- and project-weighted cost of one subtopic, in units. */
+export function subtopicUnits(sub: Subtopic, isProjectTopic: boolean): number {
+  const base = DIFFICULTY_WEIGHT[sub.difficulty] ?? 1;
+  return isProjectTopic ? base * PROJECT_WEIGHT_MULTIPLIER : base;
+}
+
 /**
  * Module a session belongs to, resolved through its subtopic or topic when the
  * session was not logged against a module directly.
@@ -244,34 +285,59 @@ export function scopeGoSessions(
 }
 
 /**
- * Hours it historically takes you to finish one core subtopic.
- * Falls back to a flat estimate until there is enough completion history.
+ * Personal hours-per-unit with Bayesian shrinkage toward the beginner prior.
+ * With little history the prior dominates; the observed rate only takes over
+ * as completed weighted units grow. This replaces the old rule that trusted
+ * any 5 completions outright.
  */
-export function deriveHoursPerSubtopic(
+export function deriveHoursPerUnit(
   totalGoHoursLogged: number,
-  completedCoreSubtopics: number
-): { hoursPerSubtopic: number; isEstimate: boolean } {
-  if (completedCoreSubtopics < GLOBAL_SAMPLE_MIN || totalGoHoursLogged <= 0) {
-    return { hoursPerSubtopic: FALLBACK_HOURS_PER_SUBTOPIC, isEstimate: true };
-  }
+  completedUnits: number
+): { hoursPerUnit: number; isEstimate: boolean } {
+  const hoursPerUnit =
+    (totalGoHoursLogged + GLOBAL_PRIOR_WEIGHT_UNITS * PRIOR_HOURS_PER_UNIT) /
+    (completedUnits + GLOBAL_PRIOR_WEIGHT_UNITS);
   return {
-    hoursPerSubtopic: totalGoHoursLogged / completedCoreSubtopics,
-    isEstimate: false,
+    hoursPerUnit,
+    isEstimate: completedUnits < GLOBAL_PRIOR_WEIGHT_UNITS,
   };
 }
 
-/** Completions and hours over a trailing window, scoped to Go modules. */
+function completedAtOf(sub: Subtopic): string | undefined {
+  return sub.completionMeta?.completedAt ?? sub.statusChangedAt;
+}
+
+/**
+ * Completions and hours over a trailing window. The window is clamped to your
+ * actual history span so weeks before you started don't dilute the average.
+ */
 export function measureVelocity(
   coreSubs: Subtopic[],
   scopedSessions: LearningSession[],
-  weeks: number,
+  windowWeeks: number,
   now: Date
 ): CoachVelocity {
+  let earliest: Date | null = null;
+  for (const s of scopedSessions) {
+    const d = parseLocalDate(s.date);
+    if (!earliest || d < earliest) earliest = d;
+  }
+  for (const s of coreSubs) {
+    const stamp = completedAtOf(s);
+    if (!stamp) continue;
+    const d = new Date(stamp);
+    if (!earliest || d < earliest) earliest = d;
+  }
+
+  const historyWeeks = earliest
+    ? Math.max(differenceInCalendarDays(now, earliest) / DAYS_PER_WEEK, 1)
+    : windowWeeks;
+  const weeks = Math.min(windowWeeks, historyWeeks);
   const cutoff = addDays(now, -weeks * DAYS_PER_WEEK);
 
   const subtopicsCompleted = coreSubs.filter((s) => {
     if (!isSubtopicDone(s.status)) return false;
-    const stamp = s.completionMeta?.completedAt ?? s.statusChangedAt;
+    const stamp = completedAtOf(s);
     if (!stamp) return false;
     return new Date(stamp) >= cutoff;
   }).length;
@@ -287,7 +353,7 @@ export function measureVelocity(
     hoursPerWeek: hoursLogged / weeks,
     subtopicsCompleted,
     hoursLogged,
-    weeks,
+    weeks: round1(weeks),
   };
 }
 
@@ -317,9 +383,9 @@ function verdictFor(paceRatio: number): PaceVerdict {
 
 function buildTargetPlan(
   targetDate: string | undefined,
-  toApplyReady: RemainingWork,
+  bufferedApplyHours: number,
   actualHoursPerWeek: number,
-  hoursPerSubtopic: number,
+  hoursPerAvgSubtopic: number,
   now: Date
 ): CoachTargetPlan | null {
   if (!targetDate) return null;
@@ -329,14 +395,14 @@ function buildTargetPlan(
   const weeksUntilTarget = Math.max(daysUntilTarget / DAYS_PER_WEEK, 1 / DAYS_PER_WEEK);
 
   const requiredHoursPerWeek = overdue
-    ? toApplyReady.hours
-    : toApplyReady.hours / weeksUntilTarget;
+    ? bufferedApplyHours
+    : bufferedApplyHours / weeksUntilTarget;
   const requiredSubtopicsPerWeek =
-    hoursPerSubtopic > 0 ? requiredHoursPerWeek / hoursPerSubtopic : 0;
+    hoursPerAvgSubtopic > 0 ? requiredHoursPerWeek / hoursPerAvgSubtopic : 0;
 
   // Nothing left to do means you are trivially on pace.
   const paceRatio =
-    toApplyReady.hours <= 0
+    bufferedApplyHours <= 0
       ? 2
       : requiredHoursPerWeek <= 0
         ? 2
@@ -349,7 +415,7 @@ function buildTargetPlan(
     requiredHoursPerWeek: round1(requiredHoursPerWeek),
     requiredSubtopicsPerWeek: round1(requiredSubtopicsPerWeek),
     gapHoursPerWeek: round1(requiredHoursPerWeek - actualHoursPerWeek),
-    verdict: overdue && toApplyReady.hours > 0 ? "critical" : verdictFor(paceRatio),
+    verdict: overdue && bufferedApplyHours > 0 ? "critical" : verdictFor(paceRatio),
     paceRatio,
     overdue,
   };
@@ -369,12 +435,31 @@ export function buildGoCoachReport({
   const totalGoHoursLogged = hoursFromMs(
     scopedSessions.reduce((sum, s) => sum + s.duration, 0)
   );
-  const completedCore = coreSubs.filter((s) => isSubtopicDone(s.status)).length;
 
-  const { hoursPerSubtopic, isEstimate } = deriveHoursPerSubtopic(
-    totalGoHoursLogged,
-    completedCore
+  const projectTopicIds = new Set(
+    topics
+      .filter((t) => !t.archived && t.name.startsWith(GO_BACKEND_PROJECT_TOPIC_PREFIX))
+      .map((t) => t.id)
   );
+  const unitsOf = (s: Subtopic) => subtopicUnits(s, projectTopicIds.has(s.topicId));
+
+  const completedUnits = coreSubs
+    .filter((s) => isSubtopicDone(s.status))
+    .reduce((sum, s) => sum + unitsOf(s), 0);
+
+  const { hoursPerUnit, isEstimate } = deriveHoursPerUnit(
+    totalGoHoursLogged,
+    completedUnits
+  );
+
+  // Average weight of a *remaining* subtopic across the whole path — what one
+  // future subtopic actually costs, given the harder mix that lies ahead.
+  const remainingSubs = coreSubs.filter((s) => !isSubtopicDone(s.status));
+  const avgRemainingWeight =
+    remainingSubs.length > 0
+      ? remainingSubs.reduce((sum, s) => sum + unitsOf(s), 0) / remainingSubs.length
+      : 1;
+  const hoursPerSubtopic = hoursPerUnit * avgRemainingWeight;
 
   const byNumber = readinessByNumber(readiness);
   const gates = checklistGates();
@@ -386,6 +471,25 @@ export function buildGoCoachReport({
     if (!modId) continue;
     const prev = lastSessionByModule.get(modId);
     if (!prev || session.date > prev) lastSessionByModule.set(modId, session.date);
+  }
+
+  // Weighted units per module, split done vs remaining.
+  const moduleUnits = new Map<
+    string,
+    { doneUnits: number; remainingUnits: number; remainingCount: number }
+  >();
+  for (const sub of coreSubs) {
+    const entry =
+      moduleUnits.get(sub.moduleId) ??
+      { doneUnits: 0, remainingUnits: 0, remainingCount: 0 };
+    const units = unitsOf(sub);
+    if (isSubtopicDone(sub.status)) {
+      entry.doneUnits += units;
+    } else {
+      entry.remainingUnits += units;
+      entry.remainingCount += 1;
+    }
+    moduleUnits.set(sub.moduleId, entry);
   }
 
   const moduleBudgets: ModuleBudget[] = [];
@@ -407,11 +511,21 @@ export function buildGoCoachReport({
     const loggedHours = hoursFromMs(
       getModuleLoggedMs(mod.id, topics, subtopics, sessions)
     );
-    // Prefer the module's own observed rate once it has enough completions.
+
+    const units = moduleUnits.get(mod.id) ?? {
+      doneUnits: 0,
+      remainingUnits: 0,
+      remainingCount: 0,
+    };
+
+    // Module rate with shrinkage toward the global rate — a module's own
+    // history refines the estimate but a few easy completions can't set it.
     const moduleRate =
-      stats.doneCount >= MODULE_SAMPLE_MIN && loggedHours > 0
-        ? loggedHours / stats.doneCount
-        : hoursPerSubtopic;
+      (loggedHours + MODULE_PRIOR_WEIGHT_UNITS * hoursPerUnit) /
+      (units.doneUnits + MODULE_PRIOR_WEIGHT_UNITS);
+
+    const avgModuleRemainingWeight =
+      units.remainingCount > 0 ? units.remainingUnits / units.remainingCount : 1;
 
     const lastDate = lastSessionByModule.get(mod.id);
 
@@ -427,9 +541,11 @@ export function buildGoCoachReport({
       subtopicsToThreshold,
       thresholdPercent: gate?.threshold ?? null,
       blockingChecklistIds: gate && subtopicsToThreshold > 0 ? gate.ids : [],
-      hoursPerSubtopic: round1(moduleRate),
-      hoursRemaining: round1(subtopicsRemaining * moduleRate),
-      hoursToThreshold: round1(subtopicsToThreshold * moduleRate),
+      hoursPerSubtopic: round1(moduleRate * avgModuleRemainingWeight),
+      hoursRemaining: round1(units.remainingUnits * moduleRate),
+      hoursToThreshold: round1(
+        subtopicsToThreshold * avgModuleRemainingWeight * moduleRate
+      ),
       loggedHours: round1(loggedHours),
       inProgress: stats.inProgress,
       complete: stats.complete,
@@ -472,8 +588,10 @@ export function buildGoCoachReport({
   const recentVelocity = measureVelocity(coreSubs, scopedSessions, 4, now);
   const baselineVelocity = measureVelocity(coreSubs, scopedSessions, 12, now);
 
-  const fastHours = Math.max(recentVelocity.hoursPerWeek, baselineVelocity.hoursPerWeek);
+  // Expected: your recent sustained pace, no window cherry-picking.
+  // Conservative: your slower window plus the review/re-learning buffer.
   const slowHours = Math.min(recentVelocity.hoursPerWeek, baselineVelocity.hoursPerWeek);
+  const bufferedApplyHours = round1(toApplyReady.hours * CONSERVATIVE_BUFFER);
 
   return {
     generatedAt: todayISO(),
@@ -487,11 +605,11 @@ export function buildGoCoachReport({
     byPhase,
     recentVelocity,
     baselineVelocity,
-    optimistic: projectFinish(toApplyReady.hours, fastHours, now),
-    conservative: projectFinish(toApplyReady.hours, slowHours, now),
+    expected: projectFinish(toApplyReady.hours, recentVelocity.hoursPerWeek, now),
+    conservative: projectFinish(bufferedApplyHours, slowHours, now),
     targetPlan: buildTargetPlan(
       targetDate,
-      toApplyReady,
+      bufferedApplyHours,
       recentVelocity.hoursPerWeek,
       hoursPerSubtopic,
       now
@@ -506,7 +624,9 @@ export function buildBurndownSeries(
   report: GoCoachReport,
   now = new Date()
 ): Array<{ label: string; projected: number | null; required: number | null }> {
-  const totalHours = report.toApplyReady.hours;
+  // Burn down the buffered load so the required-pace line reaches zero exactly
+  // at the target date instead of pretending the buffer is free.
+  const totalHours = round1(report.toApplyReady.hours * CONSERVATIVE_BUFFER);
   if (totalHours <= 0) return [];
 
   const paceHours = report.recentVelocity.hoursPerWeek;

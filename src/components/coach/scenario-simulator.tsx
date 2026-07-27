@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { differenceInCalendarDays, format } from "date-fns";
 import { SlidersHorizontal } from "lucide-react";
 import { CoachCard, CoachStat } from "./coach-card";
-import { projectFinish, type GoCoachReport } from "@/lib/go-coach";
+import { CONSERVATIVE_BUFFER, projectFinish, type GoCoachReport } from "@/lib/go-coach";
 import { parseLocalDate } from "@/lib/utils";
 
 interface ScenarioSimulatorProps {
@@ -75,13 +75,18 @@ export function ScenarioSimulator({
 
   const hoursPerWeek = Math.round(hoursPerDay * daysPerWeek * 10) / 10;
 
+  // Scenarios carry the same review/re-learning buffer as the required pace,
+  // so the simulator and the target plan can never disagree about a date.
+  const bufferedApplyHours = Math.round(report.toApplyReady.hours * CONSERVATIVE_BUFFER * 10) / 10;
+  const bufferedFullPathHours = Math.round(report.toFullPath.hours * CONSERVATIVE_BUFFER * 10) / 10;
+
   const applyReady = useMemo(
-    () => projectFinish(report.toApplyReady.hours, hoursPerWeek, new Date()),
-    [report.toApplyReady.hours, hoursPerWeek]
+    () => projectFinish(bufferedApplyHours, hoursPerWeek, new Date()),
+    [bufferedApplyHours, hoursPerWeek]
   );
   const fullPath = useMemo(
-    () => projectFinish(report.toFullPath.hours, hoursPerWeek, new Date()),
-    [report.toFullPath.hours, hoursPerWeek]
+    () => projectFinish(bufferedFullPathHours, hoursPerWeek, new Date()),
+    [bufferedFullPathHours, hoursPerWeek]
   );
 
   const plan = report.targetPlan;
@@ -178,7 +183,7 @@ export function ScenarioSimulator({
               hint={
                 applyReady.weeks == null
                   ? "Increase the sliders above zero."
-                  : `${applyReady.weeks} weeks · ${report.toApplyReady.hours}h of checklist work`
+                  : `${applyReady.weeks} weeks · ${bufferedApplyHours}h of checklist work incl. 25% review buffer`
               }
               color={verdictColor}
             />
@@ -188,7 +193,7 @@ export function ScenarioSimulator({
               hint={
                 fullPath.weeks == null
                   ? "Increase the sliders above zero."
-                  : `${fullPath.weeks} weeks · ${report.toFullPath.hours}h across all 24 modules`
+                  : `${fullPath.weeks} weeks · ${bufferedFullPathHours}h across all 24 modules incl. buffer`
               }
             />
           </div>

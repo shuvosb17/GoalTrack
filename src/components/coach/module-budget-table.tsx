@@ -80,8 +80,8 @@ export function ModuleBudgetTable({ report }: { report: GoCoachReport }) {
       title="Module effort budget"
       subtitle={
         report.hoursPerSubtopicIsEstimate
-          ? `Estimated at ${report.hoursPerSubtopic}h per subtopic until you have more completion history.`
-          : `Costed from the ${report.totalGoHoursLogged}h you've actually logged — about ${report.hoursPerSubtopic}h per subtopic.`
+          ? `About ${report.hoursPerSubtopic}h per remaining subtopic (difficulty-weighted beginner baseline; recalibrates from your logs).`
+          : `About ${report.hoursPerSubtopic}h per remaining subtopic, blended from the ${report.totalGoHoursLogged}h you've logged and weighted by difficulty.`
       }
       icon={Coins}
       accent="#f59e0b"

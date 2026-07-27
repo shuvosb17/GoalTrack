@@ -2,6 +2,7 @@ import { addDays, differenceInCalendarDays, format } from "date-fns";
 import type { LearningSession, Module, Subtopic, Topic } from "./types";
 import type { MomentumBreakdown } from "./types/metrics";
 import {
+  CONSERVATIVE_BUFFER,
   resolveSessionModuleId,
   scopeGoSessions,
   type GoCoachReport,
@@ -162,7 +163,7 @@ export function diagnosePace(
   if (plan && plan.gapHoursPerWeek > 0 && plan.gapHoursPerWeek >= actual * 0.5) {
     const perDay = round1(plan.requiredHoursPerWeek / 7);
     dragCause = `Raw hours. You're ${round1(plan.gapHoursPerWeek)}h/week short of the pace your target date demands.`;
-    correction = `Book ${perDay}h/day, every day, or move the target date out by ${Math.max(1, Math.ceil((report.toApplyReady.hours / Math.max(actual, 0.5) - plan.weeksUntilTarget)))} weeks.`;
+    correction = `Book ${perDay}h/day, every day, or move the target date out by ${Math.max(1, Math.ceil((report.toApplyReady.hours * CONSERVATIVE_BUFFER) / Math.max(actual, 0.5) - plan.weeksUntilTarget))} weeks.`;
   } else if (wip) {
     dragCause = wip.detail;
     correction = "Close one module to its checklist threshold before opening anything new.";

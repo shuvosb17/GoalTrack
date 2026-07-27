@@ -56,18 +56,18 @@ export function CoachForecastCard({
   const etaLabel =
     report.toApplyReady.hours <= 0
       ? "Checklist cleared"
-      : report.optimistic.date === report.conservative.date
-        ? formatDate(report.optimistic.date)
+      : report.expected.date === report.conservative.date
+        ? formatDate(report.expected.date)
         : report.conservative.date == null
           ? "No pace yet"
-          : `${formatDate(report.optimistic.date)} → ${formatDate(report.conservative.date)}`;
+          : `${formatDate(report.expected.date)} → ${formatDate(report.conservative.date)}`;
 
   const etaHint =
     report.toApplyReady.hours <= 0
       ? "Every apply-checklist threshold is met."
       : report.conservative.date == null
         ? "Log Go sessions to generate a forecast."
-        : "Optimistic uses your last 4 weeks, conservative your last 12.";
+        : "Expected uses your recent pace; conservative adds a 25% review buffer at your slower pace.";
 
   return (
     <CoachCard
@@ -129,8 +129,8 @@ export function CoachForecastCard({
                 ? `Add ${Math.round((plan.gapHoursPerWeek / 7) * 10) / 10}h/day to close it.`
                 : "You're producing more than the target date requires."
               : report.hoursPerSubtopicIsEstimate
-                ? "Default estimate — finish 5 subtopics to calibrate from your own history."
-                : `Derived from ${report.totalGoHoursLogged}h you actually logged.`
+                ? "Mostly the beginner baseline — it recalibrates from your own logs as you complete more."
+                : `Blend of the ${report.totalGoHoursLogged}h you logged and the beginner baseline, weighted by difficulty.`
           }
           color={plan && plan.gapHoursPerWeek > 0 ? accent : undefined}
         />
