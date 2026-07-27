@@ -337,6 +337,10 @@ export interface AppSettings {
   trackSettings?: Record<string, TrackSettings>;
   /** Applied Development Go Backend curriculum shape version */
   goBackendCurriculumVersion?: number;
+  /** Target date to be apply-ready on the Go Backend path (yyyy-MM-dd) */
+  goCoachTargetDate?: string;
+  /** Planned weekly study hours used by the scenario simulator */
+  goCoachPlannedHoursPerWeek?: number;
 }
 
 /** Per-track completion deadline for estimation charts */

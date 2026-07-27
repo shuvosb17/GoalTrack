@@ -87,14 +87,19 @@ export const JOB_PHASES: JobPhaseDef[] = [
   },
 ];
 
-/** Minimum employable core (v2 checklist) — progress uses core subtopics only, not [PS] watch list. */
-const APPLY_CHECKLIST: Array<{
+export interface ApplyChecklistDef {
   id: string;
   label: string;
   moduleNumbers: number[];
   order: number;
   threshold?: number;
-}> = [
+}
+
+/** Default module completion required by a checklist item when it declares no threshold. */
+export const DEFAULT_CHECKLIST_THRESHOLD = 70;
+
+/** Minimum employable core (v2 checklist) — progress uses core subtopics only, not [PS] watch list. */
+export const APPLY_CHECKLIST: ApplyChecklistDef[] = [
   { id: "git", label: "Git/GitHub fluency and clean READMEs", moduleNumbers: [0], order: 0 },
   { id: "go", label: "Go fundamentals + concurrency basics", moduleNumbers: [1, 2], order: 1 },
   { id: "tests", label: "Tests you actually wrote (unit + integration)", moduleNumbers: [3], order: 2 },
@@ -124,7 +129,7 @@ const APPLY_CHECKLIST: Array<{
   },
 ];
 
-function parseModuleNumber(name: string): number | null {
+export function parseModuleNumber(name: string): number | null {
   const match = name.match(GO_MODULE_RE);
   return match ? Number(match[1]) : null;
 }
