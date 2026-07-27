@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { format, parseISO } from "date-fns";
 import { RotateCcw, Trash2, Trash } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   useAllTracks,
   useDeletedModules,
@@ -25,9 +26,7 @@ import {
   SettingsListItem,
   SettingsPanel,
   SettingsScrollArea,
-  settingsTheme,
 } from "@/components/settings/settings-ui";
-import { cn } from "@/lib/utils";
 
 export function RecycleBinPanel() {
   const tracks = useAllTracks();
@@ -69,8 +68,7 @@ export function RecycleBinPanel() {
     [deletedSubtopics, deletedTopics]
   );
 
-  const total =
-    moduleRoots.length + topicRoots.length + subtopicRoots.length;
+  const total = moduleRoots.length + topicRoots.length + subtopicRoots.length;
 
   const formatDeleted = (iso?: string) => {
     if (!iso) return "";
@@ -84,13 +82,14 @@ export function RecycleBinPanel() {
   return (
     <SettingsPanel
       title="Recycle bin"
-      description="Soft-deleted modules, topics, and subtopics. Restore brings them back to Tracks. Permanent delete removes the hierarchy only — study sessions and total hours are kept."
-      icon={<Trash2 className="h-5 w-5" />}
+      description="Restore soft-deleted items, or permanently remove hierarchy. Study sessions and hours stay."
+      icon={<Trash2 className="h-4 w-4" />}
       action={
         total > 0 ? (
-          <button
-            type="button"
-            className={settingsTheme.btnDanger}
+          <Button
+            size="sm"
+            variant="destructive"
+            className="h-8 gap-1.5"
             onClick={() => {
               if (
                 window.confirm(
@@ -101,8 +100,9 @@ export function RecycleBinPanel() {
               }
             }}
           >
-            <Trash className="h-3.5 w-3.5" /> Empty bin
-          </button>
+            <Trash className="h-3.5 w-3.5" />
+            Empty bin
+          </Button>
         ) : undefined
       }
     >
@@ -115,33 +115,38 @@ export function RecycleBinPanel() {
               key={mod.id}
               actions={
                 <>
-                  <button
-                    type="button"
-                    className={cn(settingsTheme.btnSecondary, "h-8 gap-1 px-2.5 text-[11px]")}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 gap-1.5 text-xs"
                     onClick={() => void restoreModule(mod.id)}
                   >
-                    <RotateCcw className="h-3 w-3" /> Restore
-                  </button>
-                  <button
-                    type="button"
-                    className={cn(settingsTheme.btnDanger, "h-8")}
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Restore
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 gap-1.5 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
                     onClick={() => {
                       if (window.confirm(`Permanently delete module "${mod.name}"?`)) {
                         void purgeModule(mod.id);
                       }
                     }}
                   >
-                    <Trash className="h-3 w-3" /> Delete
-                  </button>
+                    <Trash className="h-3.5 w-3.5" />
+                    Delete
+                  </Button>
                 </>
               }
             >
-              <p className="truncate text-[13px] font-medium text-foreground">Module · {mod.name}</p>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="truncate text-sm font-medium text-foreground">
+                Module · {mod.name}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
                 {trackName(mod.trackId)}
                 {mod.deletedAt ? ` · ${formatDeleted(mod.deletedAt)}` : ""}
-                {" · "}
-                includes nested topics/subtopics
+                {" · includes nested topics/subtopics"}
               </p>
             </SettingsListItem>
           ))}
@@ -151,29 +156,35 @@ export function RecycleBinPanel() {
               key={topic.id}
               actions={
                 <>
-                  <button
-                    type="button"
-                    className={cn(settingsTheme.btnSecondary, "h-8 gap-1 px-2.5 text-[11px]")}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 gap-1.5 text-xs"
                     onClick={() => void restoreTopic(topic.id)}
                   >
-                    <RotateCcw className="h-3 w-3" /> Restore
-                  </button>
-                  <button
-                    type="button"
-                    className={cn(settingsTheme.btnDanger, "h-8")}
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Restore
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 gap-1.5 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
                     onClick={() => {
                       if (window.confirm(`Permanently delete topic "${topic.name}"?`)) {
                         void purgeTopic(topic.id);
                       }
                     }}
                   >
-                    <Trash className="h-3 w-3" /> Delete
-                  </button>
+                    <Trash className="h-3.5 w-3.5" />
+                    Delete
+                  </Button>
                 </>
               }
             >
-              <p className="truncate text-[13px] font-medium text-foreground">Topic · {topic.name}</p>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="truncate text-sm font-medium text-foreground">
+                Topic · {topic.name}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
                 {trackName(topic.trackId)} → {moduleName(topic.moduleId)}
                 {topic.deletedAt ? ` · ${formatDeleted(topic.deletedAt)}` : ""}
               </p>
@@ -185,29 +196,35 @@ export function RecycleBinPanel() {
               key={sub.id}
               actions={
                 <>
-                  <button
-                    type="button"
-                    className={cn(settingsTheme.btnSecondary, "h-8 gap-1 px-2.5 text-[11px]")}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 gap-1.5 text-xs"
                     onClick={() => void restoreSubtopic(sub.id)}
                   >
-                    <RotateCcw className="h-3 w-3" /> Restore
-                  </button>
-                  <button
-                    type="button"
-                    className={cn(settingsTheme.btnDanger, "h-8")}
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Restore
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 gap-1.5 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
                     onClick={() => {
                       if (window.confirm(`Permanently delete subtopic "${sub.name}"?`)) {
                         void purgeSubtopic(sub.id);
                       }
                     }}
                   >
-                    <Trash className="h-3 w-3" /> Delete
-                  </button>
+                    <Trash className="h-3.5 w-3.5" />
+                    Delete
+                  </Button>
                 </>
               }
             >
-              <p className="truncate text-[13px] font-medium text-foreground">Subtopic · {sub.name}</p>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="truncate text-sm font-medium text-foreground">
+                Subtopic · {sub.name}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
                 {trackName(sub.trackId)} → {moduleName(sub.moduleId)} → {topicName(sub.topicId)}
                 {sub.deletedAt ? ` · ${formatDeleted(sub.deletedAt)}` : ""}
               </p>

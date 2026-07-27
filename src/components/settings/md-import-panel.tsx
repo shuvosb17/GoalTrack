@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { FileText, Upload, Eye } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -15,9 +16,10 @@ import {
 import { saveAutoBackup } from "@/lib/auto-backup";
 import {
   SettingsActions,
-  SettingsFieldLabel,
-  SettingsInputClass,
+  SettingsField,
   SettingsPanel,
+  SettingsStatus,
+  settingsControlClass,
   settingsTheme,
 } from "@/components/settings/settings-ui";
 import { cn } from "@/lib/utils";
@@ -36,8 +38,6 @@ export function MdImportPanel() {
   const [result, setResult] = useState<string | null>(null);
 
   const trackModules = modules.filter((m) => m.trackId === trackId && !m.archived);
-  const inputClass = SettingsInputClass();
-  const selectTriggerClass = cn(inputClass, "w-full");
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -78,105 +78,164 @@ export function MdImportPanel() {
     <SettingsPanel
       title="Import from Markdown"
       description="Paste or upload a .md file to create topics and subtopics automatically."
-      icon={<FileText className="h-5 w-5" />}
+      icon={<FileText className="h-4 w-4" />}
     >
-      <Tabs value={mode} onValueChange={(v) => { setMode(v as "module" | "track"); setPreview(null); }}>
-        <TabsList className="h-11 rounded-xl border border-white/[0.06] bg-secondary/60 p-1">
+      <Tabs
+        value={mode}
+        onValueChange={(v) => {
+          setMode(v as "module" | "track");
+          setPreview(null);
+        }}
+      >
+        <TabsList className="h-11 w-full justify-start gap-1 rounded-lg border border-white/[0.06] bg-secondary/40 p-1 sm:w-auto">
           <TabsTrigger
             value="module"
-            className="rounded-lg px-4 text-[13px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            className="rounded-md px-4 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
           >
-            Into Module
+            Into module
           </TabsTrigger>
           <TabsTrigger
             value="track"
-            className="rounded-lg px-4 text-[13px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            className="rounded-md px-4 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
           >
-            Into Track (full hierarchy)
+            Into track
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="module" className="mt-4">
-          <pre className="overflow-x-auto rounded-xl border border-white/[0.05] bg-secondary/40 p-4 text-xs text-muted-foreground">{MD_IMPORT_EXAMPLE}</pre>
-          <p className="mt-2 text-[11px] text-muted-foreground/70">## = Topic · - bullet = Subtopic</p>
+
+        <TabsContent value="module" className="mt-4 space-y-2">
+          <pre className="overflow-x-auto rounded-xl border border-white/[0.06] bg-secondary/30 p-4 text-xs leading-relaxed text-muted-foreground">
+            {MD_IMPORT_EXAMPLE}
+          </pre>
+          <p className="text-xs text-muted-foreground">## Topic · - Subtopic</p>
         </TabsContent>
-        <TabsContent value="track" className="mt-4">
-          <pre className="overflow-x-auto rounded-xl border border-white/[0.05] bg-secondary/40 p-4 text-xs text-muted-foreground">{MD_TRACK_EXAMPLE}</pre>
-          <p className="mt-2 text-[11px] text-muted-foreground/70"># = Module · ## = Topic · - bullet = Subtopic</p>
+
+        <TabsContent value="track" className="mt-4 space-y-2">
+          <pre className="overflow-x-auto rounded-xl border border-white/[0.06] bg-secondary/30 p-4 text-xs leading-relaxed text-muted-foreground">
+            {MD_TRACK_EXAMPLE}
+          </pre>
+          <p className="text-xs text-muted-foreground"># Module · ## Topic · - Subtopic</p>
         </TabsContent>
       </Tabs>
 
-      <div className="mt-5 grid gap-4 md:grid-cols-2">
-        <div>
-          <SettingsFieldLabel>Track</SettingsFieldLabel>
-          <Select value={trackId} onValueChange={(v) => { setTrackId(v); setModuleId(""); }}>
-            <SelectTrigger className={selectTriggerClass}><SelectValue placeholder="Select track" /></SelectTrigger>
-            <SelectContent>{tracks.map((t) => <SelectItem key={t.id} value={t.id}>{t.icon} {t.name}</SelectItem>)}</SelectContent>
+      <div className="mt-5 grid gap-5 md:grid-cols-2">
+        <SettingsField label="Track">
+          <Select
+            value={trackId}
+            onValueChange={(v) => {
+              setTrackId(v);
+              setModuleId("");
+            }}
+          >
+            <SelectTrigger className={settingsControlClass}>
+              <SelectValue placeholder="Select track" />
+            </SelectTrigger>
+            <SelectContent>
+              {tracks.map((t) => (
+                <SelectItem key={t.id} value={t.id}>
+                  {t.icon} {t.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
-        </div>
+        </SettingsField>
+
         {mode === "module" && (
-          <div>
-            <SettingsFieldLabel>Module</SettingsFieldLabel>
+          <SettingsField label="Module">
             <Select value={moduleId} onValueChange={setModuleId} disabled={!trackId}>
-              <SelectTrigger className={selectTriggerClass}><SelectValue placeholder="Select module" /></SelectTrigger>
-              <SelectContent>{trackModules.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
+              <SelectTrigger className={settingsControlClass}>
+                <SelectValue placeholder="Select module" />
+              </SelectTrigger>
+              <SelectContent>
+                {trackModules.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    {m.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
-          </div>
+          </SettingsField>
         )}
       </div>
 
-      <SettingsActions className="mt-4">
-        <button type="button" onClick={() => fileRef.current?.click()} className={settingsTheme.btnSecondary}>
-          <Upload className="h-4 w-4" /> Upload .md
-        </button>
-        <input ref={fileRef} type="file" accept=".md,.markdown,.txt" className="hidden" onChange={handleFile} />
-        <button
-          type="button"
-          onClick={() => { setContent(mode === "module" ? MD_IMPORT_EXAMPLE : MD_TRACK_EXAMPLE); }}
-          className={settingsTheme.btnGhost}
+      <SettingsActions className="mt-5">
+        <Button
+          variant="outline"
+          onClick={() => fileRef.current?.click()}
+          className="h-11 gap-2"
+        >
+          <Upload className="h-4 w-4" />
+          Upload .md
+        </Button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".md,.markdown,.txt"
+          className="hidden"
+          onChange={handleFile}
+        />
+        <Button
+          variant="ghost"
+          onClick={() => {
+            setContent(mode === "module" ? MD_IMPORT_EXAMPLE : MD_TRACK_EXAMPLE);
+          }}
+          className="h-11 gap-2 text-primary hover:bg-primary/10 hover:text-primary"
         >
           Load example
-        </button>
+        </Button>
       </SettingsActions>
 
       <Textarea
-        placeholder="Paste markdown here..."
+        placeholder="Paste markdown here…"
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        className={cn(settingsTheme.textarea, "mt-4")}
+        className={cn(settingsTheme.textarea, "mt-5")}
       />
 
-      <SettingsActions className="mt-4">
-        <button type="button" onClick={handlePreview} className={settingsTheme.btnSecondary} disabled={!content.trim()}>
-          <Eye className="h-4 w-4" /> Preview
-        </button>
-        <button
-          type="button"
+      <SettingsActions className="mt-5">
+        <Button
+          variant="secondary"
+          onClick={handlePreview}
+          disabled={!content.trim()}
+          className="h-11 gap-2"
+        >
+          <Eye className="h-4 w-4" />
+          Preview
+        </Button>
+        <Button
           onClick={handleImport}
           disabled={!preview || !trackId || (mode === "module" && !moduleId) || importing}
-          className={settingsTheme.btnPrimary}
+          className="h-11 gap-2"
         >
-          {importing ? "Importing..." : "Import"}
-        </button>
+          {importing ? "Importing…" : "Import"}
+        </Button>
       </SettingsActions>
 
       {preview && (
-        <div className="mt-4 space-y-2 rounded-xl border border-white/[0.05] bg-secondary/40 p-4 text-[13px]">
-          <p className="font-medium text-foreground">Preview</p>
+        <div className="mt-5 space-y-3 rounded-xl border border-white/[0.06] bg-secondary/25 p-4">
+          <p className="text-sm font-medium text-foreground">Preview</p>
           {mode === "module" ? (
             preview.flatTopics.map((t, i) => (
-              <div key={i} className="border-l-2 border-primary/40 pl-3">
-                <p className="font-medium text-foreground/90">{t.name}</p>
-                {t.subtopics.map((s, j) => <p key={j} className="pl-2 text-[11px] text-muted-foreground">· {s}</p>)}
+              <div key={i} className="border-l-2 border-primary/35 pl-3">
+                <p className="text-sm font-medium text-foreground/90">{t.name}</p>
+                {t.subtopics.map((s, j) => (
+                  <p key={j} className="pl-1 text-xs text-muted-foreground">
+                    · {s}
+                  </p>
+                ))}
               </div>
             ))
           ) : (
             preview.modules.map((m, i) => (
-              <div key={i}>
-                <p className="font-medium text-primary"># {m.name}</p>
+              <div key={i} className="space-y-1.5">
+                <p className="text-sm font-medium text-primary"># {m.name}</p>
                 {m.topics.map((t, j) => (
-                  <div key={j} className="mt-1 pl-4">
-                    <p className="font-medium text-foreground/90">## {t.name}</p>
-                    {t.subtopics.map((s, k) => <p key={k} className="pl-2 text-[11px] text-muted-foreground">· {s}</p>)}
+                  <div key={j} className="pl-3">
+                    <p className="text-sm font-medium text-foreground/90">## {t.name}</p>
+                    {t.subtopics.map((s, k) => (
+                      <p key={k} className="pl-1 text-xs text-muted-foreground">
+                        · {s}
+                      </p>
+                    ))}
                   </div>
                 ))}
               </div>
@@ -185,7 +244,11 @@ export function MdImportPanel() {
         </div>
       )}
 
-      {result && <p className={cn("mt-3 text-[13px]", settingsTheme.success)}>{result}</p>}
+      {result && (
+        <SettingsStatus tone="success" className="mt-4">
+          {result}
+        </SettingsStatus>
+      )}
     </SettingsPanel>
   );
 }

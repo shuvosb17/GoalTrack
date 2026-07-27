@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Cloud, CloudDownload, CloudUpload, Github, KeyRound, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -15,12 +16,11 @@ import { saveAutoBackup } from "@/lib/auto-backup";
 import { format, parseISO } from "date-fns";
 import {
   SettingsActions,
-  SettingsFieldLabel,
-  SettingsInputClass,
+  SettingsField,
   SettingsPanel,
-  settingsTheme,
+  SettingsStatus,
+  settingsControlClass,
 } from "@/components/settings/settings-ui";
-import { cn } from "@/lib/utils";
 
 const DEFAULT_REPO = "shuvosb17/GoalTrack-Backup";
 
@@ -94,7 +94,9 @@ export function GitHubBackupPanel() {
     setBusy("test");
     try {
       const peek = await peekGitHubBackup();
-      setStatus(`Backup found on GitHub (saved ${format(parseISO(peek.exportedAt), "MMM d, yyyy h:mm a")}). Enter PIN and import.`);
+      setStatus(
+        `Backup found (saved ${format(parseISO(peek.exportedAt), "MMM d, yyyy h:mm a")}). Enter PIN and import.`
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not reach GitHub backup");
     } finally {
@@ -112,114 +114,151 @@ export function GitHubBackupPanel() {
     setConfirmImport(true);
   };
 
-  const inputClass = SettingsInputClass();
-
   return (
     <>
       <SettingsPanel
-        title="Cloud Sync (GitHub)"
+        title="Cloud sync (GitHub)"
         description={
           <>
-            Your public repo{" "}
+            PIN-encrypted backup in{" "}
             <a
               href="https://github.com/shuvosb17/GoalTrack-Backup"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-primary hover:underline"
+              className="font-medium text-primary hover:underline"
             >
               GoalTrack-Backup
-            </a>{" "}
-            stores PIN-encrypted data. Import needs only your PIN — no GitHub token in the app.
+            </a>
+            . Import only needs your PIN — no GitHub token in the app.
           </>
         }
-        icon={<Github className="h-5 w-5" />}
+        icon={<Github className="h-4 w-4" />}
       >
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <SettingsFieldLabel>GitHub repo</SettingsFieldLabel>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <SettingsField label="GitHub repo" className="sm:col-span-2">
             <Input
-              className={inputClass}
+              className={settingsControlClass}
               placeholder="username/repo or full URL"
               value={repoInput}
               onChange={(e) => setRepoInput(e.target.value)}
               onBlur={persistConfig}
             />
-          </div>
-          <div>
-            <SettingsFieldLabel>Branch</SettingsFieldLabel>
+          </SettingsField>
+
+          <SettingsField label="Branch">
             <Input
-              className={inputClass}
+              className={settingsControlClass}
               value={branch}
               onChange={(e) => setBranch(e.target.value)}
               onBlur={persistConfig}
             />
-          </div>
-          <div>
-            <SettingsFieldLabel>Backup file</SettingsFieldLabel>
+          </SettingsField>
+
+          <SettingsField label="Backup file">
             <Input
-              className={inputClass}
+              className={settingsControlClass}
               value={path}
               onChange={(e) => setPath(e.target.value)}
               onBlur={persistConfig}
             />
-          </div>
-          <div className="sm:col-span-2">
-            <SettingsFieldLabel>
+          </SettingsField>
+
+          <SettingsField
+            label={
               <span className="inline-flex items-center gap-1.5">
-                <KeyRound className="h-3.5 w-3.5" /> Backup PIN
+                <KeyRound className="h-3.5 w-3.5 text-muted-foreground" />
+                Backup PIN
               </span>
-            </SettingsFieldLabel>
+            }
+            className="sm:col-span-2"
+          >
             <Input
               type="password"
-              className={inputClass}
+              className={settingsControlClass}
               placeholder="Your private PIN"
               value={pin}
               onChange={(e) => setPin(e.target.value)}
               autoComplete="off"
             />
-          </div>
+          </SettingsField>
         </div>
 
-        <SettingsActions className="mt-4">
-          <button type="button" onClick={handleBackup} disabled={busy !== null} className={settingsTheme.btnPrimary}>
-            {busy === "backup" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CloudUpload className="h-4 w-4" />}
+        <SettingsActions className="mt-6">
+          <Button onClick={handleBackup} disabled={busy !== null} className="h-11 gap-2 px-5">
+            {busy === "backup" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <CloudUpload className="h-4 w-4" />
+            )}
             Backup to GitHub
-          </button>
-          <button type="button" onClick={handleImport} disabled={busy !== null} className={settingsTheme.btnSecondary}>
-            {busy === "import" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CloudDownload className="h-4 w-4" />}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleImport}
+            disabled={busy !== null}
+            className="h-11 gap-2 px-5"
+          >
+            {busy === "import" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <CloudDownload className="h-4 w-4" />
+            )}
             Import from GitHub
-          </button>
-          <button type="button" onClick={handleTestConnection} disabled={busy !== null} className={settingsTheme.btnGhost}>
-            {busy === "test" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Cloud className="h-4 w-4" />}
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={handleTestConnection}
+            disabled={busy !== null}
+            className="h-11 gap-2 px-4 text-primary hover:bg-primary/10 hover:text-primary"
+          >
+            {busy === "test" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Cloud className="h-4 w-4" />
+            )}
             Test connection
-          </button>
+          </Button>
         </SettingsActions>
 
-        {lastSync && (
-          <p className={cn("mt-3 flex items-center gap-1.5 text-[12px]", settingsTheme.success)}>
-            <Cloud className="h-3.5 w-3.5" />
-            Last GitHub sync: {format(parseISO(lastSync), "MMM d, yyyy h:mm a")}
-          </p>
-        )}
-        {status && <p className={cn("mt-2 text-[13px]", settingsTheme.success)}>{status}</p>}
-        {error && <p className={cn("mt-2 text-[13px]", settingsTheme.danger)}>{error}</p>}
+        <div className="mt-4 space-y-1.5">
+          {lastSync && (
+            <SettingsStatus tone="success">
+              <Cloud className="h-3.5 w-3.5" />
+              Last sync: {format(parseISO(lastSync), "MMM d, yyyy h:mm a")}
+            </SettingsStatus>
+          )}
+          {status && <SettingsStatus tone="success">{status}</SettingsStatus>}
+          {error && <SettingsStatus tone="danger">{error}</SettingsStatus>}
+        </div>
       </SettingsPanel>
 
       <Dialog open={confirmImport} onOpenChange={setConfirmImport}>
-        <DialogContent className="border-white/[0.08] bg-card text-card-foreground">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-foreground">Import from GitHub?</DialogTitle>
+            <DialogTitle>Import from GitHub?</DialogTitle>
           </DialogHeader>
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             This replaces all data in this browser with your GitHub backup. Continue?
           </p>
-          <div className="flex flex-wrap gap-3">
-            <button type="button" onClick={() => setConfirmImport(false)} className={cn(settingsTheme.btnSecondary, "flex-1")}>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button
+              variant="outline"
+              onClick={() => setConfirmImport(false)}
+              className="h-11 flex-1"
+            >
               Cancel
-            </button>
-            <button type="button" onClick={runImport} disabled={busy === "import"} className={cn(settingsTheme.btnPrimary, "flex-1")}>
-              {busy === "import" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Import"}
-            </button>
+            </Button>
+            <Button
+              onClick={runImport}
+              disabled={busy === "import"}
+              className="h-11 flex-1"
+            >
+              {busy === "import" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Import"
+              )}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

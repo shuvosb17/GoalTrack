@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { Archive, ArchiveRestore } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   useAllTracks,
   useAllModules,
@@ -17,9 +18,7 @@ import {
   SettingsEmpty,
   SettingsPanel,
   SettingsScrollArea,
-  settingsTheme,
 } from "@/components/settings/settings-ui";
-import { cn } from "@/lib/utils";
 
 export function ArchivedItemsPanel() {
   const tracks = useAllTracks();
@@ -91,41 +90,52 @@ export function ArchivedItemsPanel() {
   return (
     <SettingsPanel
       title="Archived list"
-      description="Archived modules, topics, and subtopics — ordered by track, then module. Restore returns them to Tracks without changing study hours."
-      icon={<Archive className="h-5 w-5" />}
+      description="Restore archived modules, topics, and subtopics without changing study hours."
+      icon={<Archive className="h-4 w-4" />}
     >
       {totalCount === 0 ? (
         <SettingsEmpty>Nothing archived.</SettingsEmpty>
       ) : (
         <SettingsScrollArea>
           {groups.map(({ track, modules: blocks }) => (
-            <div key={track.id} className="rounded-xl border border-white/[0.05] bg-secondary/40 p-3">
-              <div className="mb-2 flex items-center gap-2">
+            <div
+              key={track.id}
+              className="rounded-xl border border-white/[0.06] bg-secondary/25 p-4"
+            >
+              <div className="mb-3 flex items-center gap-2">
                 <span className="text-sm">{track.icon}</span>
-                <p className="text-[13px] font-medium" style={{ color: track.color }}>
+                <p className="text-sm font-semibold" style={{ color: track.color }}>
                   {track.name}
                 </p>
               </div>
-              <div className="space-y-3 pl-1">
+
+              <div className="space-y-3">
                 {blocks.map(({ module: mod, archivedModule, topics: archTopics, subtopics: archSubs }) => (
-                  <div key={mod.id} className="rounded-lg border border-white/[0.04] bg-secondary/60 p-2.5">
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <p className="min-w-0 truncate text-[13px] font-medium text-foreground">
-                        {mod.name}
+                  <div
+                    key={mod.id}
+                    className="rounded-lg border border-white/[0.05] bg-background/40 p-3"
+                  >
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {mod.name}
+                        </p>
                         {archivedModule && (
-                          <span className="ml-2 text-[10px] uppercase tracking-wide text-muted-foreground">
-                            module archived
-                          </span>
+                          <p className="mt-0.5 text-[11px] uppercase tracking-wide text-muted-foreground">
+                            Module archived
+                          </p>
                         )}
-                      </p>
+                      </div>
                       {archivedModule && (
-                        <button
-                          type="button"
-                          className={cn(settingsTheme.btnSecondary, "h-8 gap-1 px-2.5 text-[11px]")}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 shrink-0 gap-1.5 text-xs"
                           onClick={() => void unarchiveModule(mod.id)}
                         >
-                          <ArchiveRestore className="h-3 w-3" /> Restore
-                        </button>
+                          <ArchiveRestore className="h-3.5 w-3.5" />
+                          Restore
+                        </Button>
                       )}
                     </div>
 
@@ -134,17 +144,18 @@ export function ArchivedItemsPanel() {
                         {archTopics.map((topic) => (
                           <li
                             key={topic.id}
-                            className="flex items-center justify-between gap-2 rounded-lg px-1.5 py-1.5 text-[12px] text-muted-foreground transition-colors hover:bg-white/[0.03]"
+                            className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-white/[0.03]"
                           >
                             <span className="min-w-0 truncate">Topic · {topic.name}</span>
-                            <button
-                              type="button"
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 shrink-0 text-primary hover:bg-primary/10 hover:text-primary"
                               title="Restore topic"
-                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-primary hover:bg-primary/10"
                               onClick={() => void unarchiveTopic(topic.id)}
                             >
                               <ArchiveRestore className="h-3.5 w-3.5" />
-                            </button>
+                            </Button>
                           </li>
                         ))}
                       </ul>
@@ -157,7 +168,7 @@ export function ArchivedItemsPanel() {
                           return (
                             <li
                               key={sub.id}
-                              className="flex items-center justify-between gap-2 rounded-lg px-1.5 py-1.5 text-[12px] text-muted-foreground transition-colors hover:bg-white/[0.03]"
+                              className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-white/[0.03]"
                             >
                               <span className="min-w-0 truncate">
                                 Subtopic · {sub.name}
@@ -165,14 +176,15 @@ export function ArchivedItemsPanel() {
                                   <span className="text-muted-foreground/70"> · {topic.name}</span>
                                 ) : null}
                               </span>
-                              <button
-                                type="button"
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 shrink-0 text-primary hover:bg-primary/10 hover:text-primary"
                                 title="Restore subtopic"
-                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-primary hover:bg-primary/10"
                                 onClick={() => void unarchiveSubtopic(sub.id)}
                               >
                                 <ArchiveRestore className="h-3.5 w-3.5" />
-                              </button>
+                              </Button>
                             </li>
                           );
                         })}

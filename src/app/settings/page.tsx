@@ -12,7 +12,9 @@ import {
   Target,
   BarChart3,
   History,
+  FolderOpen,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -26,7 +28,7 @@ import {
   pickExportDirectory,
   getDefaultExportFolderHint,
 } from "@/lib/export-folder";
-import { nowISO, todayISO, formatDuration } from "@/lib/utils";
+import { nowISO, todayISO, formatDuration, cn } from "@/lib/utils";
 import { getSuggestedDailyFromTarget } from "@/lib/metrics";
 import { MdImportPanel } from "@/components/settings/md-import-panel";
 import { GitHubBackupPanel } from "@/components/settings/github-backup-panel";
@@ -34,19 +36,20 @@ import { ArchivedItemsPanel } from "@/components/settings/archived-items-panel";
 import { RecycleBinPanel } from "@/components/settings/recycle-bin-panel";
 import {
   SettingsActions,
-  SettingsFieldLabel,
+  SettingsField,
   SettingsGroup,
   SettingsHeader,
-  SettingsInputClass,
+  SettingsHint,
   SettingsNotice,
   SettingsPageShell,
   SettingsPanel,
   SettingsRow,
   SettingsSection,
+  SettingsStatus,
+  settingsControlClass,
   settingsTheme,
 } from "@/components/settings/settings-ui";
 import { format, parseISO } from "date-fns";
-import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
   const settings = useSettings();
@@ -119,73 +122,88 @@ export default function SettingsPage() {
 
   const trackModules = modules.filter((m) => m.trackId === manualEntry.trackId);
   const moduleTopics = topics.filter((t) => t.moduleId === manualEntry.moduleId);
-  const inputClass = SettingsInputClass();
-  const selectTriggerClass = cn(inputClass, "w-full");
 
   return (
     <SettingsPageShell>
       <SettingsHeader
         title="Settings"
-        subtitle="Configure goals, backups, and your learning workspace"
+        subtitle="Backups, goals, imports, and study time"
         icon={<Settings className="h-5 w-5" />}
       />
 
       <SettingsNotice
         tone="warning"
-        icon={<AlertCircle className="h-5 w-5 text-[#e8b339]" />}
-        title="Your data lives in this browser only"
+        icon={<AlertCircle className="h-5 w-5 text-amber-400" />}
+        title="Data stays in this browser"
       >
         <p>
-          Chrome, Edge, Cursor browser, and Vercel each have <strong className="text-foreground">separate storage</strong>.
-          Progress in one won&apos;t appear in another automatically.
-        </p>
-        <p>
-          <strong className="text-foreground">For mobile / other devices:</strong> use Cloud Sync (GitHub) below — backup from your main device, then import with your PIN on any device.
-        </p>
-        <p>
-          <strong className="text-foreground">Local backup:</strong> Export JSON before switching browsers. Auto-backup also saves locally every 45 seconds.
+          Chrome, Edge, and Vercel each keep separate storage. Use{" "}
+          <span className="font-medium text-foreground/90">Cloud Sync</span> for other devices,
+          or export a JSON backup before switching browsers.
         </p>
         {lastBackup && (
-          <p className={settingsTheme.success}>
+          <SettingsStatus tone="success">
             Last auto-backup: {format(parseISO(lastBackup), "MMM d, yyyy h:mm a")}
-          </p>
+          </SettingsStatus>
         )}
       </SettingsNotice>
 
       <SettingsSection label="Data & sync">
         <SettingsPanel
-          title="Backup & Restore"
-          description="Export your full database as JSON to migrate between browsers or devices."
-          icon={<Shield className="h-5 w-5" />}
+          title="Backup & restore"
+          description="Export your full database as JSON, or import a previous backup into this browser."
+          icon={<Shield className="h-4 w-4" />}
         >
           <SettingsActions>
-            <button type="button" onClick={handleExport} className={settingsTheme.btnPrimary}>
-              <Download className="h-4 w-4" /> Export Full Backup
-            </button>
-            <button type="button" onClick={() => void handleChooseExportFolder()} className={settingsTheme.btnSecondary}>
+            <Button onClick={handleExport} className="h-11 gap-2 px-5">
+              <Download className="h-4 w-4" />
+              Export full backup
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => void handleChooseExportFolder()}
+              className="h-11 gap-2 px-5"
+            >
+              <FolderOpen className="h-4 w-4" />
               Choose export folder
-            </button>
-            <button type="button" onClick={() => fileRef.current?.click()} className={settingsTheme.btnSecondary}>
-              <Upload className="h-4 w-4" /> Import Backup
-            </button>
-            <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => fileRef.current?.click()}
+              className="h-11 gap-2 px-5"
+            >
+              <Upload className="h-4 w-4" />
+              Import backup
+            </Button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".json"
+              className="hidden"
+              onChange={handleImport}
+            />
           </SettingsActions>
+
           {exportNotice && (
-            <p
-              className={cn(
-                "mt-3 text-[12px]",
+            <SettingsStatus
+              className="mt-4"
+              tone={
                 exportNotice.startsWith("Saved") || exportNotice.startsWith("Export folder")
-                  ? settingsTheme.success
-                  : settingsTheme.warning
-              )}
+                  ? "success"
+                  : "warning"
+              }
             >
               {exportNotice}
-            </p>
+            </SettingsStatus>
           )}
-          <p className="mt-3 text-[12px] text-muted-foreground">
-            Exports save to <code className="rounded bg-secondary/70 px-1.5 py-0.5 text-[11px] text-foreground/85">{getDefaultExportFolderHint()}</code> when the local app is running.
-            For the installed Edge app, use Choose export folder once and select that folder.
-          </p>
+
+          <SettingsHint className="mt-4">
+            Default folder:{" "}
+            <code className="rounded-md bg-secondary/70 px-1.5 py-0.5 text-[11px] text-foreground/80">
+              {getDefaultExportFolderHint()}
+            </code>
+            . On the Edge app, choose a folder once so exports land in the right place.
+          </SettingsHint>
         </SettingsPanel>
 
         <GitHubBackupPanel />
@@ -202,16 +220,19 @@ export default function SettingsPage() {
 
       <SettingsSection label="Goals & planning">
         <SettingsPanel
-          title="Track weekly commitments"
-          description="Optional weekly hour goal per track for the dashboard distribution chart."
-          icon={<BarChart3 className="h-5 w-5" />}
+          title="Weekly track commitments"
+          description="Optional hours-per-week targets used by the dashboard time distribution chart."
+          icon={<BarChart3 className="h-4 w-4" />}
         >
-          <SettingsGroup>
-            {tracks.map((track, index) => (
-              <div key={track.id}>
+          {tracks.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No tracks yet.</p>
+          ) : (
+            <SettingsGroup>
+              {tracks.map((track, index) => (
                 <SettingsRow
+                  key={track.id}
                   label={`${track.icon} ${track.name}`}
-                  hint="Used for your weekly time distribution goal"
+                  hint="Hours per week"
                   noDivider={index === tracks.length - 1}
                 >
                   <div className="flex items-center gap-2">
@@ -220,7 +241,7 @@ export default function SettingsPage() {
                       min={0}
                       max={80}
                       step={0.5}
-                      className={cn(inputClass, "max-w-[8rem]")}
+                      className={cn(settingsControlClass, "max-w-[7.5rem]")}
                       value={track.weeklyCommitmentHours ?? ""}
                       placeholder="—"
                       onChange={(e) => {
@@ -243,52 +264,68 @@ export default function SettingsPage() {
                         });
                       }}
                     />
-                    <span className="text-[13px] text-muted-foreground">h / week</span>
+                    <span className="shrink-0 text-sm text-muted-foreground">h</span>
                   </div>
                 </SettingsRow>
-              </div>
-            ))}
-            {tracks.length === 0 && (
-              <p className="px-4 py-6 text-center text-[13px] text-muted-foreground">No tracks yet.</p>
-            )}
-          </SettingsGroup>
+              ))}
+            </SettingsGroup>
+          )}
         </SettingsPanel>
 
         <SettingsPanel
-          title="Goals"
-          description="Set your minimum, target, and stretch hour goals for the year."
-          icon={<Target className="h-5 w-5" />}
+          title="Yearly goals"
+          description="Set floor, target, and stretch hour goals for the year."
+          icon={<Target className="h-4 w-4" />}
         >
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div>
-              <SettingsFieldLabel hint="Floor I'll definitely hit">Minimum goal (h)</SettingsFieldLabel>
+          <div className="grid gap-5 sm:grid-cols-3">
+            <SettingsField label="Minimum" hint="Floor you'll hit">
               <Input
                 type="number"
-                className={inputClass}
+                className={settingsControlClass}
                 value={settings?.tieredGoal?.minimum ?? 300}
-                onChange={(e) => settings && db.settings.put({
-                  ...settings,
-                  tieredGoal: { ...(settings.tieredGoal ?? { minimum: 300, target: 700, stretch: 2000, year: 2026 }), minimum: Number(e.target.value) },
-                })}
+                onChange={(e) =>
+                  settings &&
+                  db.settings.put({
+                    ...settings,
+                    tieredGoal: {
+                      ...(settings.tieredGoal ?? {
+                        minimum: 300,
+                        target: 700,
+                        stretch: 2000,
+                        year: 2026,
+                      }),
+                      minimum: Number(e.target.value),
+                    },
+                  })
+                }
               />
-            </div>
-            <div>
-              <SettingsFieldLabel hint="What I'm actually aiming for">Target goal (h)</SettingsFieldLabel>
+            </SettingsField>
+            <SettingsField label="Target" hint="Primary aim">
               <Input
                 type="number"
-                className={inputClass}
+                className={settingsControlClass}
                 value={settings?.tieredGoal?.target ?? 700}
-                onChange={(e) => settings && db.settings.put({
-                  ...settings,
-                  tieredGoal: { ...(settings.tieredGoal ?? { minimum: 300, target: 700, stretch: 2000, year: 2026 }), target: Number(e.target.value) },
-                })}
+                onChange={(e) =>
+                  settings &&
+                  db.settings.put({
+                    ...settings,
+                    tieredGoal: {
+                      ...(settings.tieredGoal ?? {
+                        minimum: 300,
+                        target: 700,
+                        stretch: 2000,
+                        year: 2026,
+                      }),
+                      target: Number(e.target.value),
+                    },
+                  })
+                }
               />
-            </div>
-            <div>
-              <SettingsFieldLabel hint="Best case / dream target">Stretch goal (h)</SettingsFieldLabel>
+            </SettingsField>
+            <SettingsField label="Stretch" hint="Best-case dream">
               <Input
                 type="number"
-                className={inputClass}
+                className={settingsControlClass}
                 value={settings?.tieredGoal?.stretch ?? settings?.yearlyHourGoal ?? 2000}
                 onChange={(e) => {
                   if (!settings) return;
@@ -296,89 +333,236 @@ export default function SettingsPage() {
                   db.settings.put({
                     ...settings,
                     yearlyHourGoal: stretch,
-                    tieredGoal: { ...(settings.tieredGoal ?? { minimum: 300, target: 700, stretch: 2000, year: 2026 }), stretch },
+                    tieredGoal: {
+                      ...(settings.tieredGoal ?? {
+                        minimum: 300,
+                        target: 700,
+                        stretch: 2000,
+                        year: 2026,
+                      }),
+                      stretch,
+                    },
                   });
                 }}
               />
-            </div>
+            </SettingsField>
           </div>
-          <div className="mt-4">
-            <SettingsFieldLabel>Daily hour goal</SettingsFieldLabel>
-            <Input
-              type="number"
-              className={cn(inputClass, "max-w-[10rem]")}
-              value={settings?.dailyHourGoal ?? 3}
-              onChange={(e) => settings && db.settings.put({ ...settings, dailyHourGoal: Number(e.target.value) })}
-            />
-            {settings?.tieredGoal && (
-              <p className="mt-3 rounded-xl border border-white/[0.05] bg-secondary/40 px-3.5 py-3 text-[12px] leading-relaxed text-muted-foreground">
-                To hit your Target ({settings.tieredGoal.target}h), you need ~{getSuggestedDailyFromTarget(settings, sessions, settings.yearStart, settings.yearEnd).toFixed(1)}h/day on weekdays
-                for the {Math.max(1, Math.round((new Date(settings.yearEnd).getTime() - Date.now()) / 6048e5))} weeks left.
-                Your current daily goal is {settings.dailyHourGoal}h.
+
+          <div className="mt-5 max-w-xs">
+            <SettingsField label="Daily hour goal">
+              <Input
+                type="number"
+                className={settingsControlClass}
+                value={settings?.dailyHourGoal ?? 3}
+                onChange={(e) =>
+                  settings &&
+                  db.settings.put({
+                    ...settings,
+                    dailyHourGoal: Number(e.target.value),
+                  })
+                }
+              />
+            </SettingsField>
+          </div>
+
+          {settings?.tieredGoal && (
+            <div className="mt-5 rounded-xl border border-white/[0.06] bg-secondary/25 px-4 py-3.5">
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                To hit your target ({settings.tieredGoal.target}h), plan about{" "}
+                <span className="font-medium text-foreground">
+                  {getSuggestedDailyFromTarget(
+                    settings,
+                    sessions,
+                    settings.yearStart,
+                    settings.yearEnd
+                  ).toFixed(1)}
+                  h/day
+                </span>{" "}
+                on weekdays for the{" "}
+                {Math.max(
+                  1,
+                  Math.round(
+                    (new Date(settings.yearEnd).getTime() - Date.now()) / 6048e5
+                  )
+                )}{" "}
+                weeks left. Current daily goal: {settings.dailyHourGoal}h.
               </p>
-            )}
-          </div>
+            </div>
+          )}
         </SettingsPanel>
       </SettingsSection>
 
       <SettingsSection label="Time tracking">
         <SettingsPanel
           title="Manual time entry"
-          description="Log study time when you forgot to use the timer."
-          icon={<Clock className="h-5 w-5" />}
+          description="Log study time when you forgot to start the timer."
+          icon={<Clock className="h-4 w-4" />}
         >
-          <div className="space-y-3">
-            <Select value={manualEntry.trackId} onValueChange={(v) => setManualEntry({ ...manualEntry, trackId: v, moduleId: "", topicId: "" })}>
-              <SelectTrigger className={selectTriggerClass}><SelectValue placeholder="Select track" /></SelectTrigger>
-              <SelectContent>{tracks.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
-            </Select>
+          <div className="mx-auto max-w-xl space-y-4">
+            <SettingsField label="Track">
+              <Select
+                value={manualEntry.trackId}
+                onValueChange={(v) =>
+                  setManualEntry({
+                    ...manualEntry,
+                    trackId: v,
+                    moduleId: "",
+                    topicId: "",
+                  })
+                }
+              >
+                <SelectTrigger className={settingsControlClass}>
+                  <SelectValue placeholder="Select track" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tracks.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </SettingsField>
+
             {trackModules.length > 0 && (
-              <Select value={manualEntry.moduleId} onValueChange={(v) => setManualEntry({ ...manualEntry, moduleId: v, topicId: "" })}>
-                <SelectTrigger className={selectTriggerClass}><SelectValue placeholder="Select module (optional)" /></SelectTrigger>
-                <SelectContent>{trackModules.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
-              </Select>
+              <SettingsField label="Module" hint="Optional">
+                <Select
+                  value={manualEntry.moduleId}
+                  onValueChange={(v) =>
+                    setManualEntry({ ...manualEntry, moduleId: v, topicId: "" })
+                  }
+                >
+                  <SelectTrigger className={settingsControlClass}>
+                    <SelectValue placeholder="Select module" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {trackModules.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </SettingsField>
             )}
+
             {moduleTopics.length > 0 && (
-              <Select value={manualEntry.topicId} onValueChange={(v) => setManualEntry({ ...manualEntry, topicId: v })}>
-                <SelectTrigger className={selectTriggerClass}><SelectValue placeholder="Select topic (optional)" /></SelectTrigger>
-                <SelectContent>{moduleTopics.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
-              </Select>
+              <SettingsField label="Topic" hint="Optional">
+                <Select
+                  value={manualEntry.topicId}
+                  onValueChange={(v) =>
+                    setManualEntry({ ...manualEntry, topicId: v })
+                  }
+                >
+                  <SelectTrigger className={settingsControlClass}>
+                    <SelectValue placeholder="Select topic" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {moduleTopics.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </SettingsField>
             )}
-            <Input type="date" className={inputClass} value={manualEntry.date} onChange={(e) => setManualEntry({ ...manualEntry, date: e.target.value })} />
-            <div className="grid grid-cols-2 gap-2">
-              <Input type="number" className={inputClass} placeholder="Hours" value={manualEntry.hours} onChange={(e) => setManualEntry({ ...manualEntry, hours: Number(e.target.value) })} />
-              <Input type="number" className={inputClass} placeholder="Minutes" value={manualEntry.minutes} onChange={(e) => setManualEntry({ ...manualEntry, minutes: Number(e.target.value) })} />
+
+            <SettingsField label="Date">
+              <Input
+                type="date"
+                className={settingsControlClass}
+                value={manualEntry.date}
+                onChange={(e) =>
+                  setManualEntry({ ...manualEntry, date: e.target.value })
+                }
+              />
+            </SettingsField>
+
+            <div className="grid grid-cols-2 gap-3">
+              <SettingsField label="Hours">
+                <Input
+                  type="number"
+                  className={settingsControlClass}
+                  value={manualEntry.hours}
+                  onChange={(e) =>
+                    setManualEntry({
+                      ...manualEntry,
+                      hours: Number(e.target.value),
+                    })
+                  }
+                />
+              </SettingsField>
+              <SettingsField label="Minutes">
+                <Input
+                  type="number"
+                  className={settingsControlClass}
+                  value={manualEntry.minutes}
+                  onChange={(e) =>
+                    setManualEntry({
+                      ...manualEntry,
+                      minutes: Number(e.target.value),
+                    })
+                  }
+                />
+              </SettingsField>
             </div>
-            <Input className={inputClass} placeholder="Notes (optional)" value={manualEntry.notes} onChange={(e) => setManualEntry({ ...manualEntry, notes: e.target.value })} />
-            <button type="button" onClick={handleManualEntry} className={cn(settingsTheme.btnPrimary, "w-full")}>
+
+            <SettingsField label="Notes" hint="Optional">
+              <Input
+                className={settingsControlClass}
+                placeholder="What did you work on?"
+                value={manualEntry.notes}
+                onChange={(e) =>
+                  setManualEntry({ ...manualEntry, notes: e.target.value })
+                }
+              />
+            </SettingsField>
+
+            <Button onClick={handleManualEntry} className="h-11 w-full">
               Add time entry
-            </button>
+            </Button>
           </div>
         </SettingsPanel>
 
         <SettingsPanel
           title="Recent sessions"
-          description="Last 10 study sessions in this browser."
-          icon={<History className="h-5 w-5" />}
+          description="Last 10 sessions logged in this browser."
+          icon={<History className="h-4 w-4" />}
         >
           <div className={settingsTheme.groupInset}>
-            <div className="max-h-60 overflow-y-auto">
-              {sessions.slice(-10).reverse().map((s, index, arr) => (
-                <div key={s.id}>
-                  <div className="flex items-center justify-between px-3.5 py-3 text-[13px] transition-colors hover:bg-white/[0.03]">
-                    <span className="text-foreground/90">
-                      {s.date}
-                      {s.manual && <span className="ml-1.5 text-[11px] text-muted-foreground">(manual)</span>}
-                    </span>
-                    <span className="font-mono text-[13px] text-primary">{formatDuration(s.duration)}</span>
-                  </div>
-                  {index < arr.length - 1 ? <div className="mx-3.5 h-px bg-white/[0.06]" /> : null}
-                </div>
-              ))}
-              {sessions.length === 0 && (
-                <p className="px-3.5 py-6 text-center text-[13px] text-muted-foreground">No sessions yet.</p>
-              )}
-            </div>
+            {sessions.length === 0 ? (
+              <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+                No sessions yet.
+              </p>
+            ) : (
+              <ul>
+                {sessions
+                  .slice(-10)
+                  .reverse()
+                  .map((s, index, arr) => (
+                    <li
+                      key={s.id}
+                      className={cn(
+                        "flex items-center justify-between gap-3 px-4 py-3.5 text-sm",
+                        index < arr.length - 1 && "border-b border-white/[0.06]"
+                      )}
+                    >
+                      <span className="text-foreground/90">
+                        {s.date}
+                        {s.manual ? (
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            manual
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className="font-mono text-sm text-primary">
+                        {formatDuration(s.duration)}
+                      </span>
+                    </li>
+                  ))}
+              </ul>
+            )}
           </div>
         </SettingsPanel>
       </SettingsSection>
