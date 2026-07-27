@@ -99,7 +99,7 @@ export function ArchivedItemsPanel() {
       ) : (
         <SettingsScrollArea>
           {groups.map(({ track, modules: blocks }) => (
-            <div key={track.id} className="rounded-xl border border-white/[0.05] bg-[#1c2733] p-3">
+            <div key={track.id} className="rounded-xl border border-white/[0.05] bg-secondary/40 p-3">
               <div className="mb-2 flex items-center gap-2">
                 <span className="text-sm">{track.icon}</span>
                 <p className="text-[13px] font-medium" style={{ color: track.color }}>
@@ -108,12 +108,12 @@ export function ArchivedItemsPanel() {
               </div>
               <div className="space-y-3 pl-1">
                 {blocks.map(({ module: mod, archivedModule, topics: archTopics, subtopics: archSubs }) => (
-                  <div key={mod.id} className="rounded-lg border border-white/[0.04] bg-[#242f3d] p-2.5">
+                  <div key={mod.id} className="rounded-lg border border-white/[0.04] bg-secondary/60 p-2.5">
                     <div className="mb-2 flex items-center justify-between gap-2">
-                      <p className="min-w-0 truncate text-[13px] font-medium text-[#dce4ec]">
+                      <p className="min-w-0 truncate text-[13px] font-medium text-foreground">
                         {mod.name}
                         {archivedModule && (
-                          <span className="ml-2 text-[10px] uppercase tracking-wide text-[#6d7f8f]">
+                          <span className="ml-2 text-[10px] uppercase tracking-wide text-muted-foreground">
                             module archived
                           </span>
                         )}
@@ -134,13 +134,13 @@ export function ArchivedItemsPanel() {
                         {archTopics.map((topic) => (
                           <li
                             key={topic.id}
-                            className="flex items-center justify-between gap-2 rounded-lg px-1.5 py-1.5 text-[12px] text-[#8b9bab] transition-colors hover:bg-white/[0.03]"
+                            className="flex items-center justify-between gap-2 rounded-lg px-1.5 py-1.5 text-[12px] text-muted-foreground transition-colors hover:bg-white/[0.03]"
                           >
                             <span className="min-w-0 truncate">Topic · {topic.name}</span>
                             <button
                               type="button"
                               title="Restore topic"
-                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[#6ab3f3] hover:bg-[#2b5278]/30"
+                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-primary hover:bg-primary/10"
                               onClick={() => void unarchiveTopic(topic.id)}
                             >
                               <ArchiveRestore className="h-3.5 w-3.5" />
@@ -157,18 +157,18 @@ export function ArchivedItemsPanel() {
                           return (
                             <li
                               key={sub.id}
-                              className="flex items-center justify-between gap-2 rounded-lg px-1.5 py-1.5 text-[12px] text-[#8b9bab] transition-colors hover:bg-white/[0.03]"
+                              className="flex items-center justify-between gap-2 rounded-lg px-1.5 py-1.5 text-[12px] text-muted-foreground transition-colors hover:bg-white/[0.03]"
                             >
                               <span className="min-w-0 truncate">
                                 Subtopic · {sub.name}
                                 {topic ? (
-                                  <span className="text-[#5f6f7f]"> · {topic.name}</span>
+                                  <span className="text-muted-foreground/70"> · {topic.name}</span>
                                 ) : null}
                               </span>
                               <button
                                 type="button"
                                 title="Restore subtopic"
-                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[#6ab3f3] hover:bg-[#2b5278]/30"
+                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-primary hover:bg-primary/10"
                                 onClick={() => void unarchiveSubtopic(sub.id)}
                               >
                                 <ArchiveRestore className="h-3.5 w-3.5" />

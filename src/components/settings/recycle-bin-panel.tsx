@@ -136,8 +136,8 @@ export function RecycleBinPanel() {
                 </>
               }
             >
-              <p className="truncate text-[13px] font-medium text-[#dce4ec]">Module · {mod.name}</p>
-              <p className="text-[11px] text-[#6d7f8f]">
+              <p className="truncate text-[13px] font-medium text-foreground">Module · {mod.name}</p>
+              <p className="text-[11px] text-muted-foreground">
                 {trackName(mod.trackId)}
                 {mod.deletedAt ? ` · ${formatDeleted(mod.deletedAt)}` : ""}
                 {" · "}
@@ -172,8 +172,8 @@ export function RecycleBinPanel() {
                 </>
               }
             >
-              <p className="truncate text-[13px] font-medium text-[#dce4ec]">Topic · {topic.name}</p>
-              <p className="text-[11px] text-[#6d7f8f]">
+              <p className="truncate text-[13px] font-medium text-foreground">Topic · {topic.name}</p>
+              <p className="text-[11px] text-muted-foreground">
                 {trackName(topic.trackId)} → {moduleName(topic.moduleId)}
                 {topic.deletedAt ? ` · ${formatDeleted(topic.deletedAt)}` : ""}
               </p>
@@ -206,8 +206,8 @@ export function RecycleBinPanel() {
                 </>
               }
             >
-              <p className="truncate text-[13px] font-medium text-[#dce4ec]">Subtopic · {sub.name}</p>
-              <p className="text-[11px] text-[#6d7f8f]">
+              <p className="truncate text-[13px] font-medium text-foreground">Subtopic · {sub.name}</p>
+              <p className="text-[11px] text-muted-foreground">
                 {trackName(sub.trackId)} → {moduleName(sub.moduleId)} → {topicName(sub.topicId)}
                 {sub.deletedAt ? ` · ${formatDeleted(sub.deletedAt)}` : ""}
               </p>

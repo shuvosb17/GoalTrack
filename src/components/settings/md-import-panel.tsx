@@ -81,27 +81,27 @@ export function MdImportPanel() {
       icon={<FileText className="h-5 w-5" />}
     >
       <Tabs value={mode} onValueChange={(v) => { setMode(v as "module" | "track"); setPreview(null); }}>
-        <TabsList className="h-11 rounded-xl border border-white/[0.06] bg-[#242f3d] p-1">
+        <TabsList className="h-11 rounded-xl border border-white/[0.06] bg-secondary/60 p-1">
           <TabsTrigger
             value="module"
-            className="rounded-lg px-4 text-[13px] data-[state=active]:bg-[#2b5278] data-[state=active]:text-white"
+            className="rounded-lg px-4 text-[13px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
           >
             Into Module
           </TabsTrigger>
           <TabsTrigger
             value="track"
-            className="rounded-lg px-4 text-[13px] data-[state=active]:bg-[#2b5278] data-[state=active]:text-white"
+            className="rounded-lg px-4 text-[13px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
           >
             Into Track (full hierarchy)
           </TabsTrigger>
         </TabsList>
         <TabsContent value="module" className="mt-4">
-          <pre className="overflow-x-auto rounded-xl border border-white/[0.05] bg-[#1c2733] p-4 text-xs text-[#6d7f8f]">{MD_IMPORT_EXAMPLE}</pre>
-          <p className="mt-2 text-[11px] text-[#5f6f7f]">## = Topic · - bullet = Subtopic</p>
+          <pre className="overflow-x-auto rounded-xl border border-white/[0.05] bg-secondary/40 p-4 text-xs text-muted-foreground">{MD_IMPORT_EXAMPLE}</pre>
+          <p className="mt-2 text-[11px] text-muted-foreground/70">## = Topic · - bullet = Subtopic</p>
         </TabsContent>
         <TabsContent value="track" className="mt-4">
-          <pre className="overflow-x-auto rounded-xl border border-white/[0.05] bg-[#1c2733] p-4 text-xs text-[#6d7f8f]">{MD_TRACK_EXAMPLE}</pre>
-          <p className="mt-2 text-[11px] text-[#5f6f7f]"># = Module · ## = Topic · - bullet = Subtopic</p>
+          <pre className="overflow-x-auto rounded-xl border border-white/[0.05] bg-secondary/40 p-4 text-xs text-muted-foreground">{MD_TRACK_EXAMPLE}</pre>
+          <p className="mt-2 text-[11px] text-muted-foreground/70"># = Module · ## = Topic · - bullet = Subtopic</p>
         </TabsContent>
       </Tabs>
 
@@ -160,23 +160,23 @@ export function MdImportPanel() {
       </SettingsActions>
 
       {preview && (
-        <div className="mt-4 space-y-2 rounded-xl border border-white/[0.05] bg-[#1c2733] p-4 text-[13px]">
-          <p className="font-medium text-[#dce4ec]">Preview</p>
+        <div className="mt-4 space-y-2 rounded-xl border border-white/[0.05] bg-secondary/40 p-4 text-[13px]">
+          <p className="font-medium text-foreground">Preview</p>
           {mode === "module" ? (
             preview.flatTopics.map((t, i) => (
-              <div key={i} className="border-l-2 border-[#2b5278] pl-3">
-                <p className="font-medium text-[#c5d0db]">{t.name}</p>
-                {t.subtopics.map((s, j) => <p key={j} className="pl-2 text-[11px] text-[#6d7f8f]">· {s}</p>)}
+              <div key={i} className="border-l-2 border-primary/40 pl-3">
+                <p className="font-medium text-foreground/90">{t.name}</p>
+                {t.subtopics.map((s, j) => <p key={j} className="pl-2 text-[11px] text-muted-foreground">· {s}</p>)}
               </div>
             ))
           ) : (
             preview.modules.map((m, i) => (
               <div key={i}>
-                <p className="font-medium text-[#6ab3f3]"># {m.name}</p>
+                <p className="font-medium text-primary"># {m.name}</p>
                 {m.topics.map((t, j) => (
                   <div key={j} className="mt-1 pl-4">
-                    <p className="font-medium text-[#c5d0db]">## {t.name}</p>
-                    {t.subtopics.map((s, k) => <p key={k} className="pl-2 text-[11px] text-[#6d7f8f]">· {s}</p>)}
+                    <p className="font-medium text-foreground/90">## {t.name}</p>
+                    {t.subtopics.map((s, k) => <p key={k} className="pl-2 text-[11px] text-muted-foreground">· {s}</p>)}
                   </div>
                 ))}
               </div>

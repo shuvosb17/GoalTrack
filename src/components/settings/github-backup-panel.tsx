@@ -125,7 +125,7 @@ export function GitHubBackupPanel() {
               href="https://github.com/shuvosb17/GoalTrack-Backup"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#6ab3f3] hover:underline"
+              className="text-primary hover:underline"
             >
               GoalTrack-Backup
             </a>{" "}
@@ -206,11 +206,11 @@ export function GitHubBackupPanel() {
       </SettingsPanel>
 
       <Dialog open={confirmImport} onOpenChange={setConfirmImport}>
-        <DialogContent className="border-white/[0.08] bg-[#17212b] text-[#e8edf2]">
+        <DialogContent className="border-white/[0.08] bg-card text-card-foreground">
           <DialogHeader>
-            <DialogTitle className="text-[#f4f8fc]">Import from GitHub?</DialogTitle>
+            <DialogTitle className="text-foreground">Import from GitHub?</DialogTitle>
           </DialogHeader>
-          <p className="text-[13px] text-[#6d7f8f]">
+          <p className="text-[13px] text-muted-foreground">
             This replaces all data in this browser with your GitHub backup. Continue?
           </p>
           <div className="flex flex-wrap gap-3">

@@ -136,14 +136,14 @@ export default function SettingsPage() {
         title="Your data lives in this browser only"
       >
         <p>
-          Chrome, Edge, Cursor browser, and Vercel each have <strong className="text-[#b8c5d1]">separate storage</strong>.
+          Chrome, Edge, Cursor browser, and Vercel each have <strong className="text-foreground">separate storage</strong>.
           Progress in one won&apos;t appear in another automatically.
         </p>
         <p>
-          <strong className="text-[#b8c5d1]">For mobile / other devices:</strong> use Cloud Sync (GitHub) below — backup from your main device, then import with your PIN on any device.
+          <strong className="text-foreground">For mobile / other devices:</strong> use Cloud Sync (GitHub) below — backup from your main device, then import with your PIN on any device.
         </p>
         <p>
-          <strong className="text-[#b8c5d1]">Local backup:</strong> Export JSON before switching browsers. Auto-backup also saves locally every 45 seconds.
+          <strong className="text-foreground">Local backup:</strong> Export JSON before switching browsers. Auto-backup also saves locally every 45 seconds.
         </p>
         {lastBackup && (
           <p className={settingsTheme.success}>
@@ -182,8 +182,8 @@ export default function SettingsPage() {
               {exportNotice}
             </p>
           )}
-          <p className="mt-3 text-[12px] text-[#5f6f7f]">
-            Exports save to <code className="rounded bg-[#242f3d] px-1.5 py-0.5 text-[11px] text-[#8b9bab]">{getDefaultExportFolderHint()}</code> when the local app is running.
+          <p className="mt-3 text-[12px] text-muted-foreground">
+            Exports save to <code className="rounded bg-secondary/70 px-1.5 py-0.5 text-[11px] text-foreground/85">{getDefaultExportFolderHint()}</code> when the local app is running.
             For the installed Edge app, use Choose export folder once and select that folder.
           </p>
         </SettingsPanel>
@@ -243,13 +243,13 @@ export default function SettingsPage() {
                         });
                       }}
                     />
-                    <span className="text-[13px] text-[#6d7f8f]">h / week</span>
+                    <span className="text-[13px] text-muted-foreground">h / week</span>
                   </div>
                 </SettingsRow>
               </div>
             ))}
             {tracks.length === 0 && (
-              <p className="px-4 py-6 text-center text-[13px] text-[#6d7f8f]">No tracks yet.</p>
+              <p className="px-4 py-6 text-center text-[13px] text-muted-foreground">No tracks yet.</p>
             )}
           </SettingsGroup>
         </SettingsPanel>
@@ -311,7 +311,7 @@ export default function SettingsPage() {
               onChange={(e) => settings && db.settings.put({ ...settings, dailyHourGoal: Number(e.target.value) })}
             />
             {settings?.tieredGoal && (
-              <p className="mt-3 rounded-xl bg-[#1c2733] px-3.5 py-3 text-[12px] leading-relaxed text-[#6d7f8f]">
+              <p className="mt-3 rounded-xl border border-white/[0.05] bg-secondary/40 px-3.5 py-3 text-[12px] leading-relaxed text-muted-foreground">
                 To hit your Target ({settings.tieredGoal.target}h), you need ~{getSuggestedDailyFromTarget(settings, sessions, settings.yearStart, settings.yearEnd).toFixed(1)}h/day on weekdays
                 for the {Math.max(1, Math.round((new Date(settings.yearEnd).getTime() - Date.now()) / 6048e5))} weeks left.
                 Your current daily goal is {settings.dailyHourGoal}h.
@@ -366,17 +366,17 @@ export default function SettingsPage() {
               {sessions.slice(-10).reverse().map((s, index, arr) => (
                 <div key={s.id}>
                   <div className="flex items-center justify-between px-3.5 py-3 text-[13px] transition-colors hover:bg-white/[0.03]">
-                    <span className="text-[#c5d0db]">
+                    <span className="text-foreground/90">
                       {s.date}
-                      {s.manual && <span className="ml-1.5 text-[11px] text-[#6d7f8f]">(manual)</span>}
+                      {s.manual && <span className="ml-1.5 text-[11px] text-muted-foreground">(manual)</span>}
                     </span>
-                    <span className="font-mono text-[13px] text-[#6ab3f3]">{formatDuration(s.duration)}</span>
+                    <span className="font-mono text-[13px] text-primary">{formatDuration(s.duration)}</span>
                   </div>
                   {index < arr.length - 1 ? <div className="mx-3.5 h-px bg-white/[0.06]" /> : null}
                 </div>
               ))}
               {sessions.length === 0 && (
-                <p className="px-3.5 py-6 text-center text-[13px] text-[#6d7f8f]">No sessions yet.</p>
+                <p className="px-3.5 py-6 text-center text-[13px] text-muted-foreground">No sessions yet.</p>
               )}
             </div>
           </div>
