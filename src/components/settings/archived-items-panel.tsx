@@ -2,8 +2,6 @@
 
 import { useMemo } from "react";
 import { Archive, ArchiveRestore } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   useAllTracks,
   useAllModules,
@@ -15,6 +13,13 @@ import {
   unarchiveTopic,
   unarchiveSubtopic,
 } from "@/lib/crud";
+import {
+  SettingsEmpty,
+  SettingsPanel,
+  SettingsScrollArea,
+  settingsTheme,
+} from "@/components/settings/settings-ui";
+import { cn } from "@/lib/utils";
 
 export function ArchivedItemsPanel() {
   const tracks = useAllTracks();
@@ -58,7 +63,6 @@ export function ArchivedItemsPanel() {
             subtopics: typeof subtopics;
           }>;
 
-        // Orphan archived topics/subtopics if module missing from list (shouldn't happen)
         if (moduleBlocks.length === 0) return null;
         return { track, modules: moduleBlocks };
       })
@@ -85,114 +89,102 @@ export function ArchivedItemsPanel() {
   }, [groups]);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-xl">
-          <Archive className="h-5 w-5 text-primary" />
-          Archived list
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          Archived modules, topics, and subtopics — ordered by track, then module.
-          Restore returns them to Tracks without changing study hours.
-        </p>
-
-        {totalCount === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">Nothing archived.</p>
-        ) : (
-          <div className="max-h-[28rem] space-y-4 overflow-y-auto overscroll-contain pr-1">
-            {groups.map(({ track, modules: blocks }) => (
-              <div key={track.id} className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
-                <div className="mb-2 flex items-center gap-2">
-                  <span className="text-sm">{track.icon}</span>
-                  <p className="text-sm font-medium" style={{ color: track.color }}>
-                    {track.name}
-                  </p>
-                </div>
-                <div className="space-y-3 pl-1">
-                  {blocks.map(({ module: mod, archivedModule, topics: archTopics, subtopics: archSubs }) => (
-                    <div key={mod.id} className="rounded-md border border-white/[0.05] bg-black/20 p-2.5">
-                      <div className="mb-2 flex items-center justify-between gap-2">
-                        <p className="min-w-0 truncate text-sm font-medium">
-                          {mod.name}
-                          {archivedModule && (
-                            <span className="ml-2 text-[10px] uppercase tracking-wide text-muted-foreground">
-                              module archived
-                            </span>
-                          )}
-                        </p>
+    <SettingsPanel
+      title="Archived list"
+      description="Archived modules, topics, and subtopics — ordered by track, then module. Restore returns them to Tracks without changing study hours."
+      icon={<Archive className="h-5 w-5" />}
+    >
+      {totalCount === 0 ? (
+        <SettingsEmpty>Nothing archived.</SettingsEmpty>
+      ) : (
+        <SettingsScrollArea>
+          {groups.map(({ track, modules: blocks }) => (
+            <div key={track.id} className="rounded-xl border border-white/[0.05] bg-[#1c2733] p-3">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="text-sm">{track.icon}</span>
+                <p className="text-[13px] font-medium" style={{ color: track.color }}>
+                  {track.name}
+                </p>
+              </div>
+              <div className="space-y-3 pl-1">
+                {blocks.map(({ module: mod, archivedModule, topics: archTopics, subtopics: archSubs }) => (
+                  <div key={mod.id} className="rounded-lg border border-white/[0.04] bg-[#242f3d] p-2.5">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <p className="min-w-0 truncate text-[13px] font-medium text-[#dce4ec]">
+                        {mod.name}
                         {archivedModule && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 shrink-0 gap-1 px-2 text-[11px]"
-                            onClick={() => void unarchiveModule(mod.id)}
-                          >
-                            <ArchiveRestore className="h-3 w-3" /> Restore
-                          </Button>
+                          <span className="ml-2 text-[10px] uppercase tracking-wide text-[#6d7f8f]">
+                            module archived
+                          </span>
                         )}
-                      </div>
-
-                      {archTopics.length > 0 && (
-                        <ul className="mb-2 space-y-1.5">
-                          {archTopics.map((topic) => (
-                            <li
-                              key={topic.id}
-                              className="flex items-center justify-between gap-2 rounded px-1.5 py-1 text-xs text-muted-foreground hover:bg-white/[0.03]"
-                            >
-                              <span className="min-w-0 truncate">Topic · {topic.name}</span>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-6 w-6 shrink-0"
-                                title="Restore topic"
-                                onClick={() => void unarchiveTopic(topic.id)}
-                              >
-                                <ArchiveRestore className="h-3 w-3" />
-                              </Button>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-
-                      {archSubs.length > 0 && (
-                        <ul className="space-y-1.5">
-                          {archSubs.map((sub) => {
-                            const topic = topics.find((t) => t.id === sub.topicId);
-                            return (
-                              <li
-                                key={sub.id}
-                                className="flex items-center justify-between gap-2 rounded px-1.5 py-1 text-xs text-muted-foreground hover:bg-white/[0.03]"
-                              >
-                                <span className="min-w-0 truncate">
-                                  Subtopic · {sub.name}
-                                  {topic ? (
-                                    <span className="text-muted-foreground/70"> · {topic.name}</span>
-                                  ) : null}
-                                </span>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-6 w-6 shrink-0"
-                                  title="Restore subtopic"
-                                  onClick={() => void unarchiveSubtopic(sub.id)}
-                                >
-                                  <ArchiveRestore className="h-3 w-3" />
-                                </Button>
-                              </li>
-                            );
-                          })}
-                        </ul>
+                      </p>
+                      {archivedModule && (
+                        <button
+                          type="button"
+                          className={cn(settingsTheme.btnSecondary, "h-8 gap-1 px-2.5 text-[11px]")}
+                          onClick={() => void unarchiveModule(mod.id)}
+                        >
+                          <ArchiveRestore className="h-3 w-3" /> Restore
+                        </button>
                       )}
                     </div>
-                  ))}
-                </div>
+
+                    {archTopics.length > 0 && (
+                      <ul className="mb-2 space-y-1">
+                        {archTopics.map((topic) => (
+                          <li
+                            key={topic.id}
+                            className="flex items-center justify-between gap-2 rounded-lg px-1.5 py-1.5 text-[12px] text-[#8b9bab] transition-colors hover:bg-white/[0.03]"
+                          >
+                            <span className="min-w-0 truncate">Topic · {topic.name}</span>
+                            <button
+                              type="button"
+                              title="Restore topic"
+                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[#6ab3f3] hover:bg-[#2b5278]/30"
+                              onClick={() => void unarchiveTopic(topic.id)}
+                            >
+                              <ArchiveRestore className="h-3.5 w-3.5" />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    {archSubs.length > 0 && (
+                      <ul className="space-y-1">
+                        {archSubs.map((sub) => {
+                          const topic = topics.find((t) => t.id === sub.topicId);
+                          return (
+                            <li
+                              key={sub.id}
+                              className="flex items-center justify-between gap-2 rounded-lg px-1.5 py-1.5 text-[12px] text-[#8b9bab] transition-colors hover:bg-white/[0.03]"
+                            >
+                              <span className="min-w-0 truncate">
+                                Subtopic · {sub.name}
+                                {topic ? (
+                                  <span className="text-[#5f6f7f]"> · {topic.name}</span>
+                                ) : null}
+                              </span>
+                              <button
+                                type="button"
+                                title="Restore subtopic"
+                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[#6ab3f3] hover:bg-[#2b5278]/30"
+                                onClick={() => void unarchiveSubtopic(sub.id)}
+                              >
+                                <ArchiveRestore className="h-3.5 w-3.5" />
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+            </div>
+          ))}
+        </SettingsScrollArea>
+      )}
+    </SettingsPanel>
   );
 }

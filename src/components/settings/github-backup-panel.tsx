@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Cloud, CloudDownload, CloudUpload, Github, KeyRound, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   backupToGitHub,
@@ -15,6 +13,14 @@ import {
 } from "@/lib/github-sync";
 import { saveAutoBackup } from "@/lib/auto-backup";
 import { format, parseISO } from "date-fns";
+import {
+  SettingsActions,
+  SettingsFieldLabel,
+  SettingsInputClass,
+  SettingsPanel,
+  settingsTheme,
+} from "@/components/settings/settings-ui";
+import { cn } from "@/lib/utils";
 
 const DEFAULT_REPO = "shuvosb17/GoalTrack-Backup";
 
@@ -106,33 +112,33 @@ export function GitHubBackupPanel() {
     setConfirmImport(true);
   };
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-xl">
-          <Github className="h-5 w-5 text-primary" /> Cloud Sync (GitHub)
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          Your public repo{" "}
-          <a
-            href="https://github.com/shuvosb17/GoalTrack-Backup"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary hover:underline"
-          >
-            GoalTrack-Backup
-          </a>{" "}
-          stores PIN-encrypted data. <strong>Import needs only your PIN</strong> — no GitHub token in the app.
-          On mobile: Settings → enter PIN → Import from GitHub.
-        </p>
+  const inputClass = SettingsInputClass();
 
-        <div className="grid gap-3 sm:grid-cols-2">
+  return (
+    <>
+      <SettingsPanel
+        title="Cloud Sync (GitHub)"
+        description={
+          <>
+            Your public repo{" "}
+            <a
+              href="https://github.com/shuvosb17/GoalTrack-Backup"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#6ab3f3] hover:underline"
+            >
+              GoalTrack-Backup
+            </a>{" "}
+            stores PIN-encrypted data. Import needs only your PIN — no GitHub token in the app.
+          </>
+        }
+        icon={<Github className="h-5 w-5" />}
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <label className="text-xs text-muted-foreground">GitHub repo</label>
+            <SettingsFieldLabel>GitHub repo</SettingsFieldLabel>
             <Input
-              className="h-11 mt-1"
+              className={inputClass}
               placeholder="username/repo or full URL"
               value={repoInput}
               onChange={(e) => setRepoInput(e.target.value)}
@@ -140,30 +146,32 @@ export function GitHubBackupPanel() {
             />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Branch</label>
+            <SettingsFieldLabel>Branch</SettingsFieldLabel>
             <Input
-              className="h-11 mt-1"
+              className={inputClass}
               value={branch}
               onChange={(e) => setBranch(e.target.value)}
               onBlur={persistConfig}
             />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Backup file</label>
+            <SettingsFieldLabel>Backup file</SettingsFieldLabel>
             <Input
-              className="h-11 mt-1"
+              className={inputClass}
               value={path}
               onChange={(e) => setPath(e.target.value)}
               onBlur={persistConfig}
             />
           </div>
           <div className="sm:col-span-2">
-            <label className="text-xs text-muted-foreground flex items-center gap-1">
-              <KeyRound className="h-3 w-3" /> Backup PIN
-            </label>
+            <SettingsFieldLabel>
+              <span className="inline-flex items-center gap-1.5">
+                <KeyRound className="h-3.5 w-3.5" /> Backup PIN
+              </span>
+            </SettingsFieldLabel>
             <Input
               type="password"
-              className="h-11 mt-1"
+              className={inputClass}
               placeholder="Your private PIN"
               value={pin}
               onChange={(e) => setPin(e.target.value)}
@@ -172,49 +180,49 @@ export function GitHubBackupPanel() {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-3">
-          <Button onClick={handleBackup} disabled={busy !== null} className="gap-2 h-11 px-6">
+        <SettingsActions className="mt-4">
+          <button type="button" onClick={handleBackup} disabled={busy !== null} className={settingsTheme.btnPrimary}>
             {busy === "backup" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CloudUpload className="h-4 w-4" />}
             Backup to GitHub
-          </Button>
-          <Button variant="outline" onClick={handleImport} disabled={busy !== null} className="gap-2 h-11 px-6">
+          </button>
+          <button type="button" onClick={handleImport} disabled={busy !== null} className={settingsTheme.btnSecondary}>
             {busy === "import" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CloudDownload className="h-4 w-4" />}
             Import from GitHub
-          </Button>
-          <Button variant="ghost" onClick={handleTestConnection} disabled={busy !== null} className="gap-2 h-11">
+          </button>
+          <button type="button" onClick={handleTestConnection} disabled={busy !== null} className={settingsTheme.btnGhost}>
             {busy === "test" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Cloud className="h-4 w-4" />}
-            Test Connection
-          </Button>
-        </div>
+            Test connection
+          </button>
+        </SettingsActions>
 
         {lastSync && (
-          <p className="text-xs text-emerald-400 flex items-center gap-1">
-            <Cloud className="h-3 w-3" />
+          <p className={cn("mt-3 flex items-center gap-1.5 text-[12px]", settingsTheme.success)}>
+            <Cloud className="h-3.5 w-3.5" />
             Last GitHub sync: {format(parseISO(lastSync), "MMM d, yyyy h:mm a")}
           </p>
         )}
-        {status && <p className="text-sm text-emerald-400">{status}</p>}
-        {error && <p className="text-sm text-destructive">{error}</p>}
-      </CardContent>
+        {status && <p className={cn("mt-2 text-[13px]", settingsTheme.success)}>{status}</p>}
+        {error && <p className={cn("mt-2 text-[13px]", settingsTheme.danger)}>{error}</p>}
+      </SettingsPanel>
 
       <Dialog open={confirmImport} onOpenChange={setConfirmImport}>
-        <DialogContent>
+        <DialogContent className="border-white/[0.08] bg-[#17212b] text-[#e8edf2]">
           <DialogHeader>
-            <DialogTitle>Import from GitHub?</DialogTitle>
+            <DialogTitle className="text-[#f4f8fc]">Import from GitHub?</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-[13px] text-[#6d7f8f]">
             This replaces all data in this browser with your GitHub backup. Continue?
           </p>
           <div className="flex flex-wrap gap-3">
-            <Button variant="outline" onClick={() => setConfirmImport(false)} className="flex-1">
+            <button type="button" onClick={() => setConfirmImport(false)} className={cn(settingsTheme.btnSecondary, "flex-1")}>
               Cancel
-            </Button>
-            <Button onClick={runImport} disabled={busy === "import"} className="flex-1">
+            </button>
+            <button type="button" onClick={runImport} disabled={busy === "import"} className={cn(settingsTheme.btnPrimary, "flex-1")}>
               {busy === "import" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Import"}
-            </Button>
+            </button>
           </div>
         </DialogContent>
       </Dialog>
-    </Card>
+    </>
   );
 }
