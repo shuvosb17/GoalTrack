@@ -9,6 +9,8 @@ import type { Track } from "@/lib/types";
 import type { TrackHealth, PinnedNextItem } from "@/lib/types/metrics";
 import { TRACK_BAR_COLORS } from "@/lib/types/metrics";
 import { cn } from "@/lib/utils";
+import { StatusPill } from "@/components/shared/status-pill";
+import { useTimerStore } from "@/stores/timer-store";
 
 interface TrackCardProps {
   track: Track;
@@ -24,12 +26,6 @@ interface TrackCardProps {
   delay?: number;
 }
 
-const HEALTH_DOT: Record<TrackHealth["status"], string> = {
-  healthy: "bg-emerald-400",
-  "at-risk": "bg-amber-400",
-  neglected: "bg-red-400",
-};
-
 export function TrackCard({
   track,
   progress,
@@ -44,30 +40,34 @@ export function TrackCard({
   delay = 0,
 }: TrackCardProps) {
   const router = useRouter();
+  const { isRunning, isPaused, trackId: activeTrackId } = useTimerStore();
   const barColor = TRACK_BAR_COLORS[track.name] ?? track.color;
+  const isActiveTrack = (isRunning || isPaused) && activeTrackId === track.id;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
-      whileHover={{ y: -2 }}
+      whileHover={{ y: -3 }}
       onClick={() => router.push(`/tracks?track=${track.id}`)}
-      className="glass-card group relative flex h-full cursor-pointer flex-col overflow-hidden p-4"
+      className={cn(
+        "glass-card group relative flex h-full cursor-pointer flex-col overflow-hidden p-3.5",
+        isActiveTrack && !isPaused && "glow-active",
+        isActiveTrack && isPaused && "glow-paused"
+      )}
     >
         <div
-          className="absolute inset-0 opacity-[0.04] transition-opacity group-hover:opacity-[0.07]"
+          className="absolute inset-0 opacity-[0.05] transition-opacity group-hover:opacity-[0.09]"
           style={{ background: `linear-gradient(135deg, ${barColor}, transparent)` }}
         />
         <div className="relative z-10 flex h-full flex-col">
           <div className="mb-2 flex min-h-[3rem] items-start gap-2">
             <span className="shrink-0 text-xl leading-none">{track.icon}</span>
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                {health && (
-                  <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", HEALTH_DOT[health.status])} title={health.status} />
-                )}
+              <div className="flex flex-wrap items-center gap-1.5">
                 <h3 className="line-clamp-2 text-sm font-medium leading-snug">{track.name}</h3>
+                {health && <StatusPill status={health.status} />}
               </div>
               {health?.status === "neglected" && health.daysSinceStudied > 0 && (
                 <p className="mt-0.5 text-[10px] text-red-400">⚠ {health.daysSinceStudied}d ago</p>
@@ -76,18 +76,13 @@ export function TrackCard({
                 <p className="mt-0.5 truncate text-[10px] text-muted-foreground">Focus: {currentFocus}</p>
               )}
             </div>
-            <span
-              className="shrink-0 rounded px-1.5 py-px text-[11px] font-medium tabular-nums"
-              style={{ background: "rgba(124,92,252,0.15)", color: "#c4b5fd" }}
-            >
-              {progress}%
-            </span>
+            <span className="progress-pill shrink-0">{progress}%</span>
           </div>
 
-          <div className="mb-2.5 h-[3px] overflow-hidden rounded-full" style={{ background: "rgba(255,255,255,0.08)" }}>
+          <div className="mb-2.5 h-[4px] overflow-hidden rounded-full" style={{ background: "rgba(255,255,255,0.07)" }}>
             <div
               className="h-full rounded-full transition-all duration-500"
-              style={{ width: `${progress}%`, backgroundColor: barColor }}
+              style={{ width: `${progress}%`, backgroundColor: barColor, boxShadow: `0 0 8px ${barColor}66` }}
             />
           </div>
 

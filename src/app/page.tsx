@@ -159,7 +159,7 @@ export default function DashboardPage() {
   }, [trackStats]);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl font-medium tracking-tight sm:text-3xl">Dashboard</h1>
       </motion.div>
@@ -173,7 +173,7 @@ export default function DashboardPage() {
       />
 
       {/* Row 1 — Stat cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
         <StatCard
           title="Need today"
           value={`${pace.hoursNeededToday}h`}
@@ -217,9 +217,9 @@ export default function DashboardPage() {
             <IconTrendingUp className="h-4 w-4 opacity-70" stroke={1.5} /> Growth Overview
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-6">
-          <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-            <div className="grid grid-cols-2 gap-6 md:grid-cols-3">
+        <CardContent className="pt-4">
+          <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
               <div className="text-center">
                 <p className="metric-value text-3xl tabular-nums">{totalHours.toFixed(0)}</p>
                 <p className="mt-1 text-xs text-muted-foreground">Hours Invested</p>
@@ -253,7 +253,7 @@ export default function DashboardPage() {
       {/* Row 3 — Track Overview */}
       <div>
         <SectionHeading icon={IconStack2}>Track Overview</SectionHeading>
-        <div className="grid auto-rows-fr gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="grid auto-rows-fr gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {trackStats.map((ts, i) => (
             <div key={ts.track.id} className="h-full">
               <TrackCard {...ts} delay={i * 0.05} />
@@ -270,14 +270,14 @@ export default function DashboardPage() {
 
       {/* Row 5 — Learning Activity */}
       <Card>
-        <CardContent className="pt-6">
+        <CardContent className="pt-4">
           <ActivityHeatmap data={heatmapData} />
         </CardContent>
       </Card>
 
       {/* Row 6 — Goal Forecasting */}
       <Card>
-        <CardContent className="pt-6">
+        <CardContent className="pt-4">
           <GoalForecastingPanel
             paceCheck={paceCheck}
             tiers={tierProgress}
@@ -294,7 +294,7 @@ export default function DashboardPage() {
         <CardHeader className="border-b border-white/[0.06] pb-2">
           <CardTitle>Growth Radar</CardTitle>
         </CardHeader>
-        <CardContent className="pt-6">
+        <CardContent className="pt-4">
           <GrowthRadarChart data={radarData} />
         </CardContent>
       </Card>

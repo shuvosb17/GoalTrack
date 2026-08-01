@@ -90,7 +90,7 @@ export function Sidebar() {
     <>
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-md lg:hidden"
           onClick={() => setSidebarOpen(false)}
           aria-hidden
         />
@@ -98,8 +98,8 @@ export function Sidebar() {
 
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 flex h-screen w-[17.5rem] flex-col overflow-hidden border-r border-white/[0.06] transition-transform duration-300 ease-out",
-          "bg-[#0a0a0c]",
+          "fixed left-0 top-0 z-50 flex h-screen w-[17.5rem] flex-col overflow-hidden border-r border-white/[0.08] transition-transform duration-300 ease-out",
+          "bg-[#0a0a0c]/92 backdrop-blur-xl lg:bg-[#0a0a0c] lg:backdrop-blur-none",
           "lg:translate-x-0",
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}

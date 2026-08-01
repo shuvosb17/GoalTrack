@@ -28,7 +28,7 @@ export function GrowthRadarChart({ data }: { data: RadarDimension[] }) {
   return (
     <ResponsiveContainer width="100%" height={300}>
       <RechartsRadar cx="50%" cy="50%" outerRadius="72%" data={data}>
-        <PolarGrid stroke="#3f3f46" />
+        <PolarGrid stroke="rgba(255,255,255,0.06)" />
         <PolarAngleAxis dataKey="name" tick={{ fill: "#a1a1aa", fontSize: 9 }} />
         <PolarRadiusAxis
           angle={90}
@@ -37,7 +37,7 @@ export function GrowthRadarChart({ data }: { data: RadarDimension[] }) {
           axisLine={false}
         />
         <Tooltip
-          contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: 8 }}
+          contentStyle={{ background: "rgba(24,24,27,0.95)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12 }}
           labelStyle={{ color: "#fafafa" }}
           formatter={(value) => [`${value ?? 0}%`, "Growth"]}
         />

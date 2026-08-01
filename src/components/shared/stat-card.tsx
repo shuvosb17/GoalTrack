@@ -32,23 +32,23 @@ export function StatCard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay }}
-      className={cn("glass-card gradient-border group relative overflow-hidden p-5", className)}
+      className={cn("glass-card gradient-border group relative overflow-hidden p-4", className)}
     >
       {gradient && (
         <div
-          className="absolute inset-0 opacity-[0.06] transition-opacity group-hover:opacity-[0.1]"
+          className="absolute inset-0 opacity-[0.07] transition-opacity group-hover:opacity-[0.12]"
           style={{ background: gradient }}
         />
       )}
       <div className="relative z-10">
-        <div className="mb-3 flex items-center justify-between">
-          <span className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
-            {Icon && <Icon className="h-4 w-4 shrink-0 opacity-70" stroke={1.5} />}
+        <div className="mb-2 flex items-center justify-between">
+          <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            {Icon && <Icon className="h-3.5 w-3.5 shrink-0 opacity-70" stroke={1.5} />}
             {title}
           </span>
         </div>
         <div
-          className={cn("metric-value text-3xl tabular-nums", valueClassName)}
+          className={cn("metric-value text-2xl tabular-nums sm:text-3xl", valueClassName)}
           style={valueColor ? { color: valueColor } : undefined}
         >
           {value}

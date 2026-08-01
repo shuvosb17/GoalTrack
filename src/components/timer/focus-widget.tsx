@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, Square, Timer } from "lucide-react";
 import { useTimerStore } from "@/stores/timer-store";
 import { useSessions } from "@/hooks/use-data";
-import { formatDuration } from "@/lib/utils";
+import { formatDuration, cn } from "@/lib/utils";
 import { getTodayHours } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 import { SessionQualityPrompt } from "./session-quality-prompt";
@@ -32,7 +32,7 @@ export function FocusWidget() {
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
-          className="fixed bottom-4 left-4 right-4 z-50 glass-card rounded-xl border-[0.5px] border-primary/20 p-4 shadow-2xl sm:bottom-6 sm:left-auto sm:right-6 sm:max-w-[320px]"
+          className="fixed bottom-4 left-4 right-4 z-50 glass-card rounded-2xl border-[0.5px] border-primary/20 p-4 shadow-2xl sm:bottom-6 sm:left-auto sm:right-6 sm:max-w-[320px]"
         >
           <p className="text-sm font-medium">Session complete</p>
           <SessionQualityPrompt sessionId={pendingQualitySessionId} onDone={clearQualityPrompt} />
@@ -49,10 +49,13 @@ export function FocusWidget() {
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 100, opacity: 0 }}
-        className="fixed bottom-4 left-4 right-4 z-50 glass-card rounded-xl border-[0.5px] border-primary/20 p-4 shadow-2xl sm:bottom-6 sm:left-auto sm:right-6 sm:max-w-[320px]"
+        className={cn(
+          "fixed bottom-4 left-4 right-4 z-50 glass-card rounded-2xl border-[0.5px] border-primary/20 p-4 shadow-2xl sm:bottom-6 sm:left-auto sm:right-6 sm:max-w-[320px]",
+          isPaused ? "glow-paused" : "glow-active"
+        )}
       >
         <div className="flex items-center gap-3 mb-3">
-          <div className="p-2 rounded-[10px] bg-primary/20">
+          <div className="p-2 rounded-xl bg-primary/20">
             <Timer className="h-5 w-5 text-primary animate-pulse" />
           </div>
           <div className="flex-1 min-w-0">
