@@ -21,12 +21,14 @@ import { InsightsPanel } from "@/components/dashboard/insights-panel";
 import { MomentumBreakdownPanel } from "@/components/dashboard/momentum-breakdown";
 import { NextActionCard } from "@/components/dashboard/next-action-card";
 import { GoalForecastingPanel } from "@/components/dashboard/goal-forecasting-panel";
+import { DashboardSystemStatus } from "@/components/dashboard/dashboard-system-status";
 import { GrowthRadarChart } from "@/components/charts/radar-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   useTracks, useAllSubtopics, useAllModules, useAllTopics, useSessions, useSettings, useSkipLogs,
 } from "@/hooks/use-data";
 import { calculateStreaks, generateHeatmapData, todayISO } from "@/lib/utils";
+import { format, subDays } from "date-fns";
 import {
   getTotalHours, getTodayHours, getTrackProgress, getTrackRemainingCount, getGoalForecast,
   generateInsights, getRadarData, countCompletedItems,
@@ -43,6 +45,34 @@ function paceColor(needed: number, logged: number) {
   if (logged >= needed) return "#86efac";
   if (logged >= needed * 0.5) return "#fbbf24";
   return "#f87171";
+}
+
+/** Hours logged per day for the last N calendar days (oldest → newest). */
+function lastNDaysHours(sessions: { date: string; duration: number }[], days = 7): number[] {
+  const today = new Date();
+  const result: number[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const iso = format(subDays(today, i), "yyyy-MM-dd");
+    const ms = sessions.filter((s) => s.date === iso).reduce((sum, s) => sum + s.duration, 0);
+    result.push(ms / 3_600_000);
+  }
+  return result;
+}
+
+/** 1 if the day met the daily goal, else 0 — for consistency sparkline. */
+function lastNDaysOnTarget(
+  sessions: { date: string; duration: number }[],
+  dailyGoal: number,
+  days = 7
+): number[] {
+  const today = new Date();
+  const result: number[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const iso = format(subDays(today, i), "yyyy-MM-dd");
+    const hours = sessions.filter((s) => s.date === iso).reduce((sum, s) => sum + s.duration, 0) / 3_600_000;
+    result.push(hours >= dailyGoal ? 1 : 0);
+  }
+  return result;
 }
 
 export default function DashboardPage() {
@@ -147,6 +177,22 @@ export default function DashboardPage() {
   const consistencyDelta = weeklyConsistency.daysOnTarget - weeklyConsistency.lastWeekDays;
   const consistencyDeltaLabel = consistencyDelta >= 0 ? `↑${consistencyDelta}` : `↓${Math.abs(consistencyDelta)}`;
 
+  const weekSparkline = useMemo(() => lastNDaysHours(sessions), [sessions]);
+  const consistencySparkline = useMemo(
+    () => lastNDaysOnTarget(sessions, dailyGoal),
+    [sessions, dailyGoal]
+  );
+
+  const systemStatusItems = useMemo(
+    () => [
+      { id: "today", label: "Today", value: `${todayHours.toFixed(1)}h`, accent: paceColor(pace.hoursNeededToday, pace.hoursLoggedToday) },
+      { id: "streak", label: "Streak", value: `${streaks.current}d` },
+      { id: "pace", label: "Need today", value: `${pace.hoursNeededToday}h` },
+      { id: "year", label: "Days left", value: daysRemaining },
+    ],
+    [todayHours, streaks, pace.hoursNeededToday, pace.hoursLoggedToday, daysRemaining]
+  );
+
   // Recommend acting on the most-neglected track that still has a "next up" item.
   const recommendedAction = useMemo(() => {
     const candidates = trackStats
@@ -164,50 +210,95 @@ export default function DashboardPage() {
         <h1 className="text-2xl font-medium tracking-tight sm:text-3xl">Dashboard</h1>
       </motion.div>
 
-      {/* Row 0 — What to do right now */}
-      <NextActionCard
-        hoursLeftToday={pace.hoursLeftToday}
-        onPace={pace.onPace}
-        momentum={momentum}
-        action={recommendedAction}
-      />
+      {/* Bento grid — HA-style three-column layout on xl */}
+      <div className="ha-bento">
+        {/* Left: sensor tiles with sparklines */}
+        <div className="ha-bento-col-left space-y-3">
+          <StatCard
+            title="Need today"
+            value={`${pace.hoursNeededToday}h`}
+            subtitle={`${pace.hoursLoggedToday}h done · ${pace.hoursLeftToday}h left`}
+            icon={IconTargetArrow}
+            valueColor={paceColor(pace.hoursNeededToday, pace.hoursLoggedToday)}
+            sparkline={weekSparkline}
+            sparklineColor={paceColor(pace.hoursNeededToday, pace.hoursLoggedToday)}
+            delay={0}
+          />
+          <StatCard
+            title="Today's Hours"
+            value={`${todayHours.toFixed(1)}h`}
+            subtitle={`${totalHours.toFixed(0)}h total invested`}
+            icon={IconClock}
+            gradient="linear-gradient(135deg, #8b5cf6, #3b82f6)"
+            sparkline={weekSparkline}
+            sparklineColor="#8b5cf6"
+            delay={0.05}
+          />
+          <StatCard
+            title="Current Streak"
+            value={`${streaks.current} days`}
+            subtitle={`Best: ${streaks.longest} days`}
+            icon={IconFlame}
+            gradient="linear-gradient(135deg, #f59e0b, #ef4444)"
+            sparkline={consistencySparkline}
+            sparklineColor="#f59e0b"
+            delay={0.1}
+          />
+          <StatCard
+            title="Weekly Consistency"
+            value={`${weeklyConsistency.daysOnTarget}/${weeklyConsistency.totalDays}`}
+            subtitle={`${consistencyDeltaLabel} vs last week`}
+            icon={IconChartPie}
+            sparkline={consistencySparkline}
+            sparklineColor="#22c55e"
+            delay={0.15}
+          />
+        </div>
 
-      {/* Row 1 — Stat cards */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-        <StatCard
-          title="Need today"
-          value={`${pace.hoursNeededToday}h`}
-          subtitle={`${pace.hoursLoggedToday}h done · ${pace.hoursLeftToday}h left`}
-          icon={IconTargetArrow}
-          valueColor={paceColor(pace.hoursNeededToday, pace.hoursLoggedToday)}
-          delay={0}
-        />
-        <StatCard
-          title="Today's Hours"
-          value={`${todayHours.toFixed(1)}h`}
-          subtitle={`${totalHours.toFixed(0)}h total invested`}
-          icon={IconClock}
-          gradient="linear-gradient(135deg, #8b5cf6, #3b82f6)"
-          valueClassName="text-4xl sm:text-5xl"
-          delay={0.05}
-        />
-        <StatCard
-          title="Current Streak"
-          value={`${streaks.current} days`}
-          subtitle={`Best: ${streaks.longest} days`}
-          icon={IconFlame}
-          gradient="linear-gradient(135deg, #f59e0b, #ef4444)"
-          delay={0.1}
-        />
-        <StatCard
-          title="Weekly Consistency"
-          value={`${weeklyConsistency.daysOnTarget}/${weeklyConsistency.totalDays}`}
-          subtitle={`${consistencyDeltaLabel} vs last week`}
-          icon={IconChartPie}
-          delay={0.15}
-        />
-        <StatCard title="Longest Streak" value={`${streaks.longest} days`} subtitle={`${streaks.missedDays} missed days`} icon={IconBolt} delay={0.2} />
-        <StatCard title="Days Remaining" value={daysRemaining} subtitle="Until Dec 2026" icon={IconCalendar} gradient="linear-gradient(135deg, #ec4899, #8b5cf6)" delay={0.25} />
+        {/* Center: next action + track entity grid */}
+        <div className="ha-bento-col-center mt-3 space-y-4 xl:mt-0">
+          <NextActionCard
+            hoursLeftToday={pace.hoursLeftToday}
+            onPace={pace.onPace}
+            momentum={momentum}
+            action={recommendedAction}
+          />
+          <div>
+            <SectionHeading icon={IconStack2}>Track Overview</SectionHeading>
+            <div className="mt-3 grid auto-rows-fr gap-3 sm:grid-cols-2">
+              {trackStats.map((ts, i) => (
+                <div key={ts.track.id} className="h-full">
+                  <TrackCard {...ts} delay={i * 0.05} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right: system status column */}
+        <div className="ha-bento-col-right mt-3 space-y-3 xl:mt-0">
+          <DashboardSystemStatus
+            items={systemStatusItems}
+            momentum={momentum}
+            completedModules={completed.completedModules}
+            completedSubtopics={completed.completedSubtopics}
+          />
+          <StatCard
+            title="Longest Streak"
+            value={`${streaks.longest} days`}
+            subtitle={`${streaks.missedDays} missed days`}
+            icon={IconBolt}
+            delay={0.2}
+          />
+          <StatCard
+            title="Days Remaining"
+            value={daysRemaining}
+            subtitle="Until Dec 2026"
+            icon={IconCalendar}
+            gradient="linear-gradient(135deg, #ec4899, #8b5cf6)"
+            delay={0.25}
+          />
+        </div>
       </div>
 
       {/* Row 2 — Growth Overview */}
@@ -250,19 +341,7 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Row 3 — Track Overview */}
-      <div>
-        <SectionHeading icon={IconStack2}>Track Overview</SectionHeading>
-        <div className="grid auto-rows-fr gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          {trackStats.map((ts, i) => (
-            <div key={ts.track.id} className="h-full">
-              <TrackCard {...ts} delay={i * 0.05} />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Row 3b — Weekly Time Distribution */}
+      {/* Weekly Time Distribution */}
       <WeeklyTimeDistribution tracks={tracks} sessions={sessions} />
 
       {/* Row 4 — Smart Insights */}

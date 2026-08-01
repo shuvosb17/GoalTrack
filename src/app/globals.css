@@ -43,6 +43,16 @@
   --color-success-teal-dark: #085041;
   --border-radius-lg: 1rem;
   --border-radius-md: 0.875rem;
+
+  /* Home Assistant–style elevated surfaces (shared across pages) */
+  --surface-elevated: #131316;
+  --surface-inset: rgba(255, 255, 255, 0.02);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.09);
+  --text-secondary: #9a9aa5;
+  --ha-accent-blue: #3b82f6;
+  --ha-accent-teal: #22c55e;
+  --ha-accent-amber: #eab308;
 }
 
 * {
@@ -160,6 +170,127 @@ body {
   font-size: 14px;
   font-weight: 500;
   letter-spacing: -0.01em;
+}
+
+/* ── Home Assistant entity patterns ── */
+
+.ha-entity-tile {
+  background: linear-gradient(145deg, rgba(24, 24, 27, 0.96) 0%, rgba(28, 28, 32, 0.92) 100%);
+  border: 0.5px solid var(--border-strong);
+  border-radius: 16px;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ha-entity-tile:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.ha-entity-tile-active {
+  border-color: rgba(139, 92, 246, 0.45) !important;
+  box-shadow:
+    0 0 0 1px rgba(139, 92, 246, 0.3),
+    0 0 20px rgba(139, 92, 246, 0.12),
+    0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+.ha-entity-tile-warn {
+  border-color: rgba(234, 179, 8, 0.4) !important;
+  box-shadow:
+    0 0 0 1px rgba(234, 179, 8, 0.25),
+    0 0 16px rgba(234, 179, 8, 0.1),
+    0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+.ha-entity-tile-critical {
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  box-shadow:
+    0 0 0 1px rgba(239, 68, 68, 0.25),
+    0 0 16px rgba(239, 68, 68, 0.1),
+    0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+.ha-status-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 0.5px solid var(--border-strong);
+  background: var(--surface-elevated);
+}
+
+.ha-status-row {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 140px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-right: 0.5px solid var(--border-subtle);
+}
+
+.ha-status-row:last-child {
+  border-right: none;
+}
+
+.ha-progress-track {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.ha-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.ha-segmented {
+  display: inline-flex;
+  border-radius: 10px;
+  border: 0.5px solid var(--border-subtle);
+  background: var(--surface-inset);
+  padding: 2px;
+}
+
+.ha-segmented-btn {
+  border-radius: 8px;
+  padding: 0.25rem 0.625rem;
+  font-size: 11px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.ha-segmented-btn-active {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-foreground);
+}
+
+.ha-bento {
+  display: grid;
+  gap: 0.75rem;
+}
+
+@media (min-width: 1280px) {
+  .ha-bento {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+
+  .ha-bento-col-left {
+    grid-column: span 3;
+  }
+
+  .ha-bento-col-center {
+    grid-column: span 6;
+  }
+
+  .ha-bento-col-right {
+    grid-column: span 3;
+  }
 }
 
 .heatmap-0 { background: #27272a; }

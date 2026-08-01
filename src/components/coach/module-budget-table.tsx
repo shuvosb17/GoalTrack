@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Coins, Zap } from "lucide-react";
 import { CoachCard, CoachEmptyLine } from "./coach-card";
+import { HaEntityTile } from "@/components/shared/ha-entity-tile";
+import { HaProgressBar } from "@/components/shared/ha-progress-bar";
 import type { GoCoachReport, ModuleBudget } from "@/lib/go-coach";
 import type { JobPhaseId } from "@/lib/job-readiness";
 import { cn } from "@/lib/utils";
@@ -20,46 +22,44 @@ function moduleLabel(name: string): string {
   return name.replace(/^Module \d+:\s*/, "");
 }
 
-function BudgetRow({ mod, showThreshold }: { mod: ModuleBudget; showThreshold: boolean }) {
+function moduleTileState(mod: ModuleBudget, showThreshold: boolean): "default" | "warn" | "critical" {
+  if (mod.daysSinceLastSession != null && mod.daysSinceLastSession >= 14 && mod.inProgress) {
+    return "critical";
+  }
+  if (showThreshold && mod.subtopicsToThreshold > 0 && mod.subtopicsToThreshold <= 2) {
+    return "warn";
+  }
+  return "default";
+}
+
+function ModuleBudgetTile({
+  mod,
+  showThreshold,
+}: {
+  mod: ModuleBudget;
+  showThreshold: boolean;
+}) {
   const phaseColor = PHASE_COLORS[mod.phaseId];
   const hours = showThreshold ? mod.hoursToThreshold : mod.hoursRemaining;
   const subtopics = showThreshold ? mod.subtopicsToThreshold : mod.subtopicsRemaining;
+  const state = moduleTileState(mod, showThreshold);
 
   return (
-    <div className="flex items-center gap-3 border-b border-white/[0.04] px-3 py-2.5 last:border-b-0">
-      <span
-        className="flex h-6 w-8 shrink-0 items-center justify-center rounded-md text-[11px] font-medium tabular-nums"
-        style={{ background: `${phaseColor}1f`, color: phaseColor }}
-        title={`Phase ${mod.phaseId}`}
-      >
-        M{mod.moduleNumber}
-      </span>
-
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-[13px] text-foreground">{moduleLabel(mod.name)}</p>
-        <div className="mt-1 flex items-center gap-2">
-          <div className="h-1 w-20 overflow-hidden rounded-full bg-white/[0.06]">
-            <div
-              className="h-full rounded-full"
-              style={{ width: `${mod.percent}%`, background: phaseColor }}
-            />
-          </div>
-          <span className="text-[11px] tabular-nums text-muted-foreground">
-            {mod.doneCount}/{mod.totalCount}
-            {showThreshold && mod.thresholdPercent != null && (
-              <> · needs {mod.thresholdPercent}%</>
-            )}
-          </span>
-        </div>
-      </div>
-
-      <div className="shrink-0 text-right">
-        <p className="text-[13px] font-medium tabular-nums text-foreground">{hours}h</p>
-        <p className="text-[11px] tabular-nums text-muted-foreground">
-          {subtopics} left · {mod.hoursPerSubtopic}h ea
-        </p>
-      </div>
-    </div>
+    <HaEntityTile
+      label={`M${mod.moduleNumber} · Phase ${mod.phaseId}`}
+      value={`${hours}h`}
+      hint={`${moduleLabel(mod.name)} · ${subtopics} subtopic${subtopics === 1 ? "" : "s"} left`}
+      accent={phaseColor}
+      state={state}
+      progress={{ value: mod.percent, max: 100, color: phaseColor }}
+      footer={
+        showThreshold && mod.thresholdPercent != null ? (
+          <p className="mt-1.5 text-[10px] text-muted-foreground">
+            Checklist needs {mod.thresholdPercent}% · now {mod.percent}%
+          </p>
+        ) : undefined
+      }
+    />
   );
 }
 
@@ -80,13 +80,13 @@ export function ModuleBudgetTable({ report }: { report: GoCoachReport }) {
       title="Module effort budget"
       subtitle={
         report.hoursPerSubtopicIsEstimate
-          ? `About ${report.hoursPerSubtopic}h per remaining subtopic (difficulty-weighted beginner baseline; recalibrates from your logs).`
-          : `About ${report.hoursPerSubtopic}h per remaining subtopic, blended from the ${report.totalGoHoursLogged}h you've logged and weighted by difficulty.`
+          ? `About ${report.hoursPerSubtopic}h per remaining subtopic (difficulty-weighted baseline).`
+          : `About ${report.hoursPerSubtopic}h per remaining subtopic from your logged pace.`
       }
       icon={Coins}
       accent="#f59e0b"
       action={
-        <div className="flex rounded-lg border border-white/[0.06] bg-white/[0.02] p-0.5 text-[11px]">
+        <div className="ha-segmented text-[11px]">
           {(
             [
               { id: "wins" as const, label: "Cheapest wins" },
@@ -98,10 +98,8 @@ export function ModuleBudgetTable({ report }: { report: GoCoachReport }) {
               type="button"
               onClick={() => setView(tab.id)}
               className={cn(
-                "rounded-md px-2.5 py-1 transition-colors",
-                view === tab.id
-                  ? "bg-white/[0.08] text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                "ha-segmented-btn",
+                view === tab.id && "ha-segmented-btn-active text-foreground"
               )}
             >
               {tab.label}
@@ -115,9 +113,7 @@ export function ModuleBudgetTable({ report }: { report: GoCoachReport }) {
           <Zap className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
           <p className="text-[13px] text-muted-foreground">
             <span className="text-foreground">{quickest.name}</span> is your cheapest checklist
-            win — {quickest.hoursToThreshold}h clears its {quickest.thresholdPercent}% threshold and
-            unblocks {quickest.blockingChecklistIds.length} checklist item
-            {quickest.blockingChecklistIds.length === 1 ? "" : "s"}.
+            win — {quickest.hoursToThreshold}h clears its {quickest.thresholdPercent}% threshold.
           </p>
         </div>
       )}
@@ -129,30 +125,32 @@ export function ModuleBudgetTable({ report }: { report: GoCoachReport }) {
             : "Nothing left to do on the Go path."}
         </CoachEmptyLine>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.02]">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {rows.map((mod) => (
-            <BudgetRow key={mod.moduleId} mod={mod} showThreshold={view === "wins"} />
+            <ModuleBudgetTile key={mod.moduleId} mod={mod} showThreshold={view === "wins"} />
           ))}
         </div>
       )}
 
-      <div className="mt-3 grid gap-2 sm:grid-cols-4">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {report.byPhase.map((phase) => (
-          <div
-            key={phase.id}
-            className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2"
-          >
+          <div key={phase.id} className="ha-entity-tile p-3">
             <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-              Phase {phase.id} · {phase.percent}%
+              Phase {phase.id} · {phase.percent}% done
             </p>
             <p
-              className="mt-0.5 text-sm font-medium tabular-nums"
+              className="mt-1 text-lg font-medium tabular-nums"
               style={{ color: PHASE_COLORS[phase.id] }}
             >
               {phase.remaining.hours}h left
             </p>
-            <p className="text-[11px] text-muted-foreground">
-              {phase.remaining.subtopics} subtopics
+            <HaProgressBar
+              value={phase.percent}
+              color={PHASE_COLORS[phase.id]}
+              className="mt-2"
+            />
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              {phase.remaining.subtopics} subtopics remaining
             </p>
           </div>
         ))}

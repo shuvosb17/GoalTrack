@@ -52,7 +52,7 @@ export function TrackCard({
       whileHover={{ y: -3 }}
       onClick={() => router.push(`/tracks?track=${track.id}`)}
       className={cn(
-        "glass-card group relative flex h-full cursor-pointer flex-col overflow-hidden p-3.5",
+        "ha-entity-tile group relative flex h-full cursor-pointer flex-col overflow-hidden p-3.5",
         isActiveTrack && !isPaused && "glow-active",
         isActiveTrack && isPaused && "glow-paused"
       )}

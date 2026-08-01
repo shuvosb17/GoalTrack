@@ -26,6 +26,7 @@ import { getMomentumBreakdown } from "@/lib/metrics";
 import { DEFAULT_YEAR_END, DEFAULT_YEAR_START } from "@/lib/analytics";
 import { parseLocalDate } from "@/lib/utils";
 import { CoachForecastCard } from "@/components/coach/coach-forecast-card";
+import { CoachStatusStrip } from "@/components/coach/coach-status-strip";
 import { ModuleBudgetTable } from "@/components/coach/module-budget-table";
 import { PaceDiagnosisCard } from "@/components/coach/pace-diagnosis-card";
 import { BottleneckList } from "@/components/coach/bottleneck-list";
@@ -217,6 +218,13 @@ export default function CoachPage() {
   return (
     <div className="space-y-6">
       {header}
+
+      <CoachStatusStrip
+        report={report}
+        readiness={readiness}
+        retention={retention}
+        targetDate={targetDate}
+      />
 
       <CoachForecastCard
         report={report}

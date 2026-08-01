@@ -13,8 +13,8 @@ import {
 import { renderInsightMessage } from "@/lib/insight-format";
 import type { Insight } from "@/lib/types";
 import type { TablerIcon } from "@tabler/icons-react";
+import { cn } from "@/lib/utils";
 
-/** Exact icon match for the five primary insight categories; others fall back by type. */
 const iconById: Record<string, TablerIcon> = {
   "time-distribution": IconChartPie,
   "peak-hours": IconClock,
@@ -30,18 +30,13 @@ const iconByType: Record<Insight["type"], TablerIcon> = {
   tip: IconBulb,
 };
 
-/** Badge background + icon color, replacing the old left-border color coding. */
 const badgeByType: Record<Insight["type"], { bg: string; icon: string }> = {
-  info: { bg: "#1c2a3d", icon: "#6fa8dc" },
-  tip: { bg: "#241f3d", icon: "#a48ee0" },
-  success: { bg: "#15302a", icon: "#4fb892" },
-  warning: { bg: "#3a2c16", icon: "#e0a23a" },
+  info: { bg: "rgba(59, 130, 246, 0.15)", icon: "#6fa8dc" },
+  tip: { bg: "rgba(139, 92, 246, 0.15)", icon: "#a48ee0" },
+  success: { bg: "rgba(34, 197, 94, 0.15)", icon: "#4fb892" },
+  warning: { bg: "rgba(234, 179, 8, 0.15)", icon: "#e0a23a" },
 };
 
-const NEUTRAL_ROW = { background: "#15151c", border: "0.5px solid #232330" };
-const WARNING_ROW = { background: "#1d180f", border: "0.5px solid #3a2c16" };
-
-/** Split a warning message into a primary line and a supporting detail line. */
 function splitWarning(message: string): { primary: string; detail: string | null } {
   const stripped = message.replace(/^You(?:'re| are)\s+/i, "");
   const idx = stripped.indexOf(". ");
@@ -62,12 +57,16 @@ function InsightRow({ insight, index }: { insight: Insight; index: number }) {
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.06 }}
-      className="flex items-start gap-3 rounded-[10px]"
-      style={{ ...(isWarning ? WARNING_ROW : NEUTRAL_ROW), padding: "13px 14px" }}
+      className={cn(
+        "flex items-start gap-3 rounded-xl border px-3.5 py-3",
+        isWarning
+          ? "border-amber-500/20 bg-amber-500/[0.06]"
+          : "border-white/[0.06] bg-white/[0.02]"
+      )}
     >
       <span
-        className="flex shrink-0 items-center justify-center"
-        style={{ width: 26, height: 26, borderRadius: 7, background: badge.bg, marginTop: 1 }}
+        className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
+        style={{ background: badge.bg }}
       >
         <Icon size={14} stroke={1.5} style={{ color: badge.icon }} />
       </span>
@@ -77,11 +76,9 @@ function InsightRow({ insight, index }: { insight: Insight; index: number }) {
           const { primary, detail } = splitWarning(insight.message);
           return (
             <div className="min-w-0">
-              <p style={{ fontSize: "13.5px", lineHeight: 1.5, color: "#c7c5d6", marginBottom: detail ? 6 : 0 }}>
-                {renderInsightMessage(primary)}
-              </p>
+              <p className="text-[13px] leading-relaxed text-foreground">{renderInsightMessage(primary)}</p>
               {detail && (
-                <p style={{ fontSize: "12px", lineHeight: 1.4, color: "#8b7a52", margin: 0 }}>
+                <p className="mt-1 text-[12px] leading-relaxed text-amber-200/70">
                   {detail}
                 </p>
               )}
@@ -89,7 +86,7 @@ function InsightRow({ insight, index }: { insight: Insight; index: number }) {
           );
         })()
       ) : (
-        <p className="min-w-0" style={{ fontSize: "13.5px", lineHeight: 1.5, color: "#c7c5d6", margin: 0 }}>
+        <p className="min-w-0 text-[13px] leading-relaxed text-muted-foreground">
           {renderInsightMessage(insight.message)}
         </p>
       )}
@@ -99,20 +96,18 @@ function InsightRow({ insight, index }: { insight: Insight; index: number }) {
 
 export function InsightsPanel({ insights }: { insights: Insight[] }) {
   return (
-    <div style={{ background: "#0d0d11", borderRadius: 16, padding: 24 }}>
-      <div className="flex items-center" style={{ gap: 8, marginBottom: 18 }}>
-        <IconBulb size={16} stroke={1.5} style={{ color: "#8b88a3" }} />
-        <span style={{ fontSize: 13, fontWeight: 500, color: "#a9a7bd", letterSpacing: "0.02em" }}>
-          Smart insights
-        </span>
+    <div className="glass-card p-6">
+      <div className="mb-4 flex items-center gap-2">
+        <IconBulb size={16} stroke={1.5} className="text-muted-foreground" />
+        <span className="section-heading text-muted-foreground">Smart insights</span>
       </div>
 
       {insights.length === 0 ? (
-        <p style={{ fontSize: "13.5px", lineHeight: 1.5, color: "#8b88a3", margin: 0 }}>
+        <p className="text-[13px] text-muted-foreground">
           Start learning to unlock personalized insights.
         </p>
       ) : (
-        <div className="flex flex-col" style={{ gap: 8 }}>
+        <div className="flex flex-col gap-2">
           {insights.slice(0, 5).map((insight, i) => (
             <InsightRow key={insight.id} insight={insight} index={i} />
           ))}

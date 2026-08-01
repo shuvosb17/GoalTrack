@@ -137,9 +137,9 @@ export function Sidebar() {
                     <Link key={item.href} href={item.href} onClick={() => setSidebarOpen(false)}>
                       <div
                         className={cn(
-                          "group/item flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-200",
+                          "group/item flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
                           isActive
-                            ? "bg-white/[0.08] text-foreground"
+                            ? "bg-white/[0.08] text-foreground glow-active"
                             : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"
                         )}
                       >

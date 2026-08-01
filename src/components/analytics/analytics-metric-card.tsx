@@ -19,26 +19,16 @@ export function AnalyticsMetricCard({
   className,
 }: AnalyticsMetricCardProps) {
   return (
-    <div
-      className={cn(
-        "rounded-2xl border border-[#232329] bg-[#131316] px-7 pt-[26px] pb-6",
-        className
-      )}
-    >
+    <div className={cn("glass-card overflow-hidden px-6 pb-6 pt-6", className)}>
       <header>
-        <h3
-          className="text-[15px] font-semibold tracking-tight text-[#EDEDF0]"
-          style={{ fontFamily: "var(--font-space-grotesk), ui-sans-serif, sans-serif" }}
-        >
-          {title}
-        </h3>
-        <p className="mt-0.5 text-xs text-[#9A9AA5]">{subtitle}</p>
+        <h3 className="text-[15px] font-medium tracking-tight text-foreground">{title}</h3>
+        <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
       </header>
 
       <div className="mt-5">{children}</div>
 
-      <p className="mt-5 flex items-start gap-2 border-t border-[#232329] pt-4 text-xs leading-relaxed text-[#9A9AA5]">
-        <IconBulb className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#9C97D8]" stroke={1.5} />
+      <p className="mt-5 flex items-start gap-2 border-t border-white/[0.06] pt-4 text-xs leading-relaxed text-muted-foreground">
+        <IconBulb className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary/70" stroke={1.5} />
         {insight}
       </p>
     </div>

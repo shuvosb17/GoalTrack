@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
+import { HaEntityTile } from "@/components/shared/ha-entity-tile";
 import { cn } from "@/lib/utils";
 
 interface CoachCardProps {
@@ -55,16 +56,12 @@ interface CoachStatProps {
 
 export function CoachStat({ label, value, hint, color }: CoachStatProps) {
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3.5 py-3">
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p
-        className="mt-1 text-lg font-medium tabular-nums text-foreground"
-        style={color ? { color } : undefined}
-      >
-        {value}
-      </p>
-      {hint && <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{hint}</p>}
-    </div>
+    <HaEntityTile
+      label={label}
+      value={value}
+      hint={hint}
+      accent={color ?? "#e2d9ff"}
+    />
   );
 }
 
