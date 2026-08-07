@@ -29,7 +29,7 @@ export function EvidenceHeatmap({ report }: { report: Bs23ReadinessReport }) {
         ))}
       </div>
       <p className="mt-3 text-[11px] text-muted-foreground">
-        Empty weeks decay your scores. Each box = drills logged that week.
+        Each box = topics ticked + drills logged that week.
       </p>
     </div>
   );

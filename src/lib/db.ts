@@ -18,6 +18,7 @@ import type {
   MockRoundSession,
   Bs23Drill,
   Bs23Artifact,
+  Bs23TopicProgress,
 } from "./types";
 import type { SkipLog } from "./types/metrics";
 
@@ -41,6 +42,7 @@ export class GrowthOSDatabase extends Dexie {
   mockRoundSessions!: Table<MockRoundSession>;
   bs23Drills!: Table<Bs23Drill>;
   bs23Artifacts!: Table<Bs23Artifact>;
+  bs23TopicProgress!: Table<Bs23TopicProgress>;
 
   constructor() {
     super("GrowthOS");
@@ -139,6 +141,9 @@ export class GrowthOSDatabase extends Dexie {
     this.version(16).stores({
       bs23Drills: "id, stageId, competencyId, date, mode",
       bs23Artifacts: "id, itemId, status, completedAt",
+    });
+    this.version(17).stores({
+      bs23TopicProgress: "id, topicId, stageId, competencyId, status, completedAt",
     });
     this.version(7).stores({}).upgrade(async (tx) => {
       const topics = await tx.table("topics").toArray();

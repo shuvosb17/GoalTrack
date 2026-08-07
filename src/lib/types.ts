@@ -392,6 +392,18 @@ export interface Bs23Artifact {
   updatedAt: string;
 }
 
+export interface Bs23TopicProgress {
+  id: string;
+  topicId: string;
+  stageId: Bs23StageId;
+  competencyId: string;
+  status: "not_started" | "in_progress" | "done";
+  completedAt?: string;
+  confidence?: 1 | 2 | 3 | 4 | 5;
+  notes?: string;
+  updatedAt: string;
+}
+
 /** Per-track completion deadline for estimation charts */
 export interface TrackEstimate {
   trackId: string;

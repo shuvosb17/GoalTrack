@@ -33,7 +33,7 @@ export function StageRadarPanel({ stage }: { stage: Bs23StageScore }) {
       <div className="mb-2 flex items-baseline justify-between">
         <p className="text-xs font-medium text-foreground">{stage.name}</p>
         <p className="text-sm tabular-nums text-muted-foreground">
-          {stage.readiness}% / {stage.threshold}%
+          {stage.readiness}% score · {stage.coverage}% coverage
           {stage.locked && " · locked"}
         </p>
       </div>

@@ -144,3 +144,7 @@ export function useBs23Drills() {
 export function useBs23Artifacts() {
   return useLiveQuery(() => db.bs23Artifacts.toArray(), []) ?? [];
 }
+
+export function useBs23TopicProgress() {
+  return useLiveQuery(() => db.bs23TopicProgress.toArray(), []) ?? [];
+}

@@ -1,8 +1,8 @@
 import { differenceInCalendarDays, format, subDays, addDays } from "date-fns";
 import type {
   AppSettings,
-  Bs23Artifact,
   Bs23Drill,
+  Bs23TopicProgress,
   CsReviewItem,
   LearningSession,
   LeetcodeProblem,
@@ -12,19 +12,29 @@ import type {
 } from "../types";
 import type { Bs23StageId } from "../types";
 import {
-  BS23_ARTIFACTS,
   BS23_STAGES,
   CS_CATEGORY_TO_COMPETENCY,
   LEETCODE_PATTERN_TO_COMPETENCY,
   type Bs23CompetencyDef,
   type Bs23StageDef,
 } from "./stages";
+import {
+  BS23_SYLLABUS,
+  computeCompetencyCoverage,
+  computeStageCoverageSummary,
+  getNextUnfinishedTopics,
+  type Bs23StageCoverageSummary,
+  type Bs23TopicDef,
+  type Bs23TopicProgressMap,
+} from "./syllabus";
 import { parseLocalDate, todayISO } from "../utils";
 
-/** Evidence half-life in days (~4 weeks). */
+/** Evidence half-life in days (~4 weeks) — applies to proof bonus only. */
 export const DECAY_HALF_LIFE_DAYS = 28;
-/** Score cap when below minEvidence drills. */
-export const VOLUME_CAP_PERCENT = 40;
+/** Max proof bonus multiplier from drills (25%). */
+export const MAX_PROOF_BONUS = 0.25;
+/** Days without activity before staleness note. */
+export const STALENESS_DAYS = 42;
 /** Difficulty multipliers for LeetCode-derived evidence. */
 const DIFFICULTY_WEIGHT = { easy: 0.45, medium: 1, hard: 1.35 } as const;
 
@@ -34,12 +44,16 @@ export interface Bs23CompetencyScore {
   stageId: Bs23StageId;
   weight: number;
   score: number;
-  rawScore: number;
+  coverage: number;
+  proofBonus: number;
+  topicsDone: number;
+  topicsTotal: number;
   evidenceCount: number;
   minEvidence: number;
   threshold: number;
   met: boolean;
   lastEvidenceDate: string | null;
+  staleNote: string | null;
   hint: string;
 }
 
@@ -49,6 +63,7 @@ export interface Bs23StageScore {
   shortName: string;
   order: number;
   readiness: number;
+  coverage: number;
   threshold: number;
   met: boolean;
   locked: boolean;
@@ -66,6 +81,10 @@ export interface Bs23ReadinessReport {
   overallOfferProbability: number;
   stages: Bs23StageScore[];
   weakestCompetencies: Bs23CompetencyScore[];
+  nextTopics: Bs23TopicDef[];
+  syllabusProgress: Bs23StageCoverageSummary[];
+  totalTopics: number;
+  totalTopicsDone: number;
   totalDrillsLogged: number;
   weeklyHoursActual: number;
   weeklyHoursRequired: number;
@@ -79,7 +98,7 @@ export interface Bs23ReadinessReport {
 
 export interface Bs23ReadinessInput {
   drills: Bs23Drill[];
-  artifacts: Bs23Artifact[];
+  topicProgress: Bs23TopicProgress[];
   leetcodeProblems: LeetcodeProblem[];
   csReviewItems: CsReviewItem[];
   prepQuizAttempts: PrepQuizAttempt[];
@@ -94,6 +113,14 @@ interface EvidencePoint {
   score: number;
   date: string;
   weight: number;
+}
+
+function buildProgressMap(rows: Bs23TopicProgress[]): Bs23TopicProgressMap {
+  const map: Bs23TopicProgressMap = {};
+  for (const row of rows) {
+    map[row.topicId] = row.status;
+  }
+  return map;
 }
 
 function decayWeight(dateStr: string, now: Date): number {
@@ -120,10 +147,11 @@ function aggregateEvidence(points: EvidencePoint[], now: Date): { raw: number; c
   };
 }
 
-function applyVolumeFloor(raw: number, count: number, minEvidence: number): number {
-  if (minEvidence <= 0) return raw;
-  if (count < minEvidence) return Math.min(raw, VOLUME_CAP_PERCENT);
-  return raw;
+function computeProofBonus(points: EvidencePoint[], now: Date): number {
+  if (points.length === 0) return 0;
+  const { raw } = aggregateEvidence(points, now);
+  const quality = Math.min(1, raw / 100);
+  return Math.min(MAX_PROOF_BONUS, quality * MAX_PROOF_BONUS);
 }
 
 function drillDifficultyWeight(d?: Bs23Drill["difficulty"]): number {
@@ -143,40 +171,6 @@ function buildDrillEvidence(drills: Bs23Drill[]): Map<string, EvidencePoint[]> {
     map.set(d.competencyId, list);
   }
   return map;
-}
-
-function mergeArtifactEvidence(
-  artifacts: Bs23Artifact[],
-  map: Map<string, EvidencePoint[]>,
-  now: Date
-): void {
-  const today = format(now, "yyyy-MM-dd");
-  for (const def of BS23_ARTIFACTS) {
-    const art = artifacts.find((a) => a.itemId === def.id);
-    if (!art || art.status !== "done") continue;
-    const competencyId = artifactToCompetency(def.id);
-    if (!competencyId) continue;
-    const list = map.get(competencyId) ?? [];
-    list.push({ score: 100, date: art.completedAt?.slice(0, 10) ?? today, weight: 1 });
-    map.set(competencyId, list);
-  }
-}
-
-function artifactToCompetency(itemId: string): string | null {
-  const map: Record<string, string> = {
-    resume_ats: "resume_ats",
-    github_portfolio: "github_portfolio",
-    project_1: "deployed_projects",
-    project_2: "deployed_projects",
-    linkedin: "linkedin",
-    star_story_1: "star_stories",
-    star_story_2: "star_stories",
-    star_story_3: "star_stories",
-    star_story_4: "star_stories",
-    star_story_5: "star_stories",
-    why_bs23: "why_bs23",
-  };
-  return map[itemId] ?? null;
 }
 
 function mergeLeetcodeEvidence(problems: LeetcodeProblem[], map: Map<string, EvidencePoint[]>, now: Date): void {
@@ -238,27 +232,70 @@ function mergeMockRoundEvidence(sessions: MockRoundSession[], map: Map<string, E
   }
 }
 
+function lastTopicActivityDate(
+  competencyId: string,
+  topicProgress: Bs23TopicProgress[],
+  now: Date
+): string | null {
+  const today = format(now, "yyyy-MM-dd");
+  let last: string | null = null;
+  for (const row of topicProgress) {
+    if (row.competencyId !== competencyId || row.status !== "done") continue;
+    const d = row.completedAt?.slice(0, 10) ?? today;
+    if (!last || d > last) last = d;
+  }
+  return last;
+}
+
+function staleNoteFor(lastDate: string | null, now: Date): string | null {
+  if (!lastDate) return null;
+  const days = differenceInCalendarDays(now, parseLocalDate(lastDate));
+  if (days >= STALENESS_DAYS) {
+    return `No activity in ${days} days — revisit before the exam.`;
+  }
+  return null;
+}
+
 function scoreCompetency(
   def: Bs23CompetencyDef,
   stageId: Bs23StageId,
+  coveragePct: number,
+  topicsDone: number,
+  topicsTotal: number,
   evidenceMap: Map<string, EvidencePoint[]>,
+  topicProgress: Bs23TopicProgress[],
   now: Date
 ): Bs23CompetencyScore {
   const points = evidenceMap.get(def.id) ?? [];
-  const { raw, count, lastDate } = aggregateEvidence(points, now);
-  const score = applyVolumeFloor(raw, count, def.minEvidence);
+  const { count, lastDate: drillLastDate } = aggregateEvidence(points, now);
+  const proofBonus = computeProofBonus(points, now);
+  const coverage = coveragePct;
+  const score = Math.min(100, Math.round(coverage * (1 + proofBonus)));
+
+  const topicLast = lastTopicActivityDate(def.id, topicProgress, now);
+  const lastEvidenceDate =
+    drillLastDate && topicLast
+      ? drillLastDate > topicLast
+        ? drillLastDate
+        : topicLast
+      : drillLastDate ?? topicLast;
+
   return {
     id: def.id,
     name: def.name,
     stageId,
     weight: def.weight,
-    score: Math.round(score),
-    rawScore: Math.round(raw),
+    score,
+    coverage: Math.round(coverage),
+    proofBonus: Math.round(proofBonus * 1000) / 10,
+    topicsDone,
+    topicsTotal,
     evidenceCount: count,
     minEvidence: def.minEvidence,
     threshold: def.threshold,
     met: score >= def.threshold,
-    lastEvidenceDate: lastDate,
+    lastEvidenceDate,
+    staleNote: staleNoteFor(lastEvidenceDate, now),
     hint: def.hint,
   };
 }
@@ -266,6 +303,7 @@ function scoreCompetency(
 function scoreStage(
   stage: Bs23StageDef,
   competencyScores: Bs23CompetencyScore[],
+  stageCoverage: number,
   locked: boolean,
   cumulativeIn: number
 ): Bs23StageScore {
@@ -287,6 +325,7 @@ function scoreStage(
     shortName: stage.shortName,
     order: stage.order,
     readiness,
+    coverage: stageCoverage,
     threshold: stage.passThreshold,
     met,
     locked,
@@ -297,7 +336,7 @@ function scoreStage(
   };
 }
 
-function computeWeeklyHours(sessions: LearningSession[], tracks: Track[], weeks: number, now: Date): number {
+function computeWeeklyHours(sessions: LearningSession[], weeks: number, now: Date): number {
   const cutoff = subDays(now, weeks * 7);
   const ms = sessions
     .filter((s) => parseLocalDate(s.date) >= cutoff)
@@ -305,16 +344,26 @@ function computeWeeklyHours(sessions: LearningSession[], tracks: Track[], weeks:
   return Math.round((ms / 3_600_000 / weeks) * 10) / 10;
 }
 
-function buildHeatmap(drills: Bs23Drill[], weeks: number, now: Date): Array<{ week: string; count: number }> {
+function buildHeatmap(
+  drills: Bs23Drill[],
+  topicProgress: Bs23TopicProgress[],
+  weeks: number,
+  now: Date
+): Array<{ week: string; count: number }> {
   const points: Array<{ week: string; count: number }> = [];
   for (let w = weeks - 1; w >= 0; w--) {
     const start = subDays(now, (w + 1) * 7);
     const end = subDays(now, w * 7);
-    const count = drills.filter((d) => {
+    const drillCount = drills.filter((d) => {
       const dt = parseLocalDate(d.date);
       return dt >= start && dt < end;
     }).length;
-    points.push({ week: format(end, "MMM d"), count });
+    const topicCount = topicProgress.filter((p) => {
+      if (p.status !== "done" || !p.completedAt) return false;
+      const dt = parseLocalDate(p.completedAt.slice(0, 10));
+      return dt >= start && dt < end;
+    }).length;
+    points.push({ week: format(end, "MMM d"), count: drillCount + topicCount });
   }
   return points;
 }
@@ -345,8 +394,12 @@ export function buildBs23ReadinessReport(input: Bs23ReadinessInput): Bs23Readine
   const weeksToMcq = Math.max(daysToMcq / 7, 0);
   const weeksToDayLong = Math.max(differenceInCalendarDays(parseLocalDate(dayLongDate), now) / 7, 0);
 
+  const progressMap = buildProgressMap(input.topicProgress);
+  const competencyCoverage = computeCompetencyCoverage(progressMap);
+  const coverageByCompetency = new Map(competencyCoverage.map((c) => [c.competencyId, c]));
+  const syllabusProgress = computeStageCoverageSummary(progressMap);
+
   const evidenceMap = buildDrillEvidence(input.drills);
-  mergeArtifactEvidence(input.artifacts, evidenceMap, now);
   mergeLeetcodeEvidence(input.leetcodeProblems, evidenceMap, now);
   mergeCsReviewEvidence(input.csReviewItems, evidenceMap, now);
   mergeQuizEvidence(input.prepQuizAttempts, evidenceMap);
@@ -358,10 +411,27 @@ export function buildBs23ReadinessReport(input: Bs23ReadinessInput): Bs23Readine
 
   for (const stage of BS23_STAGES) {
     const locked = !previousMet;
-    const competencyScores = stage.competencies.map((c) =>
-      scoreCompetency(c, stage.id, evidenceMap, now)
+    const stageSummary = syllabusProgress.find((s) => s.stageId === stage.id);
+    const competencyScores = stage.competencies.map((c) => {
+      const cov = coverageByCompetency.get(c.id);
+      return scoreCompetency(
+        c,
+        stage.id,
+        cov?.coverage ?? 0,
+        cov?.completedTopics ?? 0,
+        cov?.totalTopics ?? 0,
+        evidenceMap,
+        input.topicProgress,
+        now
+      );
+    });
+    const stageScore = scoreStage(
+      stage,
+      competencyScores,
+      stageSummary?.coverage ?? 0,
+      locked,
+      cumulative
     );
-    const stageScore = scoreStage(stage, competencyScores, locked, cumulative);
     stages.push(stageScore);
     cumulative = stageScore.cumulativeProbability / 100;
     previousMet = stageScore.met;
@@ -370,7 +440,7 @@ export function buildBs23ReadinessReport(input: Bs23ReadinessInput): Bs23Readine
   const allCompetencies = stages.flatMap((s) => s.competencies);
   const weakestCompetencies = [...allCompetencies]
     .filter((c) => !c.met)
-    .sort((a, b) => a.score - b.score || b.weight - a.weight)
+    .sort((a, b) => a.coverage - b.coverage || b.weight - a.weight)
     .slice(0, 8);
 
   const gapMatrix = allCompetencies.map((c) => ({
@@ -381,7 +451,10 @@ export function buildBs23ReadinessReport(input: Bs23ReadinessInput): Bs23Readine
     stageId: c.stageId,
   }));
 
-  const weeklyHoursActual = computeWeeklyHours(input.sessions, input.tracks, 4, now);
+  const totalTopicsDone = competencyCoverage.reduce((s, c) => s + c.completedTopics, 0);
+  const totalTopics = BS23_SYLLABUS.length;
+
+  const weeklyHoursActual = computeWeeklyHours(input.sessions, 4, now);
   const s2Readiness = stages.find((s) => s.id === "S2")?.readiness ?? 0;
   const gap = Math.max(0, 70 - s2Readiness);
   const weeklyHoursRequired = Math.max(8, Math.round((gap / 10 + 10) * 10) / 10);
@@ -395,11 +468,15 @@ export function buildBs23ReadinessReport(input: Bs23ReadinessInput): Bs23Readine
     overallOfferProbability: stages[stages.length - 1]?.cumulativeProbability ?? 0,
     stages,
     weakestCompetencies,
+    nextTopics: getNextUnfinishedTopics(progressMap, 10),
+    syllabusProgress,
+    totalTopics,
+    totalTopicsDone,
     totalDrillsLogged: input.drills.length,
     weeklyHoursActual,
     weeklyHoursRequired,
     gapMatrix,
-    evidenceHeatmap: buildHeatmap(input.drills, heatmapWeeks, now),
+    evidenceHeatmap: buildHeatmap(input.drills, input.topicProgress, heatmapWeeks, now),
     burndown: buildBurndown(Math.ceil(weeksToMcq), weeklyHoursRequired, weeklyHoursActual, now),
     declaredStack: input.settings?.bs23DeclaredStack,
     mcqDate,

@@ -2,10 +2,10 @@
 
 import { useCallback, useMemo } from "react";
 import { format } from "date-fns";
-import { Target } from "lucide-react";
+import { BookOpen, Target } from "lucide-react";
 import {
-  useBs23Artifacts,
   useBs23Drills,
+  useBs23TopicProgress,
   useCsReviewItems,
   useLeetcodeProblems,
   useMockRoundSessions,
@@ -25,9 +25,10 @@ import { StageCards } from "@/components/bs23/stage-cards";
 import { SettingsStrip, defaultBs23Settings } from "@/components/bs23/settings-strip";
 import { DrillLoggerDialog } from "@/components/bs23/drill-logger-dialog";
 import { WeeklyPlanCard } from "@/components/bs23/weekly-plan-card";
-import { ArtifactChecklist } from "@/components/bs23/artifact-checklist";
+import { TopicChecklist } from "@/components/bs23/topic-checklist";
 import { Bs23Card, Bs23Stat } from "@/components/bs23/bs23-card";
 import { FunnelChart } from "@/components/bs23/funnel-chart";
+import { SyllabusProgressChart } from "@/components/bs23/syllabus-progress-chart";
 import { StageRadarPanel } from "@/components/bs23/stage-radar";
 import { BurndownChart } from "@/components/bs23/burndown-chart";
 import { EvidenceHeatmap } from "@/components/bs23/evidence-heatmap";
@@ -44,7 +45,7 @@ import {
 export default function CoachPage() {
   const settings = useSettings();
   const drills = useBs23Drills();
-  const artifacts = useBs23Artifacts();
+  const topicProgress = useBs23TopicProgress();
   const leetcodeProblems = useLeetcodeProblems();
   const csReviewItems = useCsReviewItems();
   const prepQuizAttempts = usePrepQuizAttempts();
@@ -58,7 +59,7 @@ export default function CoachPage() {
     () =>
       buildBs23ReadinessReport({
         drills,
-        artifacts,
+        topicProgress,
         leetcodeProblems,
         csReviewItems,
         prepQuizAttempts,
@@ -77,7 +78,7 @@ export default function CoachPage() {
       }),
     [
       drills,
-      artifacts,
+      topicProgress,
       leetcodeProblems,
       csReviewItems,
       prepQuizAttempts,
@@ -121,6 +122,7 @@ export default function CoachPage() {
 
   const focusStages = report.stages.filter((s) => !s.locked && !s.met).slice(0, 2);
   const radarStages = focusStages.length > 0 ? focusStages : report.stages.slice(0, 2);
+  const syllabusPct = Math.round((report.totalTopicsDone / Math.max(report.totalTopics, 1)) * 100);
 
   return (
     <div className="space-y-6">
@@ -135,8 +137,8 @@ export default function CoachPage() {
             Star Coder Prep
           </h1>
           <p className="mt-1 max-w-2xl text-xs text-muted-foreground sm:text-sm">
-            Evidence-only readiness. No logged drill = zero credit. Decay erases idle weeks. Gated
-            stages — you cannot bank day-long prep while failing MCQ.
+            Work through the ordered topic checklist — ticking topics drives readiness. Logged drills
+            add up to +25% proof bonus. Stages gate forward progress.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -170,11 +172,28 @@ export default function CoachPage() {
 
       <StageCards stages={report.stages} />
 
+      <Bs23Card
+        title="Topic checklist"
+        subtitle={`${report.totalTopicsDone}/${report.totalTopics} topics done (${syllabusPct}%) — work in order, tick when genuinely complete`}
+        icon={ListChecks}
+        accent="#8b5cf6"
+      >
+        <TopicChecklist
+          topicProgress={topicProgress}
+          syllabusProgress={report.syllabusProgress}
+        />
+      </Bs23Card>
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Bs23Stat
+          label="Syllabus coverage"
+          value={`${syllabusPct}%`}
+          hint={`${report.totalTopicsDone}/${report.totalTopics} topics ticked`}
+        />
         <Bs23Stat
           label="Drills logged"
           value={String(report.totalDrillsLogged)}
-          hint="Only these count toward readiness"
+          hint="Proof bonus up to +25%"
         />
         <Bs23Stat
           label="Actual pace"
@@ -187,14 +206,18 @@ export default function CoachPage() {
           value={`${report.stages.find((s) => s.id === "S2")?.readiness ?? 0}%`}
           hint="Online MCQ gate"
         />
-        <Bs23Stat
-          label="Weeks to day-long"
-          value={report.weeksToDayLong.toFixed(0)}
-          hint={format(parseLocalDate(report.dayLongDate), "MMM d, yyyy")}
-        />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
+        <Bs23Card
+          title="Syllabus progress"
+          subtitle="Coverage by stage — tick topics to fill each bar"
+          icon={BookOpen}
+          accent="#6366f1"
+        >
+          <SyllabusProgressChart syllabusProgress={report.syllabusProgress} />
+        </Bs23Card>
+
         <Bs23Card
           title="Selection funnel"
           subtitle="Stage pass probability × cumulative offer path"
@@ -203,16 +226,16 @@ export default function CoachPage() {
         >
           <FunnelChart stages={report.stages} />
         </Bs23Card>
-
-        <Bs23Card
-          title="Readiness burndown"
-          subtitle="Required weekly hours vs your actual pace to MCQ"
-          icon={BarChart3}
-          accent="#6366f1"
-        >
-          <BurndownChart report={report} />
-        </Bs23Card>
       </div>
+
+      <Bs23Card
+        title="Readiness burndown"
+        subtitle="Required weekly hours vs your actual pace to MCQ"
+        icon={BarChart3}
+        accent="#6366f1"
+      >
+        <BurndownChart report={report} />
+      </Bs23Card>
 
       <Bs23Card
         title="Competency radar"
@@ -229,8 +252,8 @@ export default function CoachPage() {
 
       <div className="grid gap-6 xl:grid-cols-2">
         <Bs23Card
-          title="Evidence heatmap"
-          subtitle={`${report.evidenceHeatmap.length}-week drill log — empty weeks are loud`}
+          title="Activity heatmap"
+          subtitle={`${report.evidenceHeatmap.length}-week log — topics ticked + drills logged`}
           icon={Flame}
           accent="#f97316"
         >
@@ -248,15 +271,6 @@ export default function CoachPage() {
       </div>
 
       <WeeklyPlanCard plan={weeklyPlan} capacitySource={capacitySource} />
-
-      <Bs23Card
-        title="Artifact checklist"
-        subtitle="CV and HR deliverables — mark done when genuinely complete"
-        icon={ListChecks}
-        accent="#22c55e"
-      >
-        <ArtifactChecklist artifacts={artifacts} />
-      </Bs23Card>
     </div>
   );
 }

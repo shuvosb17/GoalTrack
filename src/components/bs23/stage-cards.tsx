@@ -43,7 +43,7 @@ export function StageCards({ stages }: { stages: Bs23StageScore[] }) {
             />
           </div>
           <p className="mt-2 text-[11px] text-muted-foreground">
-            Need {stage.threshold}% · Pass ~{stage.passProbability}%
+            Coverage {stage.coverage}% · Need {stage.threshold}% · Pass ~{stage.passProbability}%
           </p>
           <p className="mt-0.5 text-[10px] tabular-nums text-muted-foreground">
             Cumulative {stage.cumulativeProbability.toFixed(2)}%
