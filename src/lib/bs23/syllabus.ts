@@ -1,6 +1,7 @@
 import type { Bs23StageId } from "../types";
 
 export type Bs23TopicTier = "core" | "stretch";
+export type Bs23TopicTag = "BD";
 
 export interface Bs23TopicDef {
   id: string;
@@ -10,6 +11,8 @@ export interface Bs23TopicDef {
   title: string;
   detail: string;
   tier: Bs23TopicTier;
+  /** Reported in Bangladesh / BS23-style interview write-ups */
+  tags?: Bs23TopicTag[];
 }
 
 export const TIER_WEIGHT: Record<Bs23TopicTier, number> = {
@@ -46,13 +49,46 @@ function t(
   order: number,
   title: string,
   detail: string,
-  tier: Bs23TopicTier = "core"
+  tier: Bs23TopicTier = "core",
+  tags?: Bs23TopicTag[]
 ): Bs23TopicDef {
-  return { id, stageId, competencyId, order, title, detail, tier };
+  return { id, stageId, competencyId, order, title, detail, tier, tags };
 }
 
-/** 309 ordered topics across BS23 Star Coder prep stages S1–S5. */
-export const BS23_SYLLABUS: Bs23TopicDef[] = [
+/** Existing syllabus topics reported in BS23 / Bangladesh interview write-ups */
+const BD_REPORTED_TOPIC_IDS = new Set([
+  "s3_arr_two_sum",
+  "s3_arr_group_anagrams",
+  "s3_arr_valid_anagram",
+  "s3_arr_contains_duplicate",
+  "s3_arr_best_time_stock",
+  "s3_arr_move_zeroes",
+  "s3_hash_subarray_sum_k",
+  "s3_hash_longest_consecutive",
+  "s3_tp_valid_palindrome",
+  "s3_ll_reverse_ll",
+  "s3_ll_merge_two_lists",
+  "s3_ll_ll_cycle",
+  "s3_ll_remove_nth_node",
+  "s3_tg_num_islands",
+  "s3_tg_course_schedule",
+  "s3_tg_validate_bst",
+  "s3_tg_lca_bst",
+  "s3_tg_same_tree",
+  "s3_tg_max_depth",
+  "s3_bs_search_rotated",
+  "s3_stk_valid_parentheses",
+  "s3_paper_paper_two_sum",
+  "s3_paper_paper_reverse_ll",
+  "s3_paper_paper_valid_paren",
+  "s3_paper_paper_bfs_template",
+  "s3_paper_paper_binary_search",
+  "s3_paper_paper_mock_1",
+  "s3_paper_paper_mock_2",
+  "s3_paper_paper_mock_3",
+]);
+
+const RAW_SYLLABUS: Bs23TopicDef[] = [
   t("s1_resume_one_page", "S1", "resume_ats", 1, "One-page resume layout", "Single page, 10-12pt font, clear sections: contact, education, skills, projects, experience."),
   t("s1_resume_action_verbs", "S1", "resume_ats", 2, "Action verb bullets", "Start each bullet with strong verbs: Built, Designed, Optimized — never Responsible for."),
   t("s1_resume_quantify", "S1", "resume_ats", 3, "Quantified impact bullets", "Add numbers: users, latency %, test coverage, team size, deadlines met."),
@@ -268,6 +304,24 @@ export const BS23_SYLLABUS: Bs23TopicDef[] = [
   t("s3_tp_max_area_histogram", "S3", "two_pointers_sliding", 213, "Max Consecutive Ones III (LC 1004)", "Sliding window with at most k flips.", "stretch"),
   t("s3_tg_serialize_tree", "S3", "trees_graphs", 214, "Serialize and Deserialize Binary Tree (LC 297)", "BFS/DFS encoding — stretch hard."),
   t("s3_paper_mock_4", "S3", "paper_solving", 215, "Paper mock set #4", "Two problems in 45 min — include DP or binary search."),
+  // BD-reported: BS23 onsite coding (Interview BD / tamimehsan), bdtechjobs, Tahanima
+  t("s3_bd_reverse_digits", "S3", "arrays_strings", 1160, "Reverse digits of a number", "BS23 onsite: reverse digits of n on paper; handle negative and trailing zeros.", "core", ["BD"]),
+  t("s3_bd_armstrong", "S3", "arrays_strings", 1161, "Armstrong number check", "BS23 onsite: sum of digits^digitCount equals n (e.g. 153).", "core", ["BD"]),
+  t("s3_bd_trim_spaces", "S3", "arrays_strings", 1162, "Trim and normalize spaces", "BS23 onsite: strip leading/trailing spaces; collapse multiple spaces to one.", "core", ["BD"]),
+  t("s3_bd_star_coder_fizzbuzz", "S3", "arrays_strings", 1163, "StarCoder FizzBuzz variant", "BS23 onsite: 3→Star, 5→Coder, 15→StarCoder, else print i.", "core", ["BD"]),
+  t("s3_bd_rotate_array", "S3", "arrays_strings", 1164, "Rotate Array (LC 189)", "BS23 onsite: rotate array right by k steps.", "core", ["BD"]),
+  t("s3_bd_factorial", "S3", "arrays_strings", 1165, "Factorial n!", "BS23 onsite: compute factorial; discuss overflow for large n.", "core", ["BD"]),
+  t("s3_bd_digit_perm_divisible", "S3", "hashing", 1330, "Digit permutations divisible by M", "BS23 onsite bonus: count permutations of N divisible by M (no leading zeros).", "core", ["BD"]),
+  t("s3_bd_missing_number", "S3", "hashing", 1331, "Missing Number (LC 268)", "BS23 MCQ style: find missing room in [0..n] — XOR or sum formula.", "core", ["BD"]),
+  t("s3_bd_find_pairs_sum", "S3", "hashing", 1332, "Find all pairs with target sum", "bKash/BD written: all pairs summing to target; handle duplicates.", "core", ["BD"]),
+  t("s3_bd_remove_dup_sorted_ll", "S3", "linked_lists", 1530, "Remove Duplicates from Sorted List (LC 83)", "bKash BD: delete duplicate nodes in sorted linked list.", "core", ["BD"]),
+  t("s3_bd_bst_completion", "S3", "trees_graphs", 1670, "Complete BST implementation on paper", "BS23 written: insert, delete, inorder traversal — finish incomplete code.", "core", ["BD"]),
+  t("s3_bd_directed_cycle_dfs", "S3", "trees_graphs", 1671, "Directed graph cycle — DFS pseudocode", "BS23 written: detect cycle in directed graph; write pseudocode on paper.", "core", ["BD"]),
+  t("s3_bd_connect_cities", "S3", "trees_graphs", 1672, "Connect all cities (min roads)", "BS23 MCQ: minimum edges to connect all nodes — union-find / DFS components.", "core", ["BD"]),
+  t("s3_bd_circular_ll_remove_nth", "S3", "linked_lists", 1531, "Remove nth from end — circular LL", "BS23 MCQ variant: circular singly linked list; remove nth efficiently.", "core", ["BD"]),
+  t("s3_bd_paper_reverse_digits", "S3", "paper_solving", 2110, "Paper: reverse digits (BS23 onsite)", "Exact BS23 written format — no IDE, 15 min.", "core", ["BD"]),
+  t("s3_bd_paper_armstrong", "S3", "paper_solving", 2111, "Paper: Armstrong number (BS23 onsite)", "Write full solution with dry-run on sample input.", "core", ["BD"]),
+  t("s3_bd_paper_starcoder_set", "S3", "paper_solving", 2112, "Paper: BS23 onsite coding set", "Reverse digits + FizzBuzz variant + rotate array in 45 min.", "core", ["BD"]),
   t("s4_req_actors_constraints", "S4", "requirement_analysis", 216, "Identify actors and constraints", "List users, admin, payment gateway, time limits."),
   t("s4_req_functional_vs_nonfunctional", "S4", "requirement_analysis", 217, "Functional vs non-functional reqs", "Features vs performance, security, scalability."),
   t("s4_req_edge_cases_list", "S4", "requirement_analysis", 218, "Edge case brainstorming", "Empty cart, duplicate payment, session timeout."),
@@ -363,6 +417,21 @@ export const BS23_SYLLABUS: Bs23TopicDef[] = [
   t("s5_salary_research", "S5", "salary_expectation", 308, "Research fresher salary band", "Check Glassdoor, peers, BS23 ranges for freshers."),
   t("s5_salary_script", "S5", "salary_expectation", 309, "Salary expectation script", "Give researched range; show flexibility on benefits."),
 ];
+
+/** 327 topics across BS23 Star Coder prep stages S1–S5 (includes BD-reported additions). */
+export const BS23_SYLLABUS: Bs23TopicDef[] = RAW_SYLLABUS.map((topic) => {
+  if (!BD_REPORTED_TOPIC_IDS.has(topic.id) || topic.tags?.includes("BD")) return topic;
+  return { ...topic, tags: ["BD"] as Bs23TopicTag[] };
+});
+
+export function isBdReportedTopic(topic: Bs23TopicDef): boolean {
+  return topic.tags?.includes("BD") ?? false;
+}
+
+export function countBdTopics(stageId?: Bs23StageId): number {
+  const pool = stageId ? BS23_SYLLABUS.filter((t) => t.stageId === stageId) : BS23_SYLLABUS;
+  return pool.filter(isBdReportedTopic).length;
+}
 
 export function getTopicsByStage(stageId: Bs23StageId): Bs23TopicDef[] {
   return BS23_SYLLABUS.filter((topic) => topic.stageId === stageId).sort((a, b) => a.order - b.order);

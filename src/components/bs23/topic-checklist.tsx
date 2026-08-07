@@ -84,6 +84,12 @@ export function TopicChecklist({ topicProgress, syllabusProgress }: TopicCheckli
         <Button type="button" variant="outline" size="sm" onClick={jumpToNext}>
           Jump to next
         </Button>
+        <span className="text-[11px] text-muted-foreground">
+          <span className="rounded border border-amber-500/40 bg-amber-500/15 px-1.5 py-0.5 text-[10px] text-amber-300">
+            BD
+          </span>{" "}
+          = reported in BS23 / Bangladesh interviews
+        </span>
       </div>
 
       <Tabs value={activeStage} onValueChange={(v) => setActiveStage(v as Bs23StageId)}>
@@ -206,6 +212,11 @@ export function TopicChecklist({ topicProgress, syllabusProgress }: TopicCheckli
                                     >
                                       {topic.title}
                                     </span>
+                                    {topic.tags?.includes("BD") && (
+                                      <Badge className="h-5 border-amber-500/40 bg-amber-500/15 px-1.5 text-[10px] text-amber-300">
+                                        BD
+                                      </Badge>
+                                    )}
                                     {topic.tier === "stretch" && (
                                       <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
                                         stretch
