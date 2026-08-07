@@ -132,3 +132,15 @@ export function useCsReviewItems() {
 export function usePrepQuizAttempts() {
   return useLiveQuery(() => db.prepQuizAttempts.toArray(), []) ?? [];
 }
+
+export function useMockRoundSessions() {
+  return useLiveQuery(() => db.mockRoundSessions.toArray(), []) ?? [];
+}
+
+export function useBs23Drills() {
+  return useLiveQuery(() => db.bs23Drills.orderBy("date").reverse().toArray(), []) ?? [];
+}
+
+export function useBs23Artifacts() {
+  return useLiveQuery(() => db.bs23Artifacts.toArray(), []) ?? [];
+}

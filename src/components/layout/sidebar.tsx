@@ -45,7 +45,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
   {
     label: "Insights",
     items: [
-      { href: "/coach", label: "Coach", icon: IconCompass },
+      { href: "/coach", label: "Star Coder", icon: IconCompass },
       { href: "/analytics", label: "Analytics", icon: IconChartBar },
       { href: "/journal", label: "Journal", icon: IconNotebook },
       { href: "/achievements", label: "Achievements", icon: IconTrophy },

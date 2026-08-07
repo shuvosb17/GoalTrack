@@ -341,6 +341,55 @@ export interface AppSettings {
   goCoachTargetDate?: string;
   /** Planned weekly study hours used by the scenario simulator */
   goCoachPlannedHoursPerWeek?: number;
+  /** BS23 Star Coder — target online MCQ date (yyyy-MM-dd) */
+  bs23McqDate?: string;
+  /** BS23 Star Coder — expected day-long assessment date (yyyy-MM-dd) */
+  bs23DayLongDate?: string;
+  /** Language/stack declared for BS23 stack-specific test */
+  bs23DeclaredStack?: Bs23DeclaredStack;
+  /** Planned weekly prep hours for BS23 readiness burndown */
+  bs23WeeklyHours?: number;
+}
+
+export type Bs23StageId = "S1" | "S2" | "S3" | "S4" | "S5";
+
+export type Bs23DeclaredStack = "java" | "csharp" | "javascript" | "python" | "go";
+
+export type Bs23DrillMode =
+  | "mcq_mock"
+  | "written_paper"
+  | "timed_dsa"
+  | "paper_dsa"
+  | "system_design"
+  | "erd"
+  | "sql_handwrite"
+  | "stack_test"
+  | "mock_interview"
+  | "personality"
+  | "presentation"
+  | "star_practice";
+
+export interface Bs23Drill {
+  id: string;
+  stageId: Bs23StageId;
+  competencyId: string;
+  date: string;
+  mode: Bs23DrillMode;
+  /** 0–100 */
+  scorePercent: number;
+  durationMinutes?: number;
+  difficulty?: "easy" | "medium" | "hard";
+  notes?: string;
+  createdAt: string;
+}
+
+export interface Bs23Artifact {
+  id: string;
+  itemId: string;
+  status: "not_started" | "in_progress" | "done";
+  completedAt?: string;
+  notes?: string;
+  updatedAt: string;
 }
 
 /** Per-track completion deadline for estimation charts */

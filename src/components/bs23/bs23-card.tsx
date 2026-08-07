@@ -2,18 +2,17 @@ import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface CoachCardProps {
+interface Bs23CardProps {
   title: string;
   subtitle?: string;
   icon: LucideIcon;
-  /** Hex accent driving the header wash and icon colour. */
   accent?: string;
   action?: ReactNode;
   children: ReactNode;
   className?: string;
 }
 
-export function CoachCard({
+export function Bs23Card({
   title,
   subtitle,
   icon: Icon,
@@ -21,12 +20,12 @@ export function CoachCard({
   action,
   children,
   className,
-}: CoachCardProps) {
+}: Bs23CardProps) {
   return (
     <section className={cn("glass-card overflow-hidden rounded-xl", className)}>
       <div
         className="flex flex-wrap items-start justify-between gap-3 border-b border-white/[0.06] px-[18px] py-3.5"
-        style={{ background: `linear-gradient(135deg, ${accent}12 0%, transparent 55%)` }}
+        style={{ background: `linear-gradient(135deg, ${accent}14 0%, transparent 55%)` }}
       >
         <div className="min-w-0">
           <h2 className="flex items-center gap-2 text-sm font-medium text-foreground">
@@ -46,14 +45,17 @@ export function CoachCard({
   );
 }
 
-interface CoachStatProps {
+export function Bs23Stat({
+  label,
+  value,
+  hint,
+  color,
+}: {
   label: string;
   value: string;
   hint?: string;
   color?: string;
-}
-
-export function CoachStat({ label, value, hint, color }: CoachStatProps) {
+}) {
   return (
     <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3.5 py-3">
       <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
@@ -65,13 +67,5 @@ export function CoachStat({ label, value, hint, color }: CoachStatProps) {
       </p>
       {hint && <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{hint}</p>}
     </div>
-  );
-}
-
-export function CoachEmptyLine({ children }: { children: ReactNode }) {
-  return (
-    <p className="rounded-lg border border-dashed border-white/[0.08] px-3.5 py-6 text-center text-[13px] text-muted-foreground">
-      {children}
-    </p>
   );
 }
