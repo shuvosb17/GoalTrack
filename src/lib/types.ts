@@ -337,6 +337,8 @@ export interface AppSettings {
   trackSettings?: Record<string, TrackSettings>;
   /** Applied Development Go Backend curriculum shape version */
   goBackendCurriculumVersion?: number;
+  /** Applied System Design TJIP class plan version (Class 10+) */
+  systemDesignClassPlanVersion?: number;
   /** Target date to be apply-ready on the Go Backend path (yyyy-MM-dd) */
   goCoachTargetDate?: string;
   /** Planned weekly study hours used by the scenario simulator */

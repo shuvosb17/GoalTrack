@@ -14,6 +14,7 @@ import { InterviewReadinessChecker } from "@/components/providers/interview-read
 import { seedDatabase, ensureLeetcodePrep, ensureInterviewReadyAchievement, ensureGoBackendPath, ensureGoBackendProjects } from "@/lib/seed";
 import { ensureGoBackendCurriculumSync } from "@/lib/go-backend-curriculum-sync";
 import { ensureGitGithubSubtopics } from "@/lib/git-github-curriculum-sync";
+import { ensureSystemDesignClassPlan } from "@/lib/system-design-class-plan-sync";
 import { repairMisattributedSessions } from "@/lib/session-repair";
 import { applySessionCorrections } from "@/lib/session-corrections";
 import { useAppStore } from "@/stores/app-store";
@@ -29,6 +30,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       .then(() => ensureGoBackendCurriculumSync())
       .then(() => ensureGoBackendProjects())
       .then(() => ensureGitGithubSubtopics())
+      .then(() => ensureSystemDesignClassPlan())
       .then(() => ensureInterviewReadyAchievement())
       .then(() => repairMisattributedSessions())
       .then(() => applySessionCorrections())
